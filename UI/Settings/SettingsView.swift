@@ -150,26 +150,115 @@ public struct SettingsView: View {
 public struct AdapterScanView: View {
     @ObservedObject public var vehicleData: VehicleDataManager
 
+    private var bluetoothManager: BluetoothManager? {
+        vehicleData.obdConnection as? BluetoothManager
+    }
+
     public var body: some View {
         List {
-            Section("Available OBD-II Bluetooth Adapters") {
+            Section("Status & Actions") {
                 HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                    VStack(alignment: .leading) {
-                        Text("Vgate iCar Pro 2S (BLE)")
-                            .font(.headline)
-                        Text("IOS-Vlink-18F0")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
+                    Text("Connection Status")
                     Spacer()
-                    Text(vehicleData.connectionState.isConnected ? "Connected" : "Disconnected")
+                    Text(statusText)
+                        .font(.subheadline)
+                        .bold()
+                        .foregroundColor(statusColor)
+                }
+
+                if vehicleData.connectionState.isConnected {
+                    Button(role: .destructive) {
+                        vehicleData.obdConnection.disconnect()
+                    } label: {
+                        HStack {
+                            Image(systemName: "power")
+                            Text("Disconnect Adapter")
+                        }
+                    }
+                } else {
+                    Button {
+                        if case .scanning = vehicleData.connectionState {
+                            vehicleData.obdConnection.disconnect()
+                        } else {
+                            vehicleData.obdConnection.connect(peripheralName: nil)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: isScanning ? "stop.fill" : "antenna.radiowaves.left.and.right")
+                            Text(isScanning ? "Stop Scanning" : "Scan for Nearby BLE Adapters")
+                        }
+                    }
+                }
+            }
+
+            Section("Discovered BLE Devices") {
+                if let devices = bluetoothManager?.discoveredDevices, !devices.isEmpty {
+                    ForEach(devices, id: \.identifier) { device in
+                        HStack {
+                            Image(systemName: "cpu")
+                                .foregroundColor(Theme.electricCyan)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(device.name ?? "Unnamed Device")
+                                    .font(.headline)
+                                Text(device.identifier.uuidString)
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Button("Connect") {
+                                bluetoothManager?.connect(to: device)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .font(.caption)
+                        }
+                    }
+                } else if isScanning {
+                    HStack {
+                        ProgressView()
+                            .padding(.trailing, 8)
+                        Text("Searching for OBD-II BLE adapters...")
+                            .foregroundColor(.secondary)
+                            .font(.subheadline)
+                    }
+                } else {
+                    Text("No devices found yet. Tap scan above to search for nearby OBD-II Bluetooth adapters.")
                         .font(.caption)
-                        .foregroundColor(vehicleData.connectionState.isConnected ? .green : .cyan)
+                        .foregroundColor(.secondary)
                 }
             }
         }
         .navigationTitle("BLE Scanner")
+        .onAppear {
+            if !vehicleData.isDemoMode && !vehicleData.connectionState.isConnected {
+                vehicleData.obdConnection.connect(peripheralName: nil)
+            }
+        }
+    }
+
+    private var isScanning: Bool {
+        if case .scanning = vehicleData.connectionState {
+            return true
+        }
+        return false
+    }
+
+    private var statusText: String {
+        switch vehicleData.connectionState {
+        case .disconnected: return "Disconnected"
+        case .scanning: return "Scanning..."
+        case .connecting(let dev): return "Connecting to \(dev)..."
+        case .ready(let dev): return "Connected (\(dev))"
+        case .demoMode: return "Demo / Simulation Mode"
+        case .error(let msg): return "Error: \(msg)"
+        }
+    }
+
+    private var statusColor: Color {
+        switch vehicleData.connectionState {
+        case .ready, .demoMode: return .green
+        case .connecting, .scanning: return .orange
+        case .disconnected: return .secondary
+        case .error: return .red
+        }
     }
 }

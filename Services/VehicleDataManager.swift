@@ -134,5 +134,13 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
     public func obdConnectionStateDidChange(_ state: BLEConnectionState) {
         self.connectionState = state
+        if case .ready = state {
+            for cmd in selectedProfile.initializationCommands {
+                obdConnection.sendCommand(cmd, completion: nil)
+            }
+            startPolling()
+        } else if case .disconnected = state {
+            stopPolling()
+        }
     }
 }

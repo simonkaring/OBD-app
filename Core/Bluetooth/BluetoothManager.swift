@@ -26,8 +26,18 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         state = .scanning
         discoveredDevices.removeAll()
         if centralManager.state == .poweredOn {
-            centralManager.scanForPeripherals(withServices: BLEConstants.allSupportedServices, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+            centralManager.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
         }
+    }
+
+    public func connect(to peripheral: CBPeripheral) {
+        centralManager.stopScan()
+        activePeripheral = peripheral
+        peripheral.delegate = self
+        let name = peripheral.name ?? "OBD Adapter"
+        state = .connecting(deviceName: name)
+        delegate?.obdConnectionStateDidChange(state)
+        centralManager.connect(peripheral, options: nil)
     }
 
     public func disconnect() {
@@ -53,7 +63,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         let payload = command + "\r"
         guard let data = payload.data(using: .utf8) else { return }
 
-        peripheral.writeValue(data, for: writeChar, type: .withResponse)
+        let writeType: CBCharacteristicWriteType = writeChar.properties.contains(.write) ? .withResponse : .withoutResponse
+        peripheral.writeValue(data, for: writeChar, type: writeType)
 
         commandTimer?.invalidate()
         commandTimer = Timer.scheduledTimer(withTimeInterval: BLEConstants.defaultTimeout, repeats: false) { [weak self] _ in
@@ -69,7 +80,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn {
             if case .scanning = state {
-                central.scanForPeripherals(withServices: BLEConstants.allSupportedServices, options: nil)
+                central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
             }
         } else {
             state = .error("Bluetooth is off or unauthorized")
@@ -83,21 +94,24 @@ extension BluetoothManager: CBCentralManagerDelegate {
         }
 
         let name = peripheral.name ?? advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? ""
-        if name.contains("Vlink") || name.contains("iCar") || name.contains("OBD") {
+        if name.contains("Vlink") || name.contains("iCar") || name.contains("OBD") || name.contains("BLE") || name.contains("VEEPEAK") {
             central.stopScan()
             activePeripheral = peripheral
             peripheral.delegate = self
-            state = .connecting(deviceName: name)
+            state = .connecting(deviceName: name.isEmpty ? "OBD Adapter" : name)
             delegate?.obdConnectionStateDidChange(state)
             central.connect(peripheral, options: nil)
         }
     }
 
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        peripheral.discoverServices(BLEConstants.allSupportedServices)
+        peripheral.discoverServices(nil)
     }
 
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        activePeripheral = nil
+        writeCharacteristic = nil
+        notifyCharacteristic = nil
         state = .disconnected
         delegate?.obdConnectionStateDidChange(state)
     }
@@ -114,17 +128,19 @@ extension BluetoothManager: CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard let characteristics = service.characteristics else { return }
         for char in characteristics {
-            if char.properties.contains(.write) || char.properties.contains(.writeWithoutResponse) {
+            if writeCharacteristic == nil && (char.properties.contains(.write) || char.properties.contains(.writeWithoutResponse)) {
                 writeCharacteristic = char
             }
-            if char.properties.contains(.notify) || char.properties.contains(.read) {
+            if notifyCharacteristic == nil && (char.properties.contains(.notify) || char.properties.contains(.indicate) || char.properties.contains(.read)) {
                 notifyCharacteristic = char
-                peripheral.setNotifyValue(true, for: char)
+                if char.properties.contains(.notify) || char.properties.contains(.indicate) {
+                    peripheral.setNotifyValue(true, for: char)
+                }
             }
         }
 
-        if writeCharacteristic != nil && notifyCharacteristic != nil {
-            let devName = peripheral.name ?? "iCar Pro 2S"
+        if writeCharacteristic != nil && (notifyCharacteristic != nil || writeCharacteristic != nil) {
+            let devName = peripheral.name ?? "OBD Adapter"
             state = .ready(deviceName: devName)
             delegate?.obdConnectionStateDidChange(state)
         }
