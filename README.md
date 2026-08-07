@@ -15,10 +15,34 @@ Optimized for Bluetooth Low Energy (BLE) adapters—specifically the **Vgate iCa
 
 ---
 
-### Option 1: Running in Xcode
+### Option 1: Running & Building via Terminal (CLI)
+
+#### 1. Building for iOS Simulator via Terminal
+You can build the iOS app directly from terminal using `xcodebuild`:
+```bash
+xcodebuild -scheme VoltLinkEngine -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+```
+
+#### 2. Launching the iOS Simulator from Terminal
+```bash
+# Open macOS Simulator app
+open -a Simulator
+
+# Boot a specific iPhone simulator
+xcrun simctl boot "iPhone 16 Pro"
+```
+
+#### 3. Running Unit Tests via Terminal
+```bash
+# Run unit test suite via SwiftPM
+swift test
+```
+
+---
+
+### Option 2: Running in Xcode (GUI)
 
 1. **Open the Project in Xcode**:
-   Double-click `Package.swift` or open Xcode and select `File -> Open` and select the repo directory:
    ```bash
    open Package.swift
    ```
@@ -33,17 +57,6 @@ Optimized for Bluetooth Low Energy (BLE) adapters—specifically the **Vgate iCa
    While the iOS Simulator is running:
    - In the Simulator menu, go to **I/O -> External Displays -> CarPlay**.
    - A secondary CarPlay display window will open running the native VoltLink CarPlay dashboard!
-
----
-
-### Option 2: Running Command-Line Unit Tests (SwiftPM)
-
-You can verify the entire core telemetry engine, UDS PID parsers, and diagnostic database directly from your macOS terminal:
-
-```bash
-# Run unit test suite
-swift test
-```
 
 ---
 
