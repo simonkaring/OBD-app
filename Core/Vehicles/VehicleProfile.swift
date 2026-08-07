@@ -6,6 +6,7 @@ public protocol VehicleProfile: Sendable {
     var batteryUsableCapacityKWh: Double { get }
     var initializationCommands: [String] { get }
     var pollingCommands: [String] { get }
-    
+    var supportedMetrics: Set<TelemetryMetric> { get }
+
     func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate?
 }

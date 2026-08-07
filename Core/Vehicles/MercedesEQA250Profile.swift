@@ -36,6 +36,10 @@ public struct MercedesEQA250Profile: VehicleProfile {
         ]
     }
 
+    public var supportedMetrics: Set<TelemetryMetric> {
+        [.speed, .power, .soc, .soh, .batteryTemp, .aux12V, .motorRpm, .motorTorque]
+    }
+
     public init() {}
 
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {

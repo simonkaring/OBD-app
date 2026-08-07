@@ -7,59 +7,65 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     public var interfaceController: CPInterfaceController?
     private var cancellables = Set<AnyCancellable>()
 
-    private var socButton: CPGridButton?
-    private var powerButton: CPGridButton?
-    private var speedButton: CPGridButton?
-    private var healthButton: CPGridButton?
-
     public func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
         didConnect interfaceController: CPInterfaceController
     ) {
         self.interfaceController = interfaceController
-        setupCarPlayDashboard()
+        rebuildGrid()
+
+        AppEnvironment.shared.vehicleData.$latestTelemetry
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.rebuildGrid() }
+            .store(in: &cancellables)
     }
 
     public func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
         didDisconnectInterfaceController interfaceController: CPInterfaceController
     ) {
+        cancellables.removeAll()
         self.interfaceController = nil
     }
 
-    private func setupCarPlayDashboard() {
-        let batteryImg = UIImage(systemName: "bolt.batteryblock.fill") ?? UIImage()
-        let powerImg = UIImage(systemName: "gauge.with.needle.fill") ?? UIImage()
-        let speedImg = UIImage(systemName: "speedometer") ?? UIImage()
-        let healthImg = UIImage(systemName: "checkmark.shield.fill") ?? UIImage()
+    private func rebuildGrid() {
+        let vehicleData = AppEnvironment.shared.vehicleData
+        let dtcService = AppEnvironment.shared.dtcService
+        let profile = vehicleData.selectedProfile
+        let snapshot = vehicleData.latestTelemetry
+        let layout = CarPlayLayout.load()
 
-        socButton = CPGridButton(titleVariants: ["SOC: 78%", "Battery"], image: batteryImg) { _ in }
-        powerButton = CPGridButton(titleVariants: ["Power: 0 kW", "Live kW"], image: powerImg) { _ in }
-        speedButton = CPGridButton(titleVariants: ["Speed: 0 km/h", "Speed"], image: speedImg) { _ in }
-        healthButton = CPGridButton(titleVariants: ["Health: OK", "Diagnostics"], image: healthImg) { _ in }
+        let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
+            gridButton(for: tile, profile: profile, snapshot: snapshot, dtcService: dtcService)
+        }
 
-        let grid = CPGridTemplate(
-            title: "VoltLink EQA",
-            gridButtons: [socButton!, powerButton!, speedButton!, healthButton!]
-        )
+        guard !buttons.isEmpty else { return }
 
-        interfaceController?.setRootTemplate(grid, animated: true)
+        let grid = CPGridTemplate(title: profile.vehicleName, gridButtons: buttons)
+        interfaceController?.setRootTemplate(grid, animated: false)
     }
 
-    public func updateTelemetry(telemetry: TelemetrySnapshot) {
-        let socStr = String(format: "SOC: %.0f%%", telemetry.stateOfChargePct)
-        let powerStr = String(format: "Power: %.1f kW", telemetry.powerKW)
-        let speedStr = String(format: "Speed: %.0f km/h", telemetry.speedKmH)
+    private func gridButton(for tile: CarPlayTileKind, profile: VehicleProfile, snapshot: TelemetrySnapshot, dtcService: DTCScannerService) -> CPGridButton? {
+        switch tile {
+        case .metric(let metric):
+            guard profile.supportedMetrics.contains(metric) else { return nil }
+            let value = metric.value(in: snapshot)
+            let valueStr = String(format: "%.1f %@", value, metric.unitSymbol)
+            let image = UIImage(systemName: metric.sfSymbolName) ?? UIImage()
+            return CPGridButton(titleVariants: [valueStr, metric.displayName], image: image) { _ in }
 
-        socButton = CPGridButton(titleVariants: [socStr, "Battery"], image: UIImage(systemName: "bolt.batteryblock.fill") ?? UIImage()) { _ in }
-        powerButton = CPGridButton(titleVariants: [powerStr, "Live kW"], image: UIImage(systemName: "gauge.with.needle.fill") ?? UIImage()) { _ in }
-        speedButton = CPGridButton(titleVariants: [speedStr, "Speed"], image: UIImage(systemName: "speedometer") ?? UIImage()) { _ in }
-
-        if let soc = socButton, let pow = powerButton, let spd = speedButton, let hlth = healthButton {
-            let updatedGrid = CPGridTemplate(title: "VoltLink EQA", gridButtons: [soc, pow, spd, hlth])
-            interfaceController?.setRootTemplate(updatedGrid, animated: false)
+        case .health:
+            let image = UIImage(systemName: "checkmark.shield.fill") ?? UIImage()
+            let statusStr: String
+            if dtcService.lastScanDate == nil {
+                statusStr = "Health: --"
+            } else if dtcService.scannedCodes.isEmpty {
+                statusStr = "Health: OK"
+            } else {
+                statusStr = "Health: \(dtcService.scannedCodes.count) Faults"
+            }
+            return CPGridButton(titleVariants: [statusStr, "Diagnostics"], image: image) { _ in }
         }
     }
 }
 #endif
-

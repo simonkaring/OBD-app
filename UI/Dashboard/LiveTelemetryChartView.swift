@@ -3,15 +3,29 @@ import Charts
 
 public struct LiveTelemetryChartView: View {
     public var telemetryHistory: [TelemetrySnapshot]
+    /// Up to 2 metrics plotted on one shared y-axis. Defaults to today's power-only stream.
+    public var seriesMetrics: [TelemetryMetric]
 
-    public init(telemetryHistory: [TelemetrySnapshot]) {
+    public init(telemetryHistory: [TelemetrySnapshot], seriesMetrics: [TelemetryMetric] = [.power]) {
         self.telemetryHistory = telemetryHistory
+        self.seriesMetrics = seriesMetrics
+    }
+
+    private var headerTitle: String {
+        seriesMetrics.map(\.displayName).joined(separator: " & ")
+    }
+
+    private func color(for metric: TelemetryMetric, value: Double, seriesIndex: Int) -> Color {
+        if metric == .power {
+            return value < 0 ? Theme.regenGreen : Theme.electricCyan
+        }
+        return seriesIndex == 0 ? Theme.electricCyan : Theme.highPowerAmber
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label("Live Power & Speed Stream", systemImage: "chart.xyaxis.line")
+                Label("Live \(headerTitle) Stream", systemImage: "chart.xyaxis.line")
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
@@ -25,26 +39,29 @@ public struct LiveTelemetryChartView: View {
             }
 
             Chart {
-                ForEach(telemetryHistory.suffix(30)) { item in
-                    LineMark(
-                        x: .value("Time", item.timestamp),
-                        y: .value("Power (kW)", item.powerKW)
-                    )
-                    .foregroundStyle(item.powerKW < 0 ? Theme.regenGreen : Theme.electricCyan)
-                    .interpolationMethod(.catmullRom)
+                ForEach(Array(seriesMetrics.enumerated()), id: \.offset) { seriesIndex, metric in
+                    ForEach(telemetryHistory.suffix(30)) { item in
+                        let value = metric.value(in: item)
+                        let seriesColor = color(for: metric, value: value, seriesIndex: seriesIndex)
 
-                    AreaMark(
-                        x: .value("Time", item.timestamp),
-                        y: .value("Power (kW)", item.powerKW)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [(item.powerKW < 0 ? Theme.regenGreen : Theme.electricCyan).opacity(0.3), .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
+                        LineMark(
+                            x: .value("Time", item.timestamp),
+                            y: .value(metric.displayName, value)
                         )
-                    )
-                    .interpolationMethod(.catmullRom)
+                        .foregroundStyle(seriesColor)
+                        .interpolationMethod(.catmullRom)
+
+                        if seriesMetrics.count == 1 {
+                            AreaMark(
+                                x: .value("Time", item.timestamp),
+                                y: .value(metric.displayName, value)
+                            )
+                            .foregroundStyle(
+                                LinearGradient(colors: [seriesColor.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom)
+                            )
+                            .interpolationMethod(.catmullRom)
+                        }
+                    }
                 }
             }
             .chartYAxis {

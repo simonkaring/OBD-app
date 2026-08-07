@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 
+#if os(iOS)
 @main
 struct VoltLinkApp: App {
     @StateObject private var env = AppEnvironment.shared
@@ -16,6 +17,7 @@ struct VoltLinkApp: App {
         .modelContainer(for: [TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, SavedDTCModel.self])
     }
 }
+#endif
 
 struct MainTabView: View {
     @EnvironmentObject private var vehicleData: VehicleDataManager

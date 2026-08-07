@@ -22,8 +22,16 @@ public struct GenericOBD2Profile: VehicleProfile {
             "010D", // Vehicle Speed
             "010C", // Engine RPM
             "0105", // Engine Coolant Temp
-            "0142"  // Control Module Voltage (12V)
+            "0142", // Control Module Voltage (12V)
+            "0104", // Calculated Engine Load
+            "010F", // Intake Air Temp
+            "0111", // Throttle Position
+            "012F"  // Fuel Level
         ]
+    }
+
+    public var supportedMetrics: Set<TelemetryMetric> {
+        [.speed, .motorRpm, .aux12V, .engineLoad, .coolantTemp, .intakeAirTemp, .throttlePosition, .fuelLevel]
     }
 
     public init() {}
@@ -45,6 +53,26 @@ public struct GenericOBD2Profile: VehicleProfile {
             guard let bytes = extractBytes(from: cleanHex, header: "4142", count: 2) else { return nil }
             let volts = (Double(bytes[0]) * 256.0 + Double(bytes[1])) / 1000.0
             return .aux12V(volts)
+
+        case "0105", "01 05":
+            guard let byte = extractByte(from: cleanHex, header: "4105") else { return nil }
+            return .coolantTemp(Double(byte) - 40.0)
+
+        case "0104", "01 04":
+            guard let byte = extractByte(from: cleanHex, header: "4104") else { return nil }
+            return .engineLoad(Double(byte) * 100.0 / 255.0)
+
+        case "010F", "01 0F":
+            guard let byte = extractByte(from: cleanHex, header: "410F") else { return nil }
+            return .intakeAirTemp(Double(byte) - 40.0)
+
+        case "0111", "01 11":
+            guard let byte = extractByte(from: cleanHex, header: "4111") else { return nil }
+            return .throttlePosition(Double(byte) * 100.0 / 255.0)
+
+        case "012F", "01 2F":
+            guard let byte = extractByte(from: cleanHex, header: "412F") else { return nil }
+            return .fuelLevel(Double(byte) * 100.0 / 255.0)
 
         default:
             return nil

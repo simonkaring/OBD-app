@@ -7,6 +7,8 @@ public struct DashboardView: View {
     @State private var telemetryHistory: [TelemetrySnapshot] = []
     @State private var showHUDMode = false
     @State private var showDemoControls = false
+    @State private var showCustomization = false
+    @AppStorage("dashboardLayout") private var layout: DashboardLayout = .default
 
     public init(vehicleData: VehicleDataManager, tripTracker: TripTrackingManager) {
         self.vehicleData = vehicleData
@@ -26,7 +28,7 @@ public struct DashboardView: View {
                                 Circle()
                                     .fill(vehicleData.connectionState.isConnected ? Theme.regenGreen : Theme.criticalRed)
                                     .frame(width: 10, height: 10)
-                                Text(vehicleData.isDemoMode ? "DEMO MODE (Mercedes EQA 250)" : "CONNECTED (Vgate iCar Pro 2S)")
+                                Text(vehicleData.isDemoMode ? "DEMO MODE (\(vehicleData.selectedProfile.vehicleName))" : "CONNECTED (Vgate iCar Pro 2S)")
                                     .font(.system(size: 12, weight: .bold, design: .rounded))
                                     .foregroundColor(Theme.textPrimary)
                             }
@@ -47,6 +49,16 @@ public struct DashboardView: View {
                             }
 
                             Button {
+                                showCustomization = true
+                            } label: {
+                                Image(systemName: "slider.horizontal.2.gtsquare")
+                                    .foregroundColor(Theme.electricCyan)
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.1))
+                                    .clipShape(Circle())
+                            }
+
+                            Button {
                                 showHUDMode = true
                             } label: {
                                 Image(systemName: "sunglasses.fill")
@@ -58,43 +70,22 @@ public struct DashboardView: View {
                         }
                         .padding(.horizontal)
 
-                        // Speed & Primary Gauges Row
-                        HStack(spacing: 12) {
-                            SpeedometerView(speedKmH: vehicleData.latestTelemetry.speedKmH)
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Image(systemName: "bolt.batteryblock")
-                                        .foregroundColor(Theme.electricCyan)
-                                    Text("Auxiliary 12V")
-                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                        .foregroundColor(Theme.textSecondary)
+                        // Customizable widget grid
+                        ForEach(Array(packDashboardWidgetsIntoRows(layout.widgets).enumerated()), id: \.offset) { _, row in
+                            HStack(spacing: 12) {
+                                ForEach(row) { widget in
+                                    DashboardWidgetTile(
+                                        config: widget,
+                                        snapshot: vehicleData.latestTelemetry,
+                                        profile: vehicleData.selectedProfile,
+                                        telemetryHistory: telemetryHistory
+                                    )
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: widget.size.height)
                                 }
-                                Text(String(format: "%.2f V", vehicleData.latestTelemetry.aux12VVolts))
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                                    .foregroundColor(Theme.textPrimary)
                             }
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .glassCard()
-                        }
-                        .padding(.horizontal)
-
-                        // Circular Power / Regen Gauge
-                        CircularPowerGauge(powerKW: vehicleData.latestTelemetry.powerKW)
-                            .frame(height: 240)
-
-                        // Battery Pack & Temperature Bar
-                        BatteryLevelBar(
-                            socPct: vehicleData.latestTelemetry.stateOfChargePct,
-                            batteryTempC: vehicleData.latestTelemetry.batteryTempC,
-                            isCharging: vehicleData.latestTelemetry.isCharging
-                        )
-                        .padding(.horizontal)
-
-                        // Realtime Swift Charts Line Graph
-                        LiveTelemetryChartView(telemetryHistory: telemetryHistory)
                             .padding(.horizontal)
+                        }
 
                         // Trip Recording Control Bar
                         HStack {
@@ -132,8 +123,6 @@ public struct DashboardView: View {
                     }
                 }
             }
-            .navigationTitle("VoltLink EQA")
-            .inlineTitleDisplayMode()
             .onReceive(vehicleData.$latestTelemetry) { snap in
                 telemetryHistory.append(snap)
                 if telemetryHistory.count > 50 {
@@ -166,6 +155,9 @@ public struct DashboardView: View {
                 if let mockAdapter = vehicleData.obdConnection as? MockOBDAdapter {
                     DemoControlSheet(simulationEngine: mockAdapter.simulationEngine)
                 }
+            }
+            .sheet(isPresented: $showCustomization) {
+                DashboardCustomizationSheet(layout: $layout, profile: vehicleData.selectedProfile)
             }
         }
     }

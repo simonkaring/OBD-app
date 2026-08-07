@@ -2,7 +2,6 @@ import SwiftUI
 
 public struct SettingsView: View {
     @ObservedObject public var vehicleData: VehicleDataManager
-    @State private var selectedUnitIndex = 0
 
     public init(vehicleData: VehicleDataManager) {
         self.vehicleData = vehicleData
@@ -19,11 +18,13 @@ public struct SettingsView: View {
                 }
 
                 Section("Vehicle Profile") {
-                    HStack {
-                        Text("Active Profile")
-                        Spacer()
-                        Text(vehicleData.selectedProfile.vehicleName)
-                            .foregroundColor(.gray)
+                    Picker("Active Profile", selection: Binding(
+                        get: { vehicleData.selectedProfileID },
+                        set: { vehicleData.selectProfile($0) }
+                    )) {
+                        ForEach(VehicleProfileID.allCases) { id in
+                            Text(id.displayName).tag(id)
+                        }
                     }
                 }
 
@@ -33,11 +34,17 @@ public struct SettingsView: View {
                     }
                 }
 
+                Section("CarPlay") {
+                    NavigationLink("CarPlay Tiles") {
+                        CarPlayTileEditorView(vehicleData: vehicleData)
+                    }
+                }
+
                 Section("App Information") {
                     HStack {
                         Text("App Version")
                         Spacer()
-                        Text("1.0.0 (VoltLink EQA)")
+                        Text("1.0.0")
                             .foregroundColor(.gray)
                     }
                 }

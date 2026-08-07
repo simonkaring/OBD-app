@@ -41,6 +41,21 @@ public final class MockOBDAdapter: ObservableObject, OBDConnectionProtocol {
             case "220101": // SOC
                 let rawSoc = Int(self.simulationEngine.telemetry.stateOfChargePct * 2.0)
                 mockHex = String(format: "62 01 01 %02X\r\n>", rawSoc)
+            case "0104": // Engine Load
+                let raw = Int(self.simulationEngine.telemetry.engineLoadPct * 255.0 / 100.0)
+                mockHex = String(format: "41 04 %02X\r\n>", raw)
+            case "0105": // Coolant Temp
+                let raw = Int(self.simulationEngine.telemetry.coolantTempC + 40.0)
+                mockHex = String(format: "41 05 %02X\r\n>", raw)
+            case "010F": // Intake Air Temp
+                let raw = Int(self.simulationEngine.telemetry.intakeAirTempC + 40.0)
+                mockHex = String(format: "41 0F %02X\r\n>", raw)
+            case "0111": // Throttle Position
+                let raw = Int(self.simulationEngine.telemetry.throttlePositionPct * 255.0 / 100.0)
+                mockHex = String(format: "41 11 %02X\r\n>", raw)
+            case "012F": // Fuel Level
+                let raw = Int(self.simulationEngine.telemetry.fuelLevelPct * 255.0 / 100.0)
+                mockHex = String(format: "41 2F %02X\r\n>", raw)
             case "03", "03\r": // Scan DTCs
                 if self.simulationEngine.scenario == .faultInjection || self.simulationEngine.injectedFaultCode != nil {
                     mockHex = "43 01 0A 80 00 00\r\n>" // P0A80

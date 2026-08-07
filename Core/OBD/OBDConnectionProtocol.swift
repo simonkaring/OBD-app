@@ -11,6 +11,11 @@ public enum TelemetryUpdate: Sendable {
     case hvacPower(Double)              // kW
     case chargingStats(kwRate: Double, acOrDc: String)
     case genericPid(mode: String, pid: String, rawValue: String)
+    case fuelLevel(Double)              // %
+    case throttlePosition(Double)       // %
+    case engineLoad(Double)             // %
+    case coolantTemp(Double)            // °C
+    case intakeAirTemp(Double)          // °C
 }
 
 public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
@@ -29,6 +34,11 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var hvacPowerKW: Double = 0.0
     public var isCharging: Bool = false
     public var chargePowerKW: Double = 0.0
+    public var fuelLevelPct: Double = 0.0
+    public var throttlePositionPct: Double = 0.0
+    public var engineLoadPct: Double = 0.0
+    public var coolantTempC: Double = 20.0
+    public var intakeAirTempC: Double = 20.0
 
     public init() {}
 }

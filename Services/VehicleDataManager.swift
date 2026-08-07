@@ -5,7 +5,8 @@ import SwiftUI
 public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     @Published public private(set) var latestTelemetry = TelemetrySnapshot()
     @Published public private(set) var connectionState: BLEConnectionState = .disconnected
-    @Published public var selectedProfile: VehicleProfile = MercedesEQA250Profile()
+    @Published public private(set) var selectedProfile: VehicleProfile = MercedesEQA250Profile()
+    @Published public private(set) var selectedProfileID: VehicleProfileID = .mercedesEQA250
     @Published public var isDemoMode: Bool = true
 
     public var obdConnection: OBDConnectionProtocol
@@ -39,6 +40,15 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.obdConnection.delegate = self
             connectionState = .disconnected
             stopPolling()
+        }
+    }
+
+    public func selectProfile(_ id: VehicleProfileID) {
+        selectedProfileID = id
+        selectedProfile = id.makeProfile()
+        pollingIndex = 0
+        for cmd in selectedProfile.initializationCommands {
+            obdConnection.sendCommand(cmd, completion: nil)
         }
     }
 
@@ -93,6 +103,11 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .chargingStats(let kw, _):
             snap.isCharging = kw > 0.5
             snap.chargePowerKW = kw
+        case .fuelLevel(let pct): snap.fuelLevelPct = pct
+        case .throttlePosition(let pct): snap.throttlePositionPct = pct
+        case .engineLoad(let pct): snap.engineLoadPct = pct
+        case .coolantTemp(let c): snap.coolantTempC = c
+        case .intakeAirTemp(let c): snap.intakeAirTempC = c
         case .genericPid: break
         }
         latestTelemetry = snap

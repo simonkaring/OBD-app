@@ -28,6 +28,9 @@ public final class MockDrivingSimulation: ObservableObject {
         telemetry.voltageV = 368.4
         telemetry.aux12VVolts = 13.8
         telemetry.batteryTempC = 26.5
+        telemetry.fuelLevelPct = 62.0
+        telemetry.coolantTempC = 88.0
+        telemetry.intakeAirTempC = 24.0
     }
 
     public func start() {
@@ -56,6 +59,25 @@ public final class MockDrivingSimulation: ObservableObject {
             simulateDCFastCharging()
         case .faultInjection:
             simulateFaultScenario()
+        }
+
+        stepGenericDerivedMetrics()
+    }
+
+    /// Derives the "any car" (non-EV, SAE J1979) fields from the same physics state
+    /// used above, so switching to `GenericOBD2Profile` in Demo Mode isn't flatlined at zero.
+    private func stepGenericDerivedMetrics() {
+        let throttle = userThrottleOverride ?? max(0.0, min(1.0, telemetry.powerKW / 85.0))
+        telemetry.throttlePositionPct = throttle * 100.0
+        telemetry.engineLoadPct = max(0.0, min(100.0, (telemetry.powerKW / 140.0) * 100.0))
+
+        let targetCoolant = 82.0 + min(20.0, telemetry.powerKW * 0.15)
+        telemetry.coolantTempC += (targetCoolant - telemetry.coolantTempC) * 0.02
+        telemetry.intakeAirTempC = 24.0 + sin(simulationStep * 0.05) * 2.0
+
+        if telemetry.powerKW > 0 {
+            let fuelDelta = (telemetry.powerKW * 0.0006)
+            telemetry.fuelLevelPct = max(0.0, telemetry.fuelLevelPct - fuelDelta)
         }
     }
 
