@@ -71,4 +71,12 @@ fastlane/test_output
 *.xcuserdata
 .swiftpm/
 scratch/
+build/
+
+# Local AI, Agents, and Vector DBs
+.agents/
+.claude-flow/
+.swarm/
+ruvector.db
+skills-lock.json
 
