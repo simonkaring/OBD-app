@@ -45,7 +45,7 @@
 					<key>UISceneConfigurationName</key>
 					<string>CarPlaySceneConfiguration</string>
 					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
+					<string>VoltLink.CarPlaySceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

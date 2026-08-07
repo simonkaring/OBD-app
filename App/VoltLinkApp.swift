@@ -2,8 +2,32 @@ import SwiftUI
 import SwiftData
 
 #if os(iOS)
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        if connectingSceneSession.role == .carTemplateApplication || connectingSceneSession.role.rawValue == "CPTemplateApplicationSceneSessionRoleApplication" {
+            let config = UISceneConfiguration(
+                name: "CarPlaySceneConfiguration",
+                sessionRole: connectingSceneSession.role
+            )
+            config.delegateClass = CarPlaySceneDelegate.self
+            return config
+        }
+        
+        let config = UISceneConfiguration(
+            name: "Default Configuration",
+            sessionRole: connectingSceneSession.role
+        )
+        return config
+    }
+}
+
 @main
 struct VoltLinkApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var env = AppEnvironment.shared
 
     var body: some Scene {
