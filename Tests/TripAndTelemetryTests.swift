@@ -21,6 +21,9 @@ final class TripAndTelemetryTests: XCTestCase {
 
     func testToggleDemoModeOffClearsTelemetry() {
         let manager = VehicleDataManager()
+        XCTAssertFalse(manager.isDemoMode)
+
+        manager.toggleDemoMode(true)
         XCTAssertTrue(manager.isDemoMode)
 
         manager.toggleDemoMode(false)

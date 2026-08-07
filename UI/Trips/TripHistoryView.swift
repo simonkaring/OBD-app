@@ -103,8 +103,35 @@ public struct TripHistoryView: View {
             }
             .navigationTitle("Trip Log")
             .inlineTitleDisplayMode()
+            .toolbar {
+                if !sampleTrips.isEmpty || tripTracker.currentTrip != nil {
+                    #if os(iOS)
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            sampleTrips.removeAll()
+                            tripTracker.clearAllTrips()
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    #else
+                    ToolbarItem(placement: .automatic) {
+                        Button(role: .destructive) {
+                            sampleTrips.removeAll()
+                            tripTracker.clearAllTrips()
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                    }
+                    #endif
+                }
+            }
             .onAppear {
                 generateSampleHistoryIfNeeded()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ClearSampleTrips"))) { _ in
+                sampleTrips.removeAll()
             }
         }
     }

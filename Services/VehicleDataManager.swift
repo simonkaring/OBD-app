@@ -7,7 +7,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     @Published public private(set) var connectionState: BLEConnectionState = .disconnected
     @Published public private(set) var selectedProfile: VehicleProfile = MercedesEQA250Profile()
     @Published public private(set) var selectedProfileID: VehicleProfileID = .mercedesEQA250
-    @Published public var isDemoMode: Bool = true
+    @Published public var isDemoMode: Bool = false
 
     public var obdConnection: OBDConnectionProtocol
 
@@ -18,7 +18,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         if let conn = connection {
             self.obdConnection = conn
         } else {
-            self.obdConnection = MockOBDAdapter()
+            self.obdConnection = BluetoothManager()
         }
         self.obdConnection.delegate = self
         if isDemoMode {
@@ -41,6 +41,17 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             connectionState = .disconnected
             latestTelemetry = TelemetrySnapshot()
             stopPolling()
+        }
+    }
+
+    public func clearDemoData() {
+        latestTelemetry = TelemetrySnapshot()
+        if let mock = obdConnection as? MockOBDAdapter {
+            mock.simulationEngine.scenario = .cityDriving
+            mock.simulationEngine.injectedFaultCode = nil
+            mock.simulationEngine.userSpeedOverride = nil
+            mock.simulationEngine.userThrottleOverride = nil
+            mock.simulationEngine.userRegenOverride = nil
         }
     }
 

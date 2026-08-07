@@ -57,6 +57,14 @@ public final class TripTrackingManager: ObservableObject {
         self.stationarySecondsRemaining = nil
     }
 
+    public func clearAllTrips() {
+        self.currentTrip = nil
+        self.isRecordingTrip = false
+        self.stationaryStartDate = nil
+        self.stationarySecondsRemaining = nil
+        NotificationCenter.default.post(name: Notification.Name("ClearSampleTrips"), object: nil)
+    }
+
     public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250", modelContext: ModelContext? = nil) {
         if isRecordingTrip {
             recordSnapshot(telemetry)

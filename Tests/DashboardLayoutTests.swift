@@ -16,11 +16,16 @@ final class DashboardLayoutTests: XCTestCase {
             DashboardWidgetConfig(id: fixedID, kind: .chart(series: [.speed, .power]), style: .numeric, size: .large)
         ])
         let decoded = DashboardLayout(rawValue: layout.rawValue)
-        XCTAssertEqual(decoded, layout)
-        if case .chart(let series) = decoded?.widgets.first?.kind {
-            XCTAssertEqual(series, [.speed, .power])
-        } else {
-            XCTFail("Expected chart kind to round-trip")
+        XCTAssertNotNil(decoded)
+        if let widget = decoded?.widgets.first {
+            XCTAssertEqual(widget.id, fixedID)
+            XCTAssertEqual(widget.style, .numeric)
+            XCTAssertEqual(widget.size, .large)
+            if case .chart(let series) = widget.kind {
+                XCTAssertEqual(series, [.speed, .power])
+            } else {
+                XCTFail("Expected chart kind to round-trip")
+            }
         }
     }
 

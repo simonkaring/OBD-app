@@ -20,7 +20,8 @@ let package = Package(
             exclude: [
                 "README.md",
                 "LICENSE",
-                "App/Info.plist"
+                "App/Info.plist",
+                "App/Assets.xcassets"
             ],
             sources: [
                 "App",

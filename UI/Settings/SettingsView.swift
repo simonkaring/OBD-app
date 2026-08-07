@@ -24,6 +24,16 @@ public struct SettingsView: View {
                         get: { vehicleData.isDemoMode },
                         set: { vehicleData.toggleDemoMode($0) }
                     ))
+
+                    Button(role: .destructive) {
+                        vehicleData.clearDemoData()
+                        tripTracker.clearAllTrips()
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Clear Demo & Recorded Data")
+                        }
+                    }
                 }
 
                 if vehicleData.isDemoMode, let engine = mockEngine {
