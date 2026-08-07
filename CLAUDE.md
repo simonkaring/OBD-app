@@ -36,7 +36,29 @@ Data flows one direction: BLE adapter → parser → vehicle profile → manager
 - **`Widgets/VoltLinkLiveActivity`** — ActivityKit Live Activity / Dynamic Island attributes for trip/charging state.
 - Persistence is SwiftData: `TripModel`, `TelemetryPointModel`, `ChargingSessionModel`, `SavedDTCModel`, registered in the `WindowGroup.modelContainer` in `App/VoltLinkApp.swift`.
 
-## Conventions
-
 - Swift 6 strict concurrency: types conforming to `VehicleProfile`/connection protocols must stay `Sendable`; dispatch published telemetry state on `@MainActor`/`DispatchQueue.main`.
 - Design tokens live in `UI/DesignSystem/Theme.swift` (dark slate background, electric cyan accent, emerald green for regen, amber for high power draw, crimson for faults) — reuse these rather than hardcoding colors, in keeping with the glassmorphism (`.ultraThinMaterial`) aesthetic described in `.gemini/rules.md`.
+
+## Git & Commit Conventions
+
+Always use **Conventional Commits** syntax with explicit scope and a detailed commit message body.
+
+### Commit Format:
+```
+<type>(<scope>): <short summary in imperative mood>
+
+<detailed description of changes, root causes fixed, and affected files/modules>
+```
+
+### Types & Scopes:
+- **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`
+- **Scopes**: `telemetry`, `obd`, `bluetooth`, `carplay`, `ui`, `location`, `diagnostics`, `models`, `xcodeproj`, `deps`
+
+### Example:
+```git
+feat(telemetry): implement ISO-TP multi-frame CAN buffer reassembly
+
+- Add ISO15765Parser to decode Single, First, and Consecutive CAN frames
+- Handle flow control frame responses during high-frequency ELM327 polling
+- Unit test multi-frame payload reassembly in OBDParserTests
+```

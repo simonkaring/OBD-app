@@ -7,4 +7,5 @@ Refer to [.gemini/rules.md](.gemini/rules.md) for full coding conventions, direc
 - **Target Car**: Mercedes-Benz EQA 250 (2021)
 - **Adapter**: Vgate iCar Pro 2S (BLE) & Generic ELM327 / Demo Mode
 - **Testing**: `swift test`
-- **Build**: `open Package.swift` or `xcodebuild -scheme VoltLinkEngine -destination 'platform=iOS Simulator,name=iPhone 16 Pro'`
+- **Build**: `open VoltLink.xcodeproj` or `xcodebuild -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhone 17'`
+- **Git Commits**: Always follow Conventional Commits format with explicit scope (`type(scope): summary`) and a detailed multiline explanation in the commit body (e.g. `feat(telemetry): ...`, `fix(location): ...`).
