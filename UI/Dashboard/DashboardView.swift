@@ -36,31 +36,47 @@ public struct DashboardView: View {
                             }
                             Spacer()
 
-                            Button {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    isEditMode.toggle()
+                            if #available(iOS 26.0, macOS 26.0, *) {
+                                Button {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                        isEditMode.toggle()
+                                    }
+                                } label: {
+                                    Image(systemName: isEditMode ? "checkmark" : "pencil")
                                 }
-                            } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: isEditMode ? "checkmark.circle.fill" : "square.grid.2x2.fill")
-                                    Text(isEditMode ? "Done" : "Customize")
-                                }
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(isEditMode ? Theme.regenGreen : Theme.electricCyan.opacity(0.2))
-                                .foregroundColor(isEditMode ? .black : Theme.electricCyan)
-                                .cornerRadius(8)
-                            }
+                                .buttonStyle(.glass)
+                                .buttonBorderShape(.circle)
+                                .tint(isEditMode ? Theme.regenGreen : nil)
 
-                            Button {
-                                showHUDMode = true
-                            } label: {
-                                Image(systemName: "sunglasses.fill")
-                                    .foregroundColor(Theme.electricCyan)
-                                    .padding(8)
-                                    .background(Color.white.opacity(0.1))
-                                    .clipShape(Circle())
+                                Button {
+                                    showHUDMode = true
+                                } label: {
+                                    Image(systemName: "sunglasses.fill")
+                                }
+                                .buttonStyle(.glass)
+                                .buttonBorderShape(.circle)
+                            } else {
+                                Button {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                        isEditMode.toggle()
+                                    }
+                                } label: {
+                                    Image(systemName: isEditMode ? "checkmark" : "pencil")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(isEditMode ? Theme.regenGreen : Theme.textPrimary)
+                                        .frame(width: 36, height: 36)
+                                        .background(.ultraThinMaterial, in: Circle())
+                                }
+
+                                Button {
+                                    showHUDMode = true
+                                } label: {
+                                    Image(systemName: "sunglasses.fill")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(Theme.textPrimary)
+                                        .frame(width: 36, height: 36)
+                                        .background(.ultraThinMaterial, in: Circle())
+                                }
                             }
                         }
                         .padding(.horizontal)
