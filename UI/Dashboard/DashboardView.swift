@@ -358,3 +358,10 @@ private struct WidgetTileWrapper: View {
         }
     }
 }
+
+#Preview("Dashboard View") {
+    DashboardView(
+        vehicleData: VehicleDataManager(),
+        tripTracker: TripTrackingManager()
+    )
+}

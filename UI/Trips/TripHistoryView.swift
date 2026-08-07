@@ -158,3 +158,10 @@ public struct TripHistoryView: View {
         }
     }
 }
+
+#Preview("Trip History View") {
+    TripHistoryView(
+        tripTracker: TripTrackingManager()
+    )
+    .environmentObject(VehicleDataManager())
+}

@@ -71,3 +71,12 @@ public struct HUDModeView: View {
         }
     }
 }
+
+#Preview("HUD Mode View") {
+    HUDModeView(
+        speedKmH: 88,
+        powerKW: 24.5,
+        socPct: 76,
+        isPresented: .constant(true)
+    )
+}

@@ -262,3 +262,10 @@ public struct AdapterScanView: View {
         }
     }
 }
+
+#Preview("Settings View") {
+    SettingsView(
+        vehicleData: VehicleDataManager(),
+        tripTracker: TripTrackingManager()
+    )
+}

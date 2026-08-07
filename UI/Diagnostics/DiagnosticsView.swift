@@ -212,3 +212,10 @@ public struct DTCDetailSheet: View {
         }
     }
 }
+
+#Preview("Diagnostics View") {
+    DiagnosticsView(
+        dtcService: DTCScannerService(),
+        vehicleData: VehicleDataManager()
+    )
+}

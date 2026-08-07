@@ -207,3 +207,9 @@ public struct ChargingLiveView: View {
         }
     }
 }
+
+#Preview("Charging Live View") {
+    ChargingLiveView(
+        vehicleData: VehicleDataManager()
+    )
+}
