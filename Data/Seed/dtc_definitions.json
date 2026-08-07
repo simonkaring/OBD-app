@@ -1,0 +1,65 @@
+[
+  {
+    "code": "P0A80",
+    "title": "Replace Hybrid/EV Battery Pack",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "The Battery Management System (BMS) detected internal resistance imbalance or voltage degradation across cell modules.",
+    "symptoms": ["Reduced EV driving range", "Check EV system warning light", "Power limited mode"],
+    "possibleFixes": ["Inspect cell module voltages", "Verify BMS wiring harness", "Perform battery module balancing or pack replacement"]
+  },
+  {
+    "code": "P0A1F",
+    "title": "Battery Energy Control Module Fault",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "Internal micro-controller self-test failure within the High Voltage Battery Management System.",
+    "symptoms": ["Vehicle fails to enter READY state", "HV contactors fail to close"],
+    "possibleFixes": ["Update BMS firmware", "Check 12V supply to BMS", "Replace BMS control unit"]
+  },
+  {
+    "code": "U0100",
+    "title": "Lost Communication with ECM/PCM",
+    "category": "Network",
+    "severity": "Warning",
+    "description": "CAN gateway lost high-speed communication with the primary Engine/Powertrain Control Module.",
+    "symptoms": ["Instrument cluster warning messages", "Intermittent telemetry dropouts"],
+    "possibleFixes": ["Check CAN bus termination resistor (120 Ohm)", "Inspect OBD2 port wiring", "Check main relay and fuse"]
+  },
+  {
+    "code": "P0A93",
+    "title": "Drive Motor Inverter Cooling Performance",
+    "category": "Powertrain",
+    "severity": "Warning",
+    "description": "Inverter coolant temperature exceeded target threshold during high load operation.",
+    "symptoms": ["Electric motor power derating", "Cooling fan running at maximum speed"],
+    "possibleFixes": ["Check coolant fluid level in EV thermal loop", "Inspect electric water pump operation", "Bleed air from inverter cooling system"]
+  },
+  {
+    "code": "P0562",
+    "title": "System Voltage Low (12V Auxiliary)",
+    "category": "Powertrain",
+    "severity": "Warning",
+    "description": "12V auxiliary battery voltage dropped below 11.0 volts during active operation.",
+    "symptoms": ["Dim lights", "Erratic sensor readings", "DC-DC converter warning"],
+    "possibleFixes": ["Test 12V auxiliary battery health", "Check DC-DC converter 12V output", "Clean battery terminal connections"]
+  },
+  {
+    "code": "P0A78",
+    "title": "Drive Motor Inverter Performance",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "Phase current mismatch detected in high-voltage electric motor inverter circuit.",
+    "symptoms": ["Loss of drive torque", "Immediate HV shutdown"],
+    "possibleFixes": ["Inspect inverter power transistors (IGBTs)", "Check motor phase cable connections"]
+  },
+  {
+    "code": "P0A0F",
+    "title": "Engine / Drive System Failed to Start",
+    "category": "Powertrain",
+    "severity": "Warning",
+    "description": "HV interlock loop open or start authorization denied by drive control unit.",
+    "symptoms": ["Car will not switch to Drive mode"],
+    "possibleFixes": ["Check HV service disconnect plug status", "Check charging cable connection interlock"]
+  }
+]
