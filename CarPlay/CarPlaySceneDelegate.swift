@@ -7,6 +7,7 @@ import SwiftUI
 public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     public var interfaceController: CPInterfaceController?
     private var cancellables = Set<AnyCancellable>()
+    private var tabBarTemplate: CPTabBarTemplate?
 
     public func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
@@ -27,6 +28,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     ) {
         cancellables.removeAll()
         self.interfaceController = nil
+        self.tabBarTemplate = nil
     }
 
     private func rebuildInterface() {
@@ -34,25 +36,39 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         let dtcService = AppEnvironment.shared.dtcService
         let profile = vehicleData.selectedProfile
         let snapshot = vehicleData.latestTelemetry
+        let layout = CarPlayLayout.load()
 
-        let isCharging = snapshot.isCharging || snapshot.chargePowerKW > 0.5
+        // 1. Driving Mode Template
+        let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
+            gridButton(for: tile, profile: profile, snapshot: snapshot, dtcService: dtcService)
+        }
+        let drivingTemplate = CPGridTemplate(title: "", gridButtons: buttons)
+        drivingTemplate.tabTitle = "Driving"
+        drivingTemplate.tabImage = UIImage(systemName: "gauge.with.dots.needle.bottom.50percent")
 
-        if isCharging {
-            let items = buildChargingItems(snapshot: snapshot)
-            let template = CPInformationTemplate(title: "CHARGING SESSION", layout: .twoColumn, items: items, actions: [])
-            interfaceController?.setRootTemplate(template, animated: false)
+        // 2. Charging Mode Template
+        let chargingItems = buildChargingItems(snapshot: snapshot)
+        let chargingTemplate = CPInformationTemplate(title: "", layout: .twoColumn, items: chargingItems, actions: [])
+        chargingTemplate.tabTitle = "Charging"
+        chargingTemplate.tabImage = UIImage(systemName: "bolt.batteryblock")
+
+        // 3. Diagnostics Mode Template
+        let healthItems = buildHealthItems(dtcService: dtcService)
+        let diagnosticsTemplate = CPInformationTemplate(title: "", layout: .twoColumn, items: healthItems, actions: [])
+        diagnosticsTemplate.tabTitle = "Diagnostics"
+        diagnosticsTemplate.tabImage = UIImage(systemName: "stethoscope")
+
+        if let existing = tabBarTemplate {
+            existing.updateTemplates([drivingTemplate, chargingTemplate, diagnosticsTemplate])
         } else {
-            let layout = CarPlayLayout.load()
-            let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
-                gridButton(for: tile, profile: profile, snapshot: snapshot, dtcService: dtcService)
-            }
-            guard !buttons.isEmpty else { return }
-            let grid = CPGridTemplate(title: "", gridButtons: buttons)
-            interfaceController?.setRootTemplate(grid, animated: false)
+            let tabBar = CPTabBarTemplate(templates: [drivingTemplate, chargingTemplate, diagnosticsTemplate])
+            self.tabBarTemplate = tabBar
+            interfaceController?.setRootTemplate(tabBar, animated: false)
         }
     }
 
     private func buildChargingItems(snapshot: TelemetrySnapshot) -> [CPInformationItem] {
+        let isCharging = snapshot.isCharging || snapshot.chargePowerKW > 0.5
         let powerKW = snapshot.chargePowerKW > 0 ? snapshot.chargePowerKW : abs(snapshot.powerKW)
         let powerStr = String(format: "%.1f kW", powerKW)
         let socStr = String(format: "%.1f%%", snapshot.stateOfChargePct)
@@ -72,11 +88,30 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         let tempStr = String(format: "%.1f °C", snapshot.batteryTempC)
 
         return [
-            CPInformationItem(title: "STATUS", detail: "CHARGING ACTIVE"),
+            CPInformationItem(title: "STATUS", detail: isCharging ? "CHARGING ACTIVE" : "NOT CHARGING"),
             CPInformationItem(title: "CHARGE RATE", detail: powerStr),
             CPInformationItem(title: "BATTERY SOC", detail: socStr),
             CPInformationItem(title: "EST. TIME TO 80%", detail: timeMin),
             CPInformationItem(title: "BATTERY TEMP", detail: tempStr)
+        ]
+    }
+
+    private func buildHealthItems(dtcService: DTCScannerService) -> [CPInformationItem] {
+        let statusStr: String
+        if dtcService.lastScanDate == nil {
+            statusStr = "Scan Not Performed"
+        } else if dtcService.scannedCodes.isEmpty {
+            statusStr = "OK - No Fault Codes"
+        } else {
+            statusStr = "\(dtcService.scannedCodes.count) Fault Codes"
+        }
+        
+        let lastScanStr = dtcService.lastScanDate?.formatted(date: .abbreviated, time: .shortened) ?? "Never"
+        
+        return [
+            CPInformationItem(title: "SYSTEM HEALTH", detail: statusStr),
+            CPInformationItem(title: "LAST SCAN", detail: lastScanStr),
+            CPInformationItem(title: "DIAGNOSTIC FAULTS", detail: "\(dtcService.scannedCodes.count) DTCs")
         ]
     }
 
