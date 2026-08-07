@@ -52,15 +52,15 @@ swift test
 
 1. **Open the Project in Xcode**:
    ```bash
-   open Package.swift
+   open VoltLink.xcodeproj
    ```
 
 2. **Select Target & Destination**:
-   - In Xcode top scheme menu, make sure **VoltLink** is selected as the active scheme.
-   - Click the destination drop-down next to **VoltLink** (where it says *My Mac* or *Any iOS Device*) and select your desired simulator under **iOS Simulators** (e.g. **iPhone 17**).
+   - Make sure **VoltLink** is selected in the top scheme bar.
+   - Select your desired **iOS Simulator** (e.g. **iPhone 17**).
 
 3. **Run the App (`Cmd + R`)**:
-   - Xcode will compile and automatically launch the selected iOS Simulator with the app.
+   - Xcode will compile `VoltLink.app` and launch it directly in your Simulator!
 
 3. **Build & Run**:
    Press `Cmd + R` to build and launch the application.
