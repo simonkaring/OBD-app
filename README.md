@@ -28,7 +28,7 @@ Optimized for Bluetooth Low Energy (BLE) adapters—specifically the **Vgate iCa
 #### 1. Building for iOS Simulator via Terminal
 You can build the iOS app directly from terminal using `xcodebuild`:
 ```bash
-xcodebuild -scheme VoltLinkEngine -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+xcodebuild -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 #### 2. Launching the iOS Simulator from Terminal
@@ -37,7 +37,7 @@ xcodebuild -scheme VoltLinkEngine -destination 'platform=iOS Simulator,name=iPho
 open -a Simulator
 
 # Boot a specific iPhone simulator
-xcrun simctl boot "iPhone 16 Pro"
+xcrun simctl boot "iPhone 17"
 ```
 
 #### 3. Running Unit Tests via Terminal
@@ -55,8 +55,12 @@ swift test
    open Package.swift
    ```
 
-2. **Select Target & Simulator / Device**:
-   - In the Xcode scheme selector at the top bar, choose an iOS Simulator (e.g. **iPhone 16 Pro**) or your connected physical iPhone.
+2. **Select Target & Destination**:
+   - In Xcode top scheme menu, make sure **VoltLink** is selected as the active scheme.
+   - Click the destination drop-down next to **VoltLink** (where it says *My Mac* or *Any iOS Device*) and select your desired simulator under **iOS Simulators** (e.g. **iPhone 17**).
+
+3. **Run the App (`Cmd + R`)**:
+   - Xcode will compile and automatically launch the selected iOS Simulator with the app.
 
 3. **Build & Run**:
    Press `Cmd + R` to build and launch the application.
