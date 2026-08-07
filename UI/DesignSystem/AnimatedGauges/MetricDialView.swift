@@ -57,6 +57,8 @@ public struct MetricDialView: View {
         GeometryReader { geo in
             let minDimension = min(geo.size.width, geo.size.height)
             let strokeWidth: CGFloat = max(6, minDimension * 0.09)
+            let inset = strokeWidth / 2.0 + 2.0
+            let dialDiameter = max(10, minDimension - (inset * 2.0))
             let valueFontSize: CGFloat = max(18, minDimension * 0.22)
             let unitFontSize: CGFloat = max(10, minDimension * 0.09)
             let labelFontSize: CGFloat = max(8, minDimension * 0.07)
@@ -66,6 +68,7 @@ public struct MetricDialView: View {
                     .trim(from: 0.15, to: 0.85)
                     .stroke(Color.white.opacity(0.1), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                     .rotationEffect(.degrees(90))
+                    .frame(width: dialDiameter, height: dialDiameter)
 
                 switch mode {
                 case .bidirectional:
@@ -74,12 +77,14 @@ public struct MetricDialView: View {
                             .trim(from: 0.5 + (normalizedProgress * 0.35), to: 0.5)
                             .stroke(Theme.regenGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                             .rotationEffect(.degrees(90))
+                            .frame(width: dialDiameter, height: dialDiameter)
                             .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                     } else {
                         Circle()
                             .trim(from: 0.5, to: 0.5 + (normalizedProgress * 0.35))
                             .stroke(Theme.powerGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                             .rotationEffect(.degrees(90))
+                            .frame(width: dialDiameter, height: dialDiameter)
                             .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                     }
                 case .unidirectional:
@@ -87,6 +92,7 @@ public struct MetricDialView: View {
                         .trim(from: 0.15, to: 0.15 + (normalizedProgress * 0.70))
                         .stroke(Theme.powerGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                         .rotationEffect(.degrees(90))
+                        .frame(width: dialDiameter, height: dialDiameter)
                         .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                 }
 
@@ -116,7 +122,6 @@ public struct MetricDialView: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
-        .padding(8)
         .opacity(isUnavailable ? 0.4 : 1.0)
     }
 }

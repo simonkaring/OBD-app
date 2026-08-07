@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct TripHistoryView: View {
+    @EnvironmentObject private var vehicleData: VehicleDataManager
     @ObservedObject public var tripTracker: TripTrackingManager
     @State private var sampleTrips: [TripModel] = []
 
@@ -128,7 +129,10 @@ public struct TripHistoryView: View {
                 }
             }
             .onAppear {
-                generateSampleHistoryIfNeeded()
+                updateSampleHistory()
+            }
+            .onChange(of: vehicleData.isDemoMode) { _, _ in
+                updateSampleHistory()
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ClearSampleTrips"))) { _ in
                 sampleTrips.removeAll()
@@ -136,17 +140,21 @@ public struct TripHistoryView: View {
         }
     }
 
-    private func generateSampleHistoryIfNeeded() {
-        if sampleTrips.isEmpty {
-            let t1 = TripModel(startTime: Date().addingTimeInterval(-86400), distanceKm: 24.8, startSocPct: 85.0, vehicleName: "Mercedes EQA 250")
-            t1.endSocPct = 78.0
-            t1.totalKWhUsed = 4.8
-            
-            let t2 = TripModel(startTime: Date().addingTimeInterval(-172800), distanceKm: 68.2, startSocPct: 92.0, vehicleName: "Mercedes EQA 250")
-            t2.endSocPct = 72.0
-            t2.totalKWhUsed = 13.2
+    private func updateSampleHistory() {
+        if vehicleData.isDemoMode {
+            if sampleTrips.isEmpty {
+                let t1 = TripModel(startTime: Date().addingTimeInterval(-86400), distanceKm: 24.8, startSocPct: 85.0, vehicleName: "Mercedes EQA 250")
+                t1.endSocPct = 78.0
+                t1.totalKWhUsed = 4.8
+                
+                let t2 = TripModel(startTime: Date().addingTimeInterval(-172800), distanceKm: 68.2, startSocPct: 92.0, vehicleName: "Mercedes EQA 250")
+                t2.endSocPct = 72.0
+                t2.totalKWhUsed = 13.2
 
-            sampleTrips = [t1, t2]
+                sampleTrips = [t1, t2]
+            }
+        } else {
+            sampleTrips.removeAll()
         }
     }
 }

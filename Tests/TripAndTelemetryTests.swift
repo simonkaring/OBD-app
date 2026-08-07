@@ -65,4 +65,15 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertFalse(tracker.isRecordingTrip)
         XCTAssertNil(tracker.currentTrip)
     }
+
+    func testDemoModeFlagControllingDemoTrips() {
+        let manager = VehicleDataManager()
+        XCTAssertFalse(manager.isDemoMode)
+        
+        manager.toggleDemoMode(true)
+        XCTAssertTrue(manager.isDemoMode)
+        
+        manager.toggleDemoMode(false)
+        XCTAssertFalse(manager.isDemoMode)
+    }
 }

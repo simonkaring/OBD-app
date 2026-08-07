@@ -20,7 +20,7 @@ public struct CarPlayTileEditorView: View {
                 .onMove { layout.tiles.move(fromOffsets: $0, toOffset: $1) }
                 .onDelete { layout.tiles.remove(atOffsets: $0) }
             } footer: {
-                Text("CarPlay tiles show an icon and up to two lines of text only — dials and charts aren't supported by CarPlay. Up to \(CarPlayLayout.maxTiles) tiles.")
+                Text("CarPlay items display telemetry text cards with speed & power dials. Up to \(CarPlayLayout.maxTiles) items.")
             }
         }
         .navigationTitle("CarPlay Tiles")
