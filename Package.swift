@@ -21,7 +21,8 @@ let package = Package(
                 "README.md",
                 "LICENSE",
                 "App/Info.plist",
-                "App/Assets.xcassets"
+                "App/Assets.xcassets",
+                "App/VoltLink.entitlements"
             ],
             sources: [
                 "App",
