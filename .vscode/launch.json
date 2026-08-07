@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:streamer}/swift",
+      "name": "Debug Streamer (swift)",
+      "target": "Streamer",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Streamer (swift)"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:streamer}/swift",
+      "name": "Release Streamer (swift)",
+      "target": "Streamer",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Streamer (swift)"
+    }
+  ]
+}

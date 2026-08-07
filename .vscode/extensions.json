@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "charliermarsh.ruff",
+    "formulahendry.auto-close-tag",
+    "formulahendry.auto-rename-tag",
+    "esbenp.prettier-vscode",
+    "qwtel.sqlite-viewer",
+    "ms-mssql.mssql",
+    "usernamehw.errorlens",
+    "batisteo.vscode-django",
+    "monosans.djlint"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "editor.formatOnSave": true,
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "monosans.djlint",
+    "editor.tabSize": 2
+  },
+  "emmet.includeLanguages": {
+    "django-html": "html"
+  },
+  "[django-html]": {
+    // "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "monosans.djlint",
+    "editor.tabSize": 2
+  },
+  "[xml]": {
+    "editor.defaultFormatter": "redhat.vscode-xml",
+    "editor.tabSize": 2
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[python]": {
+    "editor.formatOnType": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.tabSize": 4,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.ruff": "explicit",
+      "source.fixAll.ruff": "explicit"
+    }
+  },
+  "prettier.printWidth": 99,
+  "prettier.singleAttributePerLine": true,
+  "pylint.args": [
+    "--load-plugins ",
+    "pylint_django",
+    "--load-plugins",
+    "pylint_django.checkers.migrations",
+    "--django-settings-module",
+    "config.settings"
+  ],
+  "python.analysis.autoFormatStrings": true,
+  "peacock.color": "#051606",
+  "djlint.lineBreakAfterMultilineTag": true,
+  "djlint.preserveBlankLines": true,
+  "djlint.enableLinting": false,
+  "djlint.formatAttributeTemplateTags": true,
+  "djlint.formatCss": true,
+  "djlint.formatJs": false,
+  "workbench.colorCustomizations": {
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#0e4011",
+    "statusBar.background": "#051606",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#0e4011",
+    "statusBarItem.remoteBackground": "#392fd0",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#051606",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#05160699",
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "commandCenter.foreground": "#e7e7e7",
+    "statusBar.debuggingBackground": "#051606",
+    "statusBar.debuggingForeground": "#e7e7e7"
+  },
+  "peacock.remoteColor": "#051606"
+}
