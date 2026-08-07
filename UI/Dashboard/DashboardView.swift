@@ -276,6 +276,7 @@ private struct WidgetTileWrapper: View {
     let onMoveLeft: () -> Void
     let onMoveRight: () -> Void
 
+    @State private var isWiggling = false
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -285,13 +286,17 @@ private struct WidgetTileWrapper: View {
                 profile: profile,
                 telemetryHistory: telemetryHistory
             )
-            .rotationEffect(.degrees(isEditMode ? 1.0 : 0))
+            .rotationEffect(.degrees(isEditMode && isWiggling ? Double.random(in: -1.2...1.2) : 0))
             .animation(
-                isEditMode
-                ? Animation.easeInOut(duration: 0.14).repeatForever(autoreverses: true)
-                : .default,
-                value: isEditMode
+                isEditMode ? Animation.easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .default,
+                value: isWiggling
             )
+            .onAppear {
+                if isEditMode { isWiggling = true }
+            }
+            .onChange(of: isEditMode) { _, newValue in
+                isWiggling = newValue
+            }
 
             if isEditMode {
                 // Delete button (Top Left)
