@@ -33,15 +33,19 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         locationManager.distanceFilter = 5.0
-        #if os(iOS)
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.showsBackgroundLocationIndicator = true
-        #endif
     }
 
     public func requestAuthorization() {
         locationManager.requestWhenInUseAuthorization()
         locationManager.requestAlwaysAuthorization()
+    }
+
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        #if os(iOS)
+        let hasAlways = manager.authorizationStatus == .authorizedAlways
+        locationManager.allowsBackgroundLocationUpdates = hasAlways
+        locationManager.showsBackgroundLocationIndicator = hasAlways
+        #endif
     }
 
     public func startTracking() {
