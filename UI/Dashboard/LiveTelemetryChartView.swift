@@ -54,10 +54,11 @@ public struct LiveTelemetryChartView: View {
                         if seriesMetrics.count == 1 {
                             AreaMark(
                                 x: .value("Time", item.timestamp),
-                                y: .value(metric.displayName, value)
+                                yStart: .value("Zero", 0.0),
+                                yEnd: .value(metric.displayName, value)
                             )
                             .foregroundStyle(
-                                LinearGradient(colors: [seriesColor.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom)
+                                LinearGradient(colors: [seriesColor.opacity(0.35), seriesColor.opacity(0.05)], startPoint: .top, endPoint: .bottom)
                             )
                             .interpolationMethod(.catmullRom)
                         }

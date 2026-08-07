@@ -8,6 +8,9 @@ public struct DashboardView: View {
     @State private var showHUDMode = false
     @State private var showDemoControls = false
     @State private var showCustomization = false
+    @State private var isEditMode = false
+    @State private var showAddWidgetSheet = false
+    @State private var draggedWidget: DashboardWidgetConfig?
     @AppStorage("dashboardLayout") private var layout: DashboardLayout = .default
 
     public init(vehicleData: VehicleDataManager, tripTracker: TripTrackingManager) {
@@ -49,13 +52,20 @@ public struct DashboardView: View {
                             }
 
                             Button {
-                                showCustomization = true
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                    isEditMode.toggle()
+                                }
                             } label: {
-                                Image(systemName: "slider.horizontal.2.gtsquare")
-                                    .foregroundColor(Theme.electricCyan)
-                                    .padding(8)
-                                    .background(Color.white.opacity(0.1))
-                                    .clipShape(Circle())
+                                HStack(spacing: 5) {
+                                    Image(systemName: isEditMode ? "checkmark.circle.fill" : "square.grid.2x2.fill")
+                                    Text(isEditMode ? "Done" : "Customize")
+                                }
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(isEditMode ? Theme.regenGreen : Theme.electricCyan.opacity(0.2))
+                                .foregroundColor(isEditMode ? .black : Theme.electricCyan)
+                                .cornerRadius(8)
                             }
 
                             Button {
@@ -70,15 +80,79 @@ public struct DashboardView: View {
                         }
                         .padding(.horizontal)
 
-                        // Customizable widget grid
+                        if isEditMode {
+                            HStack {
+                                Text("Edit Dashboard")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .foregroundColor(Theme.electricCyan)
+                                Spacer()
+                                Button {
+                                    showAddWidgetSheet = true
+                                } label: {
+                                    Label("Add Widget", systemImage: "plus.circle.fill")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundColor(.black)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(Theme.electricCyan)
+                                        .cornerRadius(8)
+                                }
+                                Button {
+                                    showCustomization = true
+                                } label: {
+                                    Label("List Edit", systemImage: "list.bullet")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundColor(Theme.textSecondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 5)
+                                        .background(Color.white.opacity(0.1))
+                                        .cornerRadius(8)
+                                }
+                            }
+                            .padding(.horizontal)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+
+                        // Customizable widget grid with drag-to-reorder and wiggle mode
                         ForEach(Array(packDashboardWidgetsIntoRows(layout.widgets).enumerated()), id: \.offset) { _, row in
                             HStack(spacing: 12) {
                                 ForEach(row) { widget in
-                                    DashboardWidgetTile(
-                                        config: widget,
+                                    WidgetTileWrapper(
+                                        widget: widget,
+                                        isEditMode: isEditMode,
                                         snapshot: vehicleData.latestTelemetry,
                                         profile: vehicleData.selectedProfile,
-                                        telemetryHistory: telemetryHistory
+                                        telemetryHistory: telemetryHistory,
+                                        onDelete: {
+                                            withAnimation {
+                                                layout.widgets.removeAll { $0.id == widget.id }
+                                            }
+                                        },
+                                        onCycleSize: {
+                                            if let index = layout.widgets.firstIndex(where: { $0.id == widget.id }) {
+                                                let nextSize: WidgetSize
+                                                switch widget.size {
+                                                case .small: nextSize = .medium
+                                                case .medium: nextSize = .large
+                                                case .large: nextSize = .small
+                                                }
+                                                layout.widgets[index].size = nextSize
+                                            }
+                                        },
+                                        onMoveLeft: {
+                                            if let idx = layout.widgets.firstIndex(where: { $0.id == widget.id }), idx > 0 {
+                                                withAnimation {
+                                                    layout.widgets.swapAt(idx, idx - 1)
+                                                }
+                                            }
+                                        },
+                                        onMoveRight: {
+                                            if let idx = layout.widgets.firstIndex(where: { $0.id == widget.id }), idx < layout.widgets.count - 1 {
+                                                withAnimation {
+                                                    layout.widgets.swapAt(idx, idx + 1)
+                                                }
+                                            }
+                                        }
                                     )
                                     .frame(maxWidth: .infinity)
                                     .frame(height: widget.size.height)
@@ -158,6 +232,89 @@ public struct DashboardView: View {
             }
             .sheet(isPresented: $showCustomization) {
                 DashboardCustomizationSheet(layout: $layout, profile: vehicleData.selectedProfile)
+            }
+            .sheet(isPresented: $showAddWidgetSheet) {
+                AddDashboardWidgetSheet(profile: vehicleData.selectedProfile) { newWidget in
+                    layout.widgets.append(newWidget)
+                }
+            }
+        }
+    }
+}
+
+private struct WidgetTileWrapper: View {
+    let widget: DashboardWidgetConfig
+    let isEditMode: Bool
+    let snapshot: TelemetrySnapshot
+    let profile: VehicleProfile
+    let telemetryHistory: [TelemetrySnapshot]
+    let onDelete: () -> Void
+    let onCycleSize: () -> Void
+    let onMoveLeft: () -> Void
+    let onMoveRight: () -> Void
+
+    @State private var isWiggling = false
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            DashboardWidgetTile(
+                config: widget,
+                snapshot: snapshot,
+                profile: profile,
+                telemetryHistory: telemetryHistory
+            )
+            .rotationEffect(.degrees(isEditMode && isWiggling ? Double.random(in: -1.2...1.2) : 0))
+            .animation(
+                isEditMode ? Animation.easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .default,
+                value: isWiggling
+            )
+            .onAppear {
+                if isEditMode { isWiggling = true }
+            }
+            .onChange(of: isEditMode) { _, newValue in
+                isWiggling = newValue
+            }
+
+            if isEditMode {
+                // Delete button (Top Left)
+                Button(action: onDelete) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.red)
+                        .background(Circle().fill(Color.white))
+                }
+                .offset(x: -8, y: -8)
+
+                // Quick Controls overlay (Bottom Bar in edit mode)
+                VStack {
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Button(action: onMoveLeft) {
+                            Image(systemName: "arrow.left.circle.fill")
+                                .foregroundColor(Theme.electricCyan)
+                        }
+
+                        Button(action: onCycleSize) {
+                            Text(widget.size.rawValue.uppercased())
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Theme.electricCyan.opacity(0.3))
+                                .foregroundColor(Theme.electricCyan)
+                                .cornerRadius(4)
+                        }
+
+                        Button(action: onMoveRight) {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .foregroundColor(Theme.electricCyan)
+                        }
+                    }
+                    .padding(4)
+                    .background(Color.black.opacity(0.75))
+                    .cornerRadius(8)
+                    .padding(.bottom, 6)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
     }

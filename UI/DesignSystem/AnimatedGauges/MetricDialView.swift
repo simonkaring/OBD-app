@@ -54,46 +54,69 @@ public struct MetricDialView: View {
     }
 
     public var body: some View {
-        ZStack {
-            Circle()
-                .trim(from: 0.15, to: 0.85)
-                .stroke(Color.white.opacity(0.1), style: StrokeStyle(lineWidth: 16, lineCap: .round))
-                .rotationEffect(.degrees(90))
+        GeometryReader { geo in
+            let minDimension = min(geo.size.width, geo.size.height)
+            let strokeWidth: CGFloat = max(6, minDimension * 0.09)
+            let valueFontSize: CGFloat = max(18, minDimension * 0.22)
+            let unitFontSize: CGFloat = max(10, minDimension * 0.09)
+            let labelFontSize: CGFloat = max(8, minDimension * 0.07)
 
-            if isNegativeArc {
+            ZStack {
                 Circle()
-                    .trim(from: 0.5 + (normalizedProgress * 0.35), to: 0.5)
-                    .stroke(Theme.regenGradient, style: StrokeStyle(lineWidth: 16, lineCap: .round))
+                    .trim(from: 0.15, to: 0.85)
+                    .stroke(Color.white.opacity(0.1), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                     .rotationEffect(.degrees(90))
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
-            } else {
-                Circle()
-                    .trim(from: 0.5, to: 0.5 + (normalizedProgress * 0.35))
-                    .stroke(Theme.powerGradient, style: StrokeStyle(lineWidth: 16, lineCap: .round))
-                    .rotationEffect(.degrees(90))
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
-            }
 
-            VStack(spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(isUnavailable ? "--" : String(format: "%.1f", abs(value)))
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
-                        .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.textPrimary)
-                    Text(unit)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(Theme.textSecondary)
+                switch mode {
+                case .bidirectional:
+                    if isNegativeArc {
+                        Circle()
+                            .trim(from: 0.5 + (normalizedProgress * 0.35), to: 0.5)
+                            .stroke(Theme.regenGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                            .rotationEffect(.degrees(90))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
+                    } else {
+                        Circle()
+                            .trim(from: 0.5, to: 0.5 + (normalizedProgress * 0.35))
+                            .stroke(Theme.powerGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                            .rotationEffect(.degrees(90))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
+                    }
+                case .unidirectional:
+                    Circle()
+                        .trim(from: 0.15, to: 0.15 + (normalizedProgress * 0.70))
+                        .stroke(Theme.powerGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                        .rotationEffect(.degrees(90))
+                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                 }
 
-                Text(statusText)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(isNegativeArc ? Theme.regenGreen.opacity(0.2) : Theme.electricCyan.opacity(0.2))
-                    .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.electricCyan)
-                    .cornerRadius(8)
+                VStack(spacing: minDimension * 0.02) {
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(isUnavailable ? "--" : String(format: value >= 100 ? "%.0f" : "%.1f", abs(value)))
+                            .font(.system(size: valueFontSize, weight: .bold, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.textPrimary)
+                        Text(unit)
+                            .font(.system(size: unitFontSize, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                            .foregroundColor(Theme.textSecondary)
+                    }
+
+                    Text(statusText)
+                        .font(.system(size: labelFontSize, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .padding(.horizontal, max(4, minDimension * 0.04))
+                        .padding(.vertical, max(2, minDimension * 0.015))
+                        .background(isNegativeArc ? Theme.regenGreen.opacity(0.2) : Theme.electricCyan.opacity(0.2))
+                        .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.electricCyan)
+                        .cornerRadius(6)
+                }
+                .padding(.horizontal, strokeWidth + 4)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
-        .padding(20)
+        .padding(8)
         .opacity(isUnavailable ? 0.4 : 1.0)
     }
 }

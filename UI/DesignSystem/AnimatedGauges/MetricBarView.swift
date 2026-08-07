@@ -54,6 +54,14 @@ public struct MetricBarView: View {
                 }
                 .frame(height: 20)
             }
+
+            HStack {
+                Text(String(format: "Min: %.0f%@", range.lowerBound, unit))
+                Spacer()
+                Text(String(format: "Max: %.0f%@", range.upperBound, unit))
+            }
+            .font(.system(size: 10, weight: .medium, design: .rounded))
+            .foregroundColor(Theme.textSecondary.opacity(0.7))
         }
         .padding(16)
         .glassCard()

@@ -89,13 +89,18 @@ public struct DashboardCustomizationSheet: View {
     }
 }
 
-private struct AddDashboardWidgetSheet: View {
-    let profile: VehicleProfile
-    let onAdd: (DashboardWidgetConfig) -> Void
+public struct AddDashboardWidgetSheet: View {
+    public let profile: VehicleProfile
+    public let onAdd: (DashboardWidgetConfig) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var chartSeries: Set<TelemetryMetric> = [.power]
 
-    var body: some View {
+    public init(profile: VehicleProfile, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
+        self.profile = profile
+        self.onAdd = onAdd
+    }
+
+    public var body: some View {
         NavigationStack {
             List {
                 Section("Metrics") {
