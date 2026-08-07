@@ -6,6 +6,14 @@ Optimized for Bluetooth Low Energy (BLE) adapters—specifically the **Vgate iCa
 
 ---
 
+## 📸 App Screenshots
+
+| Live Telemetry Dashboard | ECU Fault Code Diagnostics | Apple CarPlay Dashboard |
+| :---: | :---: | :---: |
+| <img src="docs/assets/dashboard_preview.jpg" width="280" alt="VoltLink Telemetry Dashboard" /> | <img src="docs/assets/diagnostics_preview.jpg" width="280" alt="VoltLink ECU Diagnostics" /> | <img src="docs/assets/carplay_preview.jpg" width="400" alt="VoltLink Apple CarPlay Display" /> |
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
