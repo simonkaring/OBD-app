@@ -39,6 +39,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.obdConnection = ble
             self.obdConnection.delegate = self
             connectionState = .disconnected
+            latestTelemetry = TelemetrySnapshot()
             stopPolling()
         }
     }

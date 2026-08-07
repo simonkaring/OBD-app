@@ -11,8 +11,9 @@ final class DashboardLayoutTests: XCTestCase {
     }
 
     func testChartWidgetRoundTrip() {
+        let fixedID = UUID()
         let layout = DashboardLayout(widgets: [
-            DashboardWidgetConfig(kind: .chart(series: [.speed, .power]), style: .numeric, size: .large)
+            DashboardWidgetConfig(id: fixedID, kind: .chart(series: [.speed, .power]), style: .numeric, size: .large)
         ])
         let decoded = DashboardLayout(rawValue: layout.rawValue)
         XCTAssertEqual(decoded, layout)

@@ -25,7 +25,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .power: return "Power"
         case .soc: return "State of Charge"
         case .soh: return "State of Health"
-        case .batteryTemp: return "Battery Temp"
+        case .batteryTemp: return "HV Battery Temp"
         case .aux12V: return "Auxiliary 12V"
         case .motorRpm: return "Motor RPM"
         case .motorTorque: return "Motor Torque"

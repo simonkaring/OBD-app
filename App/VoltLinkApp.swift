@@ -46,7 +46,7 @@ struct MainTabView: View {
                     Label("Charging", systemImage: "bolt.batteryblock")
                 }
 
-            SettingsView(vehicleData: vehicleData)
+            SettingsView(vehicleData: vehicleData, tripTracker: tripTracker)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
                 }

@@ -15,42 +15,46 @@ public struct TripHistoryView: View {
 
                 VStack {
                     if let active = tripTracker.currentTrip {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("CURRENT ACTIVE TRIP")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundColor(Theme.regenGreen)
-                                Spacer()
-                                ProgressView().tint(Theme.regenGreen)
+                        NavigationLink(destination: TripDetailView(trip: active)) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text("CURRENT ACTIVE TRIP")
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                        .foregroundColor(Theme.regenGreen)
+                                    Spacer()
+                                    ProgressView().tint(Theme.regenGreen)
+                                }
+
+                                HStack(spacing: 20) {
+                                    VStack(alignment: .leading) {
+                                        Text("Distance")
+                                            .font(.caption).foregroundColor(Theme.textSecondary)
+                                        Text(String(format: "%.1f km", active.distanceKm))
+                                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                                            .foregroundColor(Theme.textPrimary)
+                                    }
+
+                                    VStack(alignment: .leading) {
+                                        Text("Energy Used")
+                                            .font(.caption).foregroundColor(Theme.textSecondary)
+                                        Text(String(format: "%.2f kWh", active.totalKWhUsed))
+                                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                                            .foregroundColor(Theme.textPrimary)
+                                    }
+
+                                    VStack(alignment: .leading) {
+                                        Text("SOC Delta")
+                                            .font(.caption).foregroundColor(Theme.textSecondary)
+                                        Text(String(format: "-%.1f%%", max(0, active.startSocPct - active.endSocPct)))
+                                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                                            .foregroundColor(Theme.electricCyan)
+                                    }
+                                }
                             }
-
-                            HStack(spacing: 20) {
-                                VStack(alignment: .leading) {
-                                    Text("Distance")
-                                        .font(.caption).foregroundColor(Theme.textSecondary)
-                                    Text(String(format: "%.1f km", active.distanceKm))
-                                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                                }
-
-                                VStack(alignment: .leading) {
-                                    Text("Energy Used")
-                                        .font(.caption).foregroundColor(Theme.textSecondary)
-                                    Text(String(format: "%.2f kWh", active.totalKWhUsed))
-                                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                                }
-
-                                VStack(alignment: .leading) {
-                                    Text("SOC Delta")
-                                        .font(.caption).foregroundColor(Theme.textSecondary)
-                                    Text(String(format: "-%.1f%%", max(0, active.startSocPct - active.endSocPct)))
-                                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                                        .foregroundColor(Theme.electricCyan)
-                                }
-                            }
+                            .padding()
+                            .glassCard()
+                            .padding(.horizontal)
                         }
-                        .padding()
-                        .glassCard()
-                        .padding(.horizontal)
                     }
 
                     if sampleTrips.isEmpty {
@@ -70,23 +74,25 @@ public struct TripHistoryView: View {
                         }
                     } else {
                         List(sampleTrips, id: \.id) { trip in
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.system(size: 14, weight: .bold))
-                                    Spacer()
-                                    Text(String(format: "%.1f km", trip.distanceKm))
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                        .foregroundColor(Theme.electricCyan)
-                                }
-                                HStack {
-                                    Text(String(format: "Efficiency: %.1f kWh/100km", trip.efficiencyKWhPer100Km))
-                                        .font(.caption)
-                                        .foregroundColor(Theme.textSecondary)
-                                    Spacer()
-                                    Text(String(format: "%.1f kWh", trip.totalKWhUsed))
-                                        .font(.caption)
-                                        .foregroundColor(Theme.textSecondary)
+                            NavigationLink(destination: TripDetailView(trip: trip)) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
+                                            .font(.system(size: 14, weight: .bold))
+                                        Spacer()
+                                        Text(String(format: "%.1f km", trip.distanceKm))
+                                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                                            .foregroundColor(Theme.electricCyan)
+                                    }
+                                    HStack {
+                                        Text(String(format: "Efficiency: %.1f kWh/100km", trip.efficiencyKWhPer100Km))
+                                            .font(.caption)
+                                            .foregroundColor(Theme.textSecondary)
+                                        Spacer()
+                                        Text(String(format: "%.1f kWh", trip.totalKWhUsed))
+                                            .font(.caption)
+                                            .foregroundColor(Theme.textSecondary)
+                                    }
                                 }
                             }
                             .listRowBackground(Theme.cardBackground)

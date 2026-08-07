@@ -6,7 +6,6 @@ public struct DashboardView: View {
 
     @State private var telemetryHistory: [TelemetrySnapshot] = []
     @State private var showHUDMode = false
-    @State private var showDemoControls = false
     @State private var showCustomization = false
     @State private var isEditMode = false
     @State private var showAddWidgetSheet = false
@@ -29,27 +28,13 @@ public struct DashboardView: View {
                         HStack {
                             HStack(spacing: 8) {
                                 Circle()
-                                    .fill(vehicleData.connectionState.isConnected ? Theme.regenGreen : Theme.criticalRed)
+                                    .fill(vehicleData.isDemoMode ? Theme.electricCyan : (vehicleData.connectionState.isConnected ? Theme.regenGreen : Theme.criticalRed))
                                     .frame(width: 10, height: 10)
-                                Text(vehicleData.isDemoMode ? "DEMO MODE (\(vehicleData.selectedProfile.vehicleName))" : "CONNECTED (Vgate iCar Pro 2S)")
+                                Text(vehicleData.isDemoMode ? "DEMO MODE (\(vehicleData.selectedProfile.vehicleName))" : (vehicleData.connectionState.isConnected ? "CONNECTED (\(vehicleData.selectedProfile.vehicleName))" : "DISCONNECTED (OBD-II Scanner)"))
                                     .font(.system(size: 12, weight: .bold, design: .rounded))
                                     .foregroundColor(Theme.textPrimary)
                             }
                             Spacer()
-
-                            if vehicleData.isDemoMode, vehicleData.obdConnection is MockOBDAdapter {
-                                Button {
-                                    showDemoControls = true
-                                } label: {
-                                    Label("Controls", systemImage: "slider.horizontal.3")
-                                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(Theme.electricCyan.opacity(0.2))
-                                        .foregroundColor(Theme.electricCyan)
-                                        .cornerRadius(8)
-                                }
-                            }
 
                             Button {
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
@@ -79,6 +64,32 @@ public struct DashboardView: View {
                             }
                         }
                         .padding(.horizontal)
+
+                        if !vehicleData.isDemoMode && !vehicleData.connectionState.isConnected {
+                            HStack(spacing: 12) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(Theme.highPowerAmber)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("OBD SCANNER NOT CONNECTED")
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .foregroundColor(Theme.highPowerAmber)
+                                    Text("Telemetry gauges remain blank until connected via Bluetooth in Settings or Demo Mode is enabled.")
+                                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                                        .foregroundColor(Theme.textSecondary)
+                                }
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Theme.highPowerAmber.opacity(0.12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Theme.highPowerAmber.opacity(0.4), lineWidth: 1)
+                            )
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                        }
 
                         if isEditMode {
                             HStack {
@@ -164,12 +175,31 @@ public struct DashboardView: View {
                         // Trip Recording Control Bar
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(tripTracker.isRecordingTrip ? "TRIP RECORDING ACTIVE" : "TRIP READY")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundColor(tripTracker.isRecordingTrip ? Theme.regenGreen : Theme.textSecondary)
-                                Text(String(format: "%.1f km logged", tripTracker.currentTrip?.distanceKm ?? 0.0))
-                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                    .foregroundColor(Theme.textPrimary)
+                                HStack(spacing: 6) {
+                                    Text(tripTracker.isRecordingTrip ? "TRIP RECORDING ACTIVE" : "TRIP READY")
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                        .foregroundColor(tripTracker.isRecordingTrip ? Theme.regenGreen : Theme.textSecondary)
+
+                                    if tripTracker.isAutoTripEnabled {
+                                        Text("AUTO")
+                                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 2)
+                                            .background(Theme.electricCyan.opacity(0.2))
+                                            .foregroundColor(Theme.electricCyan)
+                                            .cornerRadius(4)
+                                    }
+                                }
+
+                                if let remaining = tripTracker.stationarySecondsRemaining, remaining > 0 {
+                                    Text(String(format: "Stationary • Auto-stop in %ds", remaining))
+                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                        .foregroundColor(Theme.highPowerAmber)
+                                } else {
+                                    Text(String(format: "%.1f km logged", tripTracker.currentTrip?.distanceKm ?? 0.0))
+                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                        .foregroundColor(Theme.textPrimary)
+                                }
                             }
 
                             Spacer()
@@ -178,7 +208,7 @@ public struct DashboardView: View {
                                 if tripTracker.isRecordingTrip {
                                     tripTracker.stopTrip(endSoc: vehicleData.latestTelemetry.stateOfChargePct)
                                 } else {
-                                    tripTracker.startTrip(startSoc: vehicleData.latestTelemetry.stateOfChargePct)
+                                    tripTracker.startTrip(startSoc: vehicleData.latestTelemetry.stateOfChargePct, vehicleName: vehicleData.selectedProfile.vehicleName)
                                 }
                             } label: {
                                 Text(tripTracker.isRecordingTrip ? "Stop Trip" : "Start Trip")
@@ -202,9 +232,7 @@ public struct DashboardView: View {
                 if telemetryHistory.count > 50 {
                     telemetryHistory.removeFirst()
                 }
-                if tripTracker.isRecordingTrip {
-                    tripTracker.recordSnapshot(snap)
-                }
+                tripTracker.processTelemetrySnapshot(snap, vehicleName: vehicleData.selectedProfile.vehicleName)
             }
             #if os(iOS)
             .fullScreenCover(isPresented: $showHUDMode) {
@@ -225,11 +253,6 @@ public struct DashboardView: View {
                 )
             }
             #endif
-            .sheet(isPresented: $showDemoControls) {
-                if let mockAdapter = vehicleData.obdConnection as? MockOBDAdapter {
-                    DemoControlSheet(simulationEngine: mockAdapter.simulationEngine)
-                }
-            }
             .sheet(isPresented: $showCustomization) {
                 DashboardCustomizationSheet(layout: $layout, profile: vehicleData.selectedProfile)
             }
@@ -253,7 +276,6 @@ private struct WidgetTileWrapper: View {
     let onMoveLeft: () -> Void
     let onMoveRight: () -> Void
 
-    @State private var isWiggling = false
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -263,17 +285,13 @@ private struct WidgetTileWrapper: View {
                 profile: profile,
                 telemetryHistory: telemetryHistory
             )
-            .rotationEffect(.degrees(isEditMode && isWiggling ? Double.random(in: -1.2...1.2) : 0))
+            .rotationEffect(.degrees(isEditMode ? 1.0 : 0))
             .animation(
-                isEditMode ? Animation.easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .default,
-                value: isWiggling
+                isEditMode
+                ? Animation.easeInOut(duration: 0.14).repeatForever(autoreverses: true)
+                : .default,
+                value: isEditMode
             )
-            .onAppear {
-                if isEditMode { isWiggling = true }
-            }
-            .onChange(of: isEditMode) { _, newValue in
-                isWiggling = newValue
-            }
 
             if isEditMode {
                 // Delete button (Top Left)

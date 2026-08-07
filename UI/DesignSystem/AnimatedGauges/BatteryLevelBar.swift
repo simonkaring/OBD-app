@@ -35,7 +35,7 @@ public struct BatteryLevelBar: View {
                 HStack(spacing: 4) {
                     Image(systemName: "thermometer.medium")
                         .foregroundColor(batteryTempC > 38.0 ? Theme.criticalRed : Theme.electricCyan)
-                    Text(String(format: "%.1f°C", batteryTempC))
+                    Text(String(format: "HV: %.1f°C", batteryTempC))
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundColor(Theme.textPrimary)
                 }
