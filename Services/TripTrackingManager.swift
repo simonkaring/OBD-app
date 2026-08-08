@@ -23,6 +23,7 @@ public final class TripTrackingManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let locationManager = TripLocationManager()
     private var stationaryStartDate: Date? = nil
+    private var stationaryTimer: Timer? = nil
 
     public init() {
         let savedAuto = UserDefaults.standard.object(forKey: "isAutoTripEnabled") as? Bool ?? true
@@ -35,8 +36,7 @@ public final class TripTrackingManager: ObservableObject {
         let trip = TripModel(startTime: Date(), distanceKm: 0.0, startSocPct: startSoc, vehicleName: vehicleName)
         self.currentTrip = trip
         self.isRecordingTrip = true
-        self.stationaryStartDate = nil
-        self.stationarySecondsRemaining = nil
+        resetStationaryTimer()
         locationManager.startTracking()
     }
 
@@ -53,16 +53,47 @@ public final class TripTrackingManager: ObservableObject {
 
         self.currentTrip = nil
         self.isRecordingTrip = false
-        self.stationaryStartDate = nil
-        self.stationarySecondsRemaining = nil
+        resetStationaryTimer()
     }
 
     public func clearAllTrips() {
         self.currentTrip = nil
         self.isRecordingTrip = false
-        self.stationaryStartDate = nil
-        self.stationarySecondsRemaining = nil
+        resetStationaryTimer()
         NotificationCenter.default.post(name: Notification.Name("ClearSampleTrips"), object: nil)
+    }
+
+    private func resetStationaryTimer() {
+        stationaryTimer?.invalidate()
+        stationaryTimer = nil
+        stationaryStartDate = nil
+        stationarySecondsRemaining = nil
+    }
+
+    private func startStationaryCountdownIfNeeded(lastSoc: Double, modelContext: ModelContext?) {
+        if stationaryStartDate == nil {
+            stationaryStartDate = Date()
+        }
+
+        let elapsed = Int(Date().timeIntervalSince(stationaryStartDate!))
+        self.stationarySecondsRemaining = max(0, autoStopDelaySeconds - elapsed)
+
+        if stationaryTimer == nil {
+            stationaryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self, let start = self.stationaryStartDate, self.isRecordingTrip else { return }
+                let currentElapsed = Int(Date().timeIntervalSince(start))
+                let remaining = max(0, self.autoStopDelaySeconds - currentElapsed)
+                self.stationarySecondsRemaining = remaining
+
+                if currentElapsed >= self.autoStopDelaySeconds {
+                    self.stopTrip(endSoc: lastSoc, modelContext: modelContext)
+                }
+            }
+        }
+
+        if elapsed >= autoStopDelaySeconds {
+            stopTrip(endSoc: lastSoc, modelContext: modelContext)
+        }
     }
 
     public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250", modelContext: ModelContext? = nil) {
@@ -71,24 +102,13 @@ public final class TripTrackingManager: ObservableObject {
 
             if isAutoTripEnabled {
                 if telemetry.speedKmH < 1.0 || telemetry.isCharging {
-                    if stationaryStartDate == nil {
-                        stationaryStartDate = Date()
-                    }
-                    let elapsed = Int(Date().timeIntervalSince(stationaryStartDate!))
-                    let remaining = max(0, autoStopDelaySeconds - elapsed)
-                    self.stationarySecondsRemaining = remaining
-
-                    if elapsed >= autoStopDelaySeconds {
-                        stopTrip(endSoc: telemetry.stateOfChargePct, modelContext: modelContext)
-                    }
+                    startStationaryCountdownIfNeeded(lastSoc: telemetry.stateOfChargePct, modelContext: modelContext)
                 } else {
-                    stationaryStartDate = nil
-                    stationarySecondsRemaining = nil
+                    resetStationaryTimer()
                 }
             }
         } else if isAutoTripEnabled {
-            stationaryStartDate = nil
-            stationarySecondsRemaining = nil
+            resetStationaryTimer()
 
             if telemetry.speedKmH >= 5.0 {
                 startTrip(startSoc: telemetry.stateOfChargePct, vehicleName: vehicleName)
