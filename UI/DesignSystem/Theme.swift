@@ -22,6 +22,24 @@ public enum Theme {
         startPoint: .leading,
         endPoint: .trailing
     )
+
+    public static let speedGradient = LinearGradient(
+        colors: [electricCyan, Color(red: 0.0, green: 0.45, blue: 1.0)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    public static let socGradient = LinearGradient(
+        colors: [regenGreen, electricCyan],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    public static let socLowGradient = LinearGradient(
+        colors: [highPowerAmber, criticalRed],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
 }
 
 public struct GlassCardModifier: ViewModifier {

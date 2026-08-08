@@ -33,22 +33,22 @@ final class DashboardLayoutTests: XCTestCase {
         XCTAssertNil(DashboardLayout(rawValue: "not json"))
     }
 
-    func testRowPackingPairsAdjacentSmallWidgets() {
+    func testRowPackingPairsAdjacentMediumWidgets() {
         let widgets = [
-            DashboardWidgetConfig(kind: .metric(.speed), style: .numeric, size: .small),
-            DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .small),
-            DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .large)
+            DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
+            DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
+            DashboardWidgetConfig(kind: .metric(.soc), style: .dial, size: .large)
         ]
         let rows = packDashboardWidgetsIntoRows(widgets)
         XCTAssertEqual(rows.count, 2)
-        XCTAssertEqual(rows[0].count, 2)
-        XCTAssertEqual(rows[1].count, 1)
+        XCTAssertEqual(rows[0].count, 2) // Speed and Power paired side-by-side
+        XCTAssertEqual(rows[1].count, 1) // SoC on second row
     }
 
-    func testRowPackingFlushesTrailingSoloSmallWidget() {
+    func testRowPackingFlushesTrailingSoloMediumWidget() {
         let widgets = [
             DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .large),
-            DashboardWidgetConfig(kind: .metric(.speed), style: .numeric, size: .small)
+            DashboardWidgetConfig(kind: .metric(.speed), style: .numeric, size: .medium)
         ]
         let rows = packDashboardWidgetsIntoRows(widgets)
         XCTAssertEqual(rows.count, 2)

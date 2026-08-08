@@ -171,34 +171,40 @@ public struct DashboardView: View {
                                                 layout.widgets.removeAll { $0.id == widget.id }
                                             }
                                         },
-                                        onCycleSize: {
+                                        onDecreaseSize: {
                                             if let index = layout.widgets.firstIndex(where: { $0.id == widget.id }) {
-                                                let nextSize: WidgetSize
-                                                switch widget.size {
-                                                case .small: nextSize = .medium
-                                                case .medium: nextSize = .large
-                                                case .large: nextSize = .small
-                                                }
-                                                layout.widgets[index].size = nextSize
-                                            }
-                                        },
-                                        onMoveLeft: {
-                                            if let idx = layout.widgets.firstIndex(where: { $0.id == widget.id }), idx > 0 {
                                                 withAnimation {
-                                                    layout.widgets.swapAt(idx, idx - 1)
+                                                    layout.widgets[index].size = .medium
                                                 }
                                             }
                                         },
-                                        onMoveRight: {
-                                            if let idx = layout.widgets.firstIndex(where: { $0.id == widget.id }), idx < layout.widgets.count - 1 {
+                                        onIncreaseSize: {
+                                            if let index = layout.widgets.firstIndex(where: { $0.id == widget.id }) {
                                                 withAnimation {
-                                                    layout.widgets.swapAt(idx, idx + 1)
+                                                    layout.widgets[index].size = .large
+                                                }
+                                            }
+                                        },
+                                        onLongPress: {
+                                            if !isEditMode {
+                                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                                    isEditMode = true
                                                 }
                                             }
                                         }
                                     )
+                                    .onDrag {
+                                        self.draggedWidget = widget
+                                        return NSItemProvider(object: widget.id.uuidString as NSString)
+                                    }
+                                    .onDrop(of: [.text], delegate: WidgetDropDelegate(item: widget, layout: $layout, draggedItem: $draggedWidget))
                                     .frame(maxWidth: .infinity)
                                     .frame(height: widget.size.height)
+                                }
+
+                                if row.count == 1 && row[0].size == .medium {
+                                    Spacer()
+                                        .frame(maxWidth: .infinity)
                                 }
                             }
                             .padding(.horizontal)
@@ -297,6 +303,27 @@ public struct DashboardView: View {
     }
 }
 
+private struct WidgetDropDelegate: DropDelegate {
+    let item: DashboardWidgetConfig
+    @Binding var layout: DashboardLayout
+    @Binding var draggedItem: DashboardWidgetConfig?
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedItem = nil
+        return true
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard let dragged = draggedItem, dragged.id != item.id else { return }
+        if let fromIndex = layout.widgets.firstIndex(where: { $0.id == dragged.id }),
+           let toIndex = layout.widgets.firstIndex(where: { $0.id == item.id }) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                layout.widgets.move(fromOffsets: IndexSet(integer: fromIndex), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
+            }
+        }
+    }
+}
+
 private struct WidgetTileWrapper: View {
     let widget: DashboardWidgetConfig
     let isEditMode: Bool
@@ -304,9 +331,9 @@ private struct WidgetTileWrapper: View {
     let profile: VehicleProfile
     let telemetryHistory: [TelemetrySnapshot]
     let onDelete: () -> Void
-    let onCycleSize: () -> Void
-    let onMoveLeft: () -> Void
-    let onMoveRight: () -> Void
+    let onDecreaseSize: () -> Void
+    let onIncreaseSize: () -> Void
+    let onLongPress: () -> Void
 
     @State private var isWiggling = false
 
@@ -329,6 +356,9 @@ private struct WidgetTileWrapper: View {
             .onChange(of: isEditMode) { _, newValue in
                 isWiggling = newValue
             }
+            .onLongPressGesture {
+                onLongPress()
+            }
 
             if isEditMode {
                 // Delete button (Top Left)
@@ -340,32 +370,34 @@ private struct WidgetTileWrapper: View {
                 }
                 .offset(x: -8, y: -8)
 
-                // Quick Controls overlay (Bottom Bar in edit mode)
+                // Quick Controls overlay (Bottom Bar in edit mode - Arrows adjust size small <-> medium <-> large)
                 VStack {
                     Spacer()
                     HStack(spacing: 8) {
-                        Button(action: onMoveLeft) {
+                        Button(action: onDecreaseSize) {
                             Image(systemName: "arrow.left.circle.fill")
-                                .foregroundColor(Theme.electricCyan)
+                                .font(.system(size: 18))
+                                .foregroundColor(widget.size == .medium ? Theme.textSecondary.opacity(0.4) : Theme.electricCyan)
                         }
+                        .disabled(widget.size == .medium)
 
-                        Button(action: onCycleSize) {
-                            Text(widget.size.rawValue.uppercased())
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Theme.electricCyan.opacity(0.3))
-                                .foregroundColor(Theme.electricCyan)
-                                .cornerRadius(4)
-                        }
+                        Text(widget.size == .medium ? "HALF (MED)" : "FULL (LRG)")
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Theme.electricCyan.opacity(0.3))
+                            .foregroundColor(Theme.electricCyan)
+                            .cornerRadius(4)
 
-                        Button(action: onMoveRight) {
+                        Button(action: onIncreaseSize) {
                             Image(systemName: "arrow.right.circle.fill")
-                                .foregroundColor(Theme.electricCyan)
+                                .font(.system(size: 18))
+                                .foregroundColor(widget.size == .large ? Theme.textSecondary.opacity(0.4) : Theme.electricCyan)
                         }
+                        .disabled(widget.size == .large)
                     }
                     .padding(4)
-                    .background(Color.black.opacity(0.75))
+                    .background(Color.black.opacity(0.85))
                     .cornerRadius(8)
                     .padding(.bottom, 6)
                 }

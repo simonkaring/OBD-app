@@ -36,7 +36,7 @@ public struct DashboardWidgetTile: View {
             case .numeric:
                 MetricNumericTileView(value: value, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
             case .dial:
-                MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
+                MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable)
             case .bar:
                 MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
             }

@@ -15,14 +15,18 @@ public struct MetricDialView: View {
     public var mode: DialMode
     public var unit: String
     public var label: String
+    public var metric: TelemetryMetric?
     public var isUnavailable: Bool = false
 
-    public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, isUnavailable: Bool = false) {
+    @State private var showEstimatedRange: Bool = false
+
+    public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil, isUnavailable: Bool = false) {
         self.value = value
         self.range = range
         self.mode = mode
         self.unit = unit
         self.label = label
+        self.metric = metric
         self.isUnavailable = isUnavailable
     }
 
@@ -46,11 +50,39 @@ public struct MetricDialView: View {
         }
     }
 
+    private var activeGradient: LinearGradient {
+        if let metric = metric {
+            switch metric {
+            case .speed:
+                return Theme.speedGradient
+            case .soc:
+                return value < 20 ? Theme.socLowGradient : Theme.socGradient
+            case .power:
+                return isNegativeArc ? Theme.regenGradient : Theme.powerGradient
+            default:
+                break
+            }
+        }
+        return isNegativeArc ? Theme.regenGradient : Theme.powerGradient
+    }
+
     private var statusText: String {
+        if metric == .soc {
+            return showEstimatedRange ? "EST. RANGE" : "STATE OF CHARGE"
+        }
         guard case .bidirectional = mode else { return label.uppercased() }
         if value < -0.5 { return "REGEN" }
         if value > 5.0 { return "DRAW" }
         return "IDLE"
+    }
+
+    private var displayValueAndUnit: (displayVal: String, displayUnit: String) {
+        if metric == .soc && showEstimatedRange {
+            let estimatedKm = (value / 100.0) * 400.0
+            return (String(format: "%.0f", estimatedKm), "km")
+        }
+        let formatted = String(format: value >= 100 ? "%.0f" : "%.1f", abs(value))
+        return (formatted, unit)
     }
 
     public var body: some View {
@@ -61,7 +93,7 @@ public struct MetricDialView: View {
             let dialDiameter = max(10, minDimension - (inset * 2.0))
             let valueFontSize: CGFloat = max(18, minDimension * 0.22)
             let unitFontSize: CGFloat = max(10, minDimension * 0.09)
-            let labelFontSize: CGFloat = max(8, minDimension * 0.07)
+            let labelFontSize: CGFloat = max(8, minDimension * 0.065)
 
             ZStack {
                 Circle()
@@ -75,14 +107,14 @@ public struct MetricDialView: View {
                     if isNegativeArc {
                         Circle()
                             .trim(from: 0.5 + (normalizedProgress * 0.35), to: 0.5)
-                            .stroke(Theme.regenGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                            .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                             .rotationEffect(.degrees(90))
                             .frame(width: dialDiameter, height: dialDiameter)
                             .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                     } else {
                         Circle()
                             .trim(from: 0.5, to: 0.5 + (normalizedProgress * 0.35))
-                            .stroke(Theme.powerGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                            .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                             .rotationEffect(.degrees(90))
                             .frame(width: dialDiameter, height: dialDiameter)
                             .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
@@ -90,37 +122,57 @@ public struct MetricDialView: View {
                 case .unidirectional:
                     Circle()
                         .trim(from: 0.15, to: 0.15 + (normalizedProgress * 0.70))
-                        .stroke(Theme.powerGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                        .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                         .rotationEffect(.degrees(90))
                         .frame(width: dialDiameter, height: dialDiameter)
                         .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                 }
 
                 VStack(spacing: minDimension * 0.02) {
+                    let valAndUnit = displayValueAndUnit
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text(isUnavailable ? "--" : String(format: value >= 100 ? "%.0f" : "%.1f", abs(value)))
+                        Text(isUnavailable ? "--" : valAndUnit.displayVal)
                             .font(.system(size: valueFontSize, weight: .bold, design: .rounded))
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                             .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.textPrimary)
-                        Text(unit)
+                        Text(valAndUnit.displayUnit)
                             .font(.system(size: unitFontSize, weight: .semibold, design: .rounded))
                             .lineLimit(1)
                             .foregroundColor(Theme.textSecondary)
                     }
 
-                    Text(statusText)
-                        .font(.system(size: labelFontSize, weight: .bold, design: .rounded))
-                        .lineLimit(1)
-                        .padding(.horizontal, max(4, minDimension * 0.04))
-                        .padding(.vertical, max(2, minDimension * 0.015))
-                        .background(isNegativeArc ? Theme.regenGreen.opacity(0.2) : Theme.electricCyan.opacity(0.2))
-                        .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.electricCyan)
-                        .cornerRadius(6)
+                    HStack(spacing: 3) {
+                        Text(statusText)
+                            .font(.system(size: labelFontSize, weight: .bold, design: .rounded))
+                            .lineLimit(1)
+
+                        if metric == .soc {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: labelFontSize * 0.9))
+                        }
+                    }
+                    .padding(.horizontal, max(4, minDimension * 0.04))
+                    .padding(.vertical, max(2, minDimension * 0.015))
+                    .background(
+                        metric == .soc ? Theme.regenGreen.opacity(0.2) : (isNegativeArc ? Theme.regenGreen.opacity(0.2) : Theme.electricCyan.opacity(0.2))
+                    )
+                    .foregroundColor(
+                        metric == .soc ? Theme.regenGreen : (isNegativeArc ? Theme.regenGreen : Theme.electricCyan)
+                    )
+                    .cornerRadius(6)
                 }
                 .padding(.horizontal, strokeWidth + 4)
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if metric == .soc {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        showEstimatedRange.toggle()
+                    }
+                }
+            }
         }
         .opacity(isUnavailable ? 0.4 : 1.0)
     }

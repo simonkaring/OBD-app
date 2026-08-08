@@ -1,15 +1,21 @@
 import Foundation
 
 public enum WidgetSize: String, Codable, CaseIterable, Identifiable, Sendable {
-    case small, medium, large
+    case medium, large
     public var id: String { rawValue }
 
-    /// Approximate rendered height, matching the app's existing widget heights.
+    /// Rendered height for medium (half-width side-by-side) and large (full-width single-row) widgets.
     public var height: Double {
-        switch self {
-        case .small: return 120
-        case .medium: return 140
-        case .large: return 240
+        return 240
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        switch raw {
+        case "small", "medium": self = .medium
+        case "large": self = .large
+        default: self = .medium
         }
     }
 }
@@ -101,41 +107,42 @@ extension DashboardLayout: RawRepresentable {
 }
 
 extension DashboardLayout {
-    /// Reproduces today's fixed widget set/order/sizes, so first run is visually unchanged.
+    /// Default layout: Speed and Power medium dials paired side-by-side, followed by SoC large dial taking a row by itself.
     public static let `default` = DashboardLayout(widgets: [
-        DashboardWidgetConfig(kind: .metric(.speed), style: .numeric, size: .small),
-        DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .small),
-        DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .large),
-        DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .medium),
-        DashboardWidgetConfig(kind: .metric(.batteryTemp), style: .numeric, size: .small),
+        DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.soc), style: .dial, size: .large),
+        DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.batteryTemp), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large)
     ])
 }
 
-/// Packs widgets into rows: adjacent `.small` widgets pair up two-per-row;
-/// `.medium`/`.large` each take a full-width row of their own.
+/// Packs widgets into 2-column grid rows:
+/// - `.medium` widgets occupy 1 column (half-width, pairing 2 per row when adjacent)
+/// - `.large` widgets occupy both columns (full-width single row)
 public func packDashboardWidgetsIntoRows(_ widgets: [DashboardWidgetConfig]) -> [[DashboardWidgetConfig]] {
     var rows: [[DashboardWidgetConfig]] = []
-    var pendingSmall: DashboardWidgetConfig?
+    var pendingMedium: DashboardWidgetConfig?
 
     for widget in widgets {
-        if widget.size == .small {
-            if let pending = pendingSmall {
+        if widget.size == .medium {
+            if let pending = pendingMedium {
                 rows.append([pending, widget])
-                pendingSmall = nil
+                pendingMedium = nil
             } else {
-                pendingSmall = widget
+                pendingMedium = widget
             }
-        } else {
-            if let pending = pendingSmall {
+        } else { // .large
+            if let pending = pendingMedium {
                 rows.append([pending])
-                pendingSmall = nil
+                pendingMedium = nil
             }
             rows.append([widget])
         }
     }
 
-    if let pending = pendingSmall {
+    if let pending = pendingMedium {
         rows.append([pending])
     }
 
