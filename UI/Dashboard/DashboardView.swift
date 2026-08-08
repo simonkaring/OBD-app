@@ -43,18 +43,30 @@ public struct DashboardView: View {
                                     }
                                 } label: {
                                     Image(systemName: isEditMode ? "checkmark" : "pencil")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .frame(width: 32, height: 32)
                                 }
                                 .buttonStyle(.glass)
                                 .buttonBorderShape(.circle)
+                                .controlSize(.regular)
+                                .buttonSizing(.fitted)
                                 .tint(isEditMode ? Theme.regenGreen : nil)
+                                .frame(width: 44, height: 44)
+                                .accessibilityLabel(isEditMode ? "Done Editing" : "Edit Dashboard")
 
                                 Button {
                                     showHUDMode = true
                                 } label: {
                                     Image(systemName: "sunglasses.fill")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .frame(width: 32, height: 32)
                                 }
                                 .buttonStyle(.glass)
                                 .buttonBorderShape(.circle)
+                                .controlSize(.regular)
+                                .buttonSizing(.fitted)
+                                .frame(width: 44, height: 44)
+                                .accessibilityLabel("Heads-Up Display")
                             } else {
                                 Button {
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
@@ -62,11 +74,13 @@ public struct DashboardView: View {
                                     }
                                 } label: {
                                     Image(systemName: isEditMode ? "checkmark" : "pencil")
-                                        .font(.system(size: 15, weight: .semibold))
+                                        .font(.system(size: 16, weight: .semibold))
                                         .foregroundColor(isEditMode ? Theme.regenGreen : Theme.textPrimary)
                                         .frame(width: 36, height: 36)
                                         .background(.ultraThinMaterial, in: Circle())
                                 }
+                                .frame(width: 44, height: 44)
+                                .accessibilityLabel(isEditMode ? "Done Editing" : "Edit Dashboard")
 
                                 Button {
                                     showHUDMode = true
@@ -77,6 +91,8 @@ public struct DashboardView: View {
                                         .frame(width: 36, height: 36)
                                         .background(.ultraThinMaterial, in: Circle())
                                 }
+                                .frame(width: 44, height: 44)
+                                .accessibilityLabel("Heads-Up Display")
                             }
                         }
                         .padding(.horizontal)
