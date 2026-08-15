@@ -46,7 +46,7 @@ public final class ISO15765Parser: Sendable {
             switch frameType {
             case 0: // Single Frame (0x0N length)
                 let length = Int(firstByte & 0x0F)
-                if hexTokens.count >= 1 + length {
+                if length > 0, hexTokens.count >= 1 + length {
                     let dataBytes = hexTokens[1...(length)]
                     payloadHex += dataBytes.joined()
                 } else {

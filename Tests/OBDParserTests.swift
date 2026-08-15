@@ -18,6 +18,14 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(payload, "6201050E7403E8000000000000")
     }
 
+    func testISO15765ParserSingleFrameZeroLengthDoesNotCrash() {
+        let parser = ISO15765Parser()
+        // PCI byte 00 = single frame declaring zero data bytes; must not trap on an invalid slice range
+        let raw = "7E8 00\r\n>"
+        let payload = parser.assembleISOTPPayload(raw)
+        XCTAssertEqual(payload, "")
+    }
+
     func testMercedesEQA250PowerParsingMultiFrame() {
         let profile = MercedesEQA250Profile()
         let rawResponse = "7E8 10 0A 62 01 05 0E 74 03\r\n7E8 21 E8 00 00 00 00 00 00\r\n>"
