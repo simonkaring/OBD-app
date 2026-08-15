@@ -66,4 +66,16 @@ final class GenericOBD2ProfileTests: XCTestCase {
         XCTAssertFalse(profile.supportedMetrics.contains(.motorTorque))
         XCTAssertTrue(profile.supportedMetrics.contains(.engineLoad))
     }
+
+    func testHybridEVBatterySOCParsing() {
+        let profile = GenericOBD2Profile()
+        // 0x80 (128) -> ~50.2% (SAE J1979 PID 5B, works on any EV without manufacturer-specific PIDs)
+        let raw = "7E8 03 41 5B 80\r\n>"
+        let update = profile.parseResponse(command: "015B", rawResponse: raw)
+        if case .soc(let pct) = update {
+            XCTAssertEqual(pct, 50.2, accuracy: 0.5)
+        } else {
+            XCTFail("Expected soc update from PID 5B")
+        }
+    }
 }

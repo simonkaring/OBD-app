@@ -124,6 +124,9 @@ public struct SettingsView: View {
                     NavigationLink("Scan Nearby BLE Devices") {
                         AdapterScanView(vehicleData: vehicleData)
                     }
+                    NavigationLink("OBD Terminal & PID Discovery") {
+                        OBDTerminalView(vehicleData: vehicleData)
+                    }
                 }
 
                 Section("CarPlay") {

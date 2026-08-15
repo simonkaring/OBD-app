@@ -13,10 +13,11 @@ public struct MercedesEQA250Profile: VehicleProfile {
             "AT Z",       // Reset ELM327
             "AT E0",      // Echo Off
             "AT L0",      // Linefeed Off
-            "AT S0",      // Spaces Off
+            "AT S1",      // Spaces On (required by the space-delimited ISO-TP token parser)
             "AT H1",      // Headers On (for CAN ID recognition)
             "AT CAF 1",   // CAN Auto Formatting
-            "AT SP 6",    // ISO 15765-4 CAN 11-bit 500k baud
+            "AT SP 0",    // Auto-detect protocol
+            "AT DP",      // Report negotiated protocol (visible in the OBD log)
             "AT AL",      // Allow Long messages
             "AT SH 7E4"   // Set Header to BMS (Battery Management System)
         ]

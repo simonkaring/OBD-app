@@ -11,8 +11,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
     public var obdConnection: OBDConnectionProtocol
 
-    private var pollingTimer: AnyCancellable?
+    private var isPolling = false
     private var pollingIndex = 0
+    private var pollingGeneration = 0
 
     public init(connection: OBDConnectionProtocol? = nil) {
         if let conn = connection {
@@ -65,23 +66,28 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     }
 
     public func startPolling() {
-        pollingTimer?.cancel()
-        pollingTimer = Timer.publish(every: 0.3, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.pollNextCommand()
-            }
+        guard !isPolling else { return }
+        isPolling = true
+        pollingGeneration += 1
+        pollNextCommand(generation: pollingGeneration)
     }
 
     public func stopPolling() {
-        pollingTimer?.cancel()
-        pollingTimer = nil
+        isPolling = false
+        pollingGeneration += 1
     }
 
-    private func pollNextCommand() {
-        guard obdConnection.state.isConnected else { return }
+    private func pollNextCommand(generation: Int) {
+        guard isPolling, generation == pollingGeneration else { return }
+        guard obdConnection.state.isConnected else {
+            scheduleNextPoll(generation: generation)
+            return
+        }
         let cmds = selectedProfile.pollingCommands
-        guard !cmds.isEmpty else { return }
+        guard !cmds.isEmpty else {
+            scheduleNextPoll(generation: generation)
+            return
+        }
         let cmd = cmds[pollingIndex % cmds.count]
         pollingIndex += 1
 
@@ -92,6 +98,13 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                     self.applyUpdate(update)
                 }
             }
+            self.scheduleNextPoll(generation: generation)
+        }
+    }
+
+    private func scheduleNextPoll(generation: Int, delay: TimeInterval = 0.05) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.pollNextCommand(generation: generation)
         }
     }
 

@@ -12,7 +12,7 @@ public struct GenericOBD2Profile: VehicleProfile {
             "AT Z",
             "AT E0",
             "AT L0",
-            "AT S0",
+            "AT S1", // Spaces On (required by the space-delimited ISO-TP token parser)
             "AT SP 0" // Auto-detect protocol
         ]
     }
@@ -26,12 +26,13 @@ public struct GenericOBD2Profile: VehicleProfile {
             "0104", // Calculated Engine Load
             "010F", // Intake Air Temp
             "0111", // Throttle Position
-            "012F"  // Fuel Level
+            "012F", // Fuel Level
+            "015B"  // Hybrid/EV Battery Pack Remaining Life (SAE J1979 standard EV SOC)
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.speed, .motorRpm, .aux12V, .engineLoad, .coolantTemp, .intakeAirTemp, .throttlePosition, .fuelLevel]
+        [.speed, .motorRpm, .aux12V, .engineLoad, .coolantTemp, .intakeAirTemp, .throttlePosition, .fuelLevel, .soc]
     }
 
     public init() {}
@@ -73,6 +74,10 @@ public struct GenericOBD2Profile: VehicleProfile {
         case "012F", "01 2F":
             guard let byte = extractByte(from: cleanHex, header: "412F") else { return nil }
             return .fuelLevel(Double(byte) * 100.0 / 255.0)
+
+        case "015B", "01 5B":
+            guard let byte = extractByte(from: cleanHex, header: "415B") else { return nil }
+            return .soc(Double(byte) * 100.0 / 255.0)
 
         default:
             return nil
