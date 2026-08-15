@@ -6,92 +6,140 @@ public final class DTCScannerService: ObservableObject {
     @Published public private(set) var isScanning: Bool = false
     @Published public private(set) var scanProgress: Double = 0.0
     @Published public private(set) var lastScanDate: Date? = nil
+    @Published public private(set) var scanErrorMessage: String? = nil
 
     private let db = DTCLocalDatabase.shared
+    private let isoParser = ISO15765Parser()
 
     public init() {}
 
     public func scanDTCs(connection: OBDConnectionProtocol, isDemo: Bool = false) {
+        guard !isScanning else { return }
         isScanning = true
         scanProgress = 0.0
         scannedCodes.removeAll()
+        scanErrorMessage = nil
 
         if isDemo {
-            // Simulated scan
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 guard let self = self else { return }
-                self.scanProgress = 1.0
-                self.isScanning = false
-                self.lastScanDate = Date()
-                if let mock = connection as? MockOBDAdapter, mock.simulationEngine.scenario == .faultInjection {
-                    let code = self.db.lookup(code: "P0A80")
-                    self.scannedCodes = [code]
-                } else {
-                    self.scannedCodes = []
+                connection.sendCommand("03") { result in
+                    self.finishScan(storedResult: result, connection: connection)
                 }
             }
             return
         }
 
-        // Real OBD Mode 03 & 07 scan
-        connection.sendCommand("03") { [weak self] result in
+        // Broadcast header so Mode 03/07 reach every ECU, not just whichever module a
+        // vehicle profile last selected (e.g. Mercedes profile leaves the header on 7E4/BMS).
+        connection.sendCommand("AT SH 7DF", completion: nil)
+        connection.sendCommand("03") { [weak self] storedResult in
+            self?.finishScan(storedResult: storedResult, connection: connection)
+        }
+    }
+
+    private func finishScan(storedResult: Result<String, Error>, connection: OBDConnectionProtocol) {
+        guard let storedCodes = codes(from: storedResult, serviceByte: 0x43) else {
+            isScanning = false
+            scanProgress = 1.0
+            lastScanDate = Date()
+            scanErrorMessage = "Scan failed — no response from vehicle ECUs."
+            return
+        }
+
+        connection.sendCommand("07") { [weak self] pendingResult in
             guard let self = self else { return }
             self.isScanning = false
             self.scanProgress = 1.0
             self.lastScanDate = Date()
-            if case .success(let hex) = result {
-                let codes = self.parseDTCResponse(hex)
-                self.scannedCodes = codes
+            let pendingCodes = self.codes(from: pendingResult, serviceByte: 0x47) ?? []
+            var combined = storedCodes
+            for code in pendingCodes where !combined.contains(where: { $0.code == code.code }) {
+                combined.append(code)
             }
+            self.scannedCodes = combined
         }
     }
 
     public func clearDTCs(connection: OBDConnectionProtocol, completion: @escaping (Bool) -> Void) {
         connection.sendCommand("04") { [weak self] result in
-            if case .success = result {
-                self?.scannedCodes.removeAll()
-                completion(true)
-            } else {
+            guard case .success(let hex) = result else {
                 completion(false)
+                return
             }
+            let bytes = Self.hexStringToBytes(hex)
+            let succeeded = bytes.contains(0x44) && !Self.isNegativeOrEmpty(hex)
+            if succeeded {
+                self?.scannedCodes.removeAll()
+            }
+            completion(succeeded)
         }
     }
 
-    private func parseDTCResponse(_ hex: String) -> [DTCCode] {
-        let cleanHex = hex.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: "\n", with: "")
-        guard cleanHex.count >= 4 else { return [] }
-        
+    /// Returns decoded codes, or nil if the adapter/ECU reported a failure (as opposed to a clean "0 codes").
+    private func codes(from result: Result<String, Error>, serviceByte: UInt8) -> [DTCCode]? {
+        guard case .success(let hex) = result, !Self.isNegativeOrEmpty(hex) else { return nil }
+        return parseDTCResponse(hex, serviceByte: serviceByte)
+    }
+
+    private static func isNegativeOrEmpty(_ raw: String) -> Bool {
+        let upper = raw.uppercased()
+        return upper.contains("NO DATA") || upper.contains("BUS ERROR") || upper.contains("UNABLE TO CONNECT") || upper.contains("7F 03") || upper.contains("7F03") || upper.contains("7F 07") || upper.contains("7F07")
+    }
+
+    /// `internal` (not `private`) so unit tests can exercise the decoder directly.
+    func parseDTCResponse(_ hex: String, serviceByte: UInt8) -> [DTCCode] {
+        let payload = isoParser.assembleISOTPPayload(hex)
+        let bytes = Self.hexStringToBytes(payload)
+
+        guard let serviceIndex = bytes.firstIndex(of: serviceByte), serviceIndex + 1 < bytes.count else { return [] }
+
+        let count = Int(bytes[serviceIndex + 1])
         var results: [DTCCode] = []
-        // Parse Mode 03 responses format: 43 count [B1 B2] [B3 B4]...
-        let dataIndex = cleanHex.range(of: "43")?.upperBound ?? cleanHex.startIndex
-        let codeData = String(cleanHex[dataIndex...])
+        var index = serviceIndex + 2
+        var parsed = 0
 
-        var index = codeData.startIndex
-        while codeData.distance(from: index, to: codeData.endIndex) >= 4 {
-            let nextIndex = codeData.index(index, offsetBy: 4)
-            let pairStr = String(codeData[index..<nextIndex])
-            index = nextIndex
+        while parsed < count, index + 1 < bytes.count {
+            let firstByte = bytes[index]
+            let secondByte = bytes[index + 1]
+            index += 2
+            parsed += 1
 
-            if pairStr == "0000" { continue }
+            if firstByte == 0 && secondByte == 0 { continue }
 
-            if let firstByte = UInt8(pairStr.prefix(2), radix: 16),
-               let secondByte = UInt8(pairStr.suffix(2), radix: 16) {
-                let typePrefix: String
-                switch (firstByte & 0xC0) >> 6 {
-                case 0: typePrefix = "P"
-                case 1: typePrefix = "C"
-                case 2: typePrefix = "B"
-                case 3: typePrefix = "U"
-                default: typePrefix = "P"
-                }
-                let digit1 = (firstByte & 0x30) >> 4
-                let digit2 = firstByte & 0x0F
-                let digit3 = (secondByte & 0xF0) >> 4
-                let digit4 = secondByte & 0x0F
-                let codeStr = String(format: "%@%X%X%X%X", typePrefix, digit1, digit2, digit3, digit4)
-                results.append(db.lookup(code: codeStr))
+            let typePrefix: String
+            switch (firstByte & 0xC0) >> 6 {
+            case 0: typePrefix = "P"
+            case 1: typePrefix = "C"
+            case 2: typePrefix = "B"
+            case 3: typePrefix = "U"
+            default: typePrefix = "P"
             }
+            let digit1 = (firstByte & 0x30) >> 4
+            let digit2 = firstByte & 0x0F
+            let digit3 = (secondByte & 0xF0) >> 4
+            let digit4 = secondByte & 0x0F
+            let codeStr = String(format: "%@%X%X%X%X", typePrefix, digit1, digit2, digit3, digit4)
+            results.append(db.lookup(code: codeStr))
         }
         return results
+    }
+
+    private static func hexStringToBytes(_ hex: String) -> [UInt8] {
+        let clean = hex.replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+        guard clean.count % 2 == 0 else { return [] }
+
+        var bytes: [UInt8] = []
+        var index = clean.startIndex
+        while index < clean.endIndex {
+            let nextIndex = clean.index(index, offsetBy: 2)
+            if let byte = UInt8(clean[index..<nextIndex], radix: 16) {
+                bytes.append(byte)
+            }
+            index = nextIndex
+        }
+        return bytes
     }
 }

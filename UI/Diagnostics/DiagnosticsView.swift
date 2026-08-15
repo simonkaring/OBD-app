@@ -6,6 +6,7 @@ public struct DiagnosticsView: View {
 
     @State private var selectedDTC: DTCCode?
     @State private var showClearConfirmation = false
+    @State private var showClearFailedAlert = false
 
     public init(dtcService: DTCScannerService, vehicleData: VehicleDataManager) {
         self.dtcService = dtcService
@@ -28,6 +29,11 @@ public struct DiagnosticsView: View {
                                 Text(dtcService.lastScanDate == nil ? "Not Scanned Yet" : "Last Scan: \(dtcService.lastScanDate!.formatted(date: .numeric, time: .shortened))")
                                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                                     .foregroundColor(Theme.textPrimary)
+                                if let error = dtcService.scanErrorMessage {
+                                    Text(error)
+                                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                                        .foregroundColor(Theme.criticalRed)
+                                }
                             }
                             Spacer()
 
@@ -133,12 +139,19 @@ public struct DiagnosticsView: View {
             .alert("Clear Diagnostic Codes?", isPresented: $showClearConfirmation) {
                 Button("Clear Codes", role: .destructive) {
                     dtcService.clearDTCs(connection: vehicleData.obdConnection) { success in
-                        // Handled in service
+                        if !success {
+                            showClearFailedAlert = true
+                        }
                     }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Clearing codes will reset vehicle ECU diagnostic logs and turn off check warning lights. Ensure vehicle speed is 0 km/h before clearing.")
+            }
+            .alert("Clear Failed", isPresented: $showClearFailedAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("The vehicle did not confirm the codes were cleared. Try again with the ignition on and the vehicle stationary.")
             }
         }
     }

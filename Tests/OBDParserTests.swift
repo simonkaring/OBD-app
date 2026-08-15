@@ -67,4 +67,36 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(code.severity, .critical)
         XCTAssertTrue(code.title.contains("Replace Hybrid/EV Battery Pack"))
     }
+
+    func testDTCScannerSingleFrameDecodesCorrectCode() {
+        let scanner = DTCScannerService()
+        // 43 (Mode 03 response) 01 (count = 1) 0A 80 (DTC bytes) 00 00 (padding)
+        let raw = "43 01 0A 80 00 00\r\n>"
+        let codes = scanner.parseDTCResponse(raw, serviceByte: 0x43)
+        XCTAssertEqual(codes.map(\.code), ["P0A80"])
+    }
+
+    func testDTCScannerNoCodesReturnsEmpty() {
+        let scanner = DTCScannerService()
+        let raw = "43 00 00 00 00 00\r\n>"
+        let codes = scanner.parseDTCResponse(raw, serviceByte: 0x43)
+        XCTAssertTrue(codes.isEmpty)
+    }
+
+    func testDTCScannerMultiFrameDecodesAllCodes() {
+        let scanner = DTCScannerService()
+        // First Frame: 43 04 01 43 01 33  (service=43, count=4, DTC1=0143, DTC2 starts 01/33...)
+        // Consecutive Frame continues the byte stream: 02 47 03 01 00 00 00
+        let raw = "7E8 10 0E 43 04 01 43 01 33\r\n7E8 21 02 47 03 01 00 00 00\r\n>"
+        let codes = scanner.parseDTCResponse(raw, serviceByte: 0x43)
+        XCTAssertEqual(codes.count, 4)
+        XCTAssertEqual(codes.map(\.code), ["P0143", "P0133", "P0247", "P0301"])
+    }
+
+    func testDTCScannerModePendingCodes() {
+        let scanner = DTCScannerService()
+        let raw = "47 01 0A 80\r\n>"
+        let codes = scanner.parseDTCResponse(raw, serviceByte: 0x47)
+        XCTAssertEqual(codes.map(\.code), ["P0A80"])
+    }
 }
