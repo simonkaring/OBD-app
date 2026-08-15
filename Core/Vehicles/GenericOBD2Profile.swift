@@ -27,12 +27,21 @@ public struct GenericOBD2Profile: VehicleProfile {
             "010F", // Intake Air Temp
             "0111", // Throttle Position
             "012F", // Fuel Level
-            "015B"  // Hybrid/EV Battery Pack Remaining Life (SAE J1979 standard EV SOC)
+            "015B", // Hybrid/EV Battery Pack Remaining Life (SAE J1979 standard EV SOC)
+            "0146", // Ambient Air Temp
+            "0110", // Mass Air Flow Rate
+            "010B", // Intake Manifold Absolute Pressure
+            "015C", // Engine Oil Temperature
+            "010E", // Timing Advance
+            "0133"  // Barometric Pressure
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.speed, .motorRpm, .aux12V, .engineLoad, .coolantTemp, .intakeAirTemp, .throttlePosition, .fuelLevel, .soc]
+        [
+            .speed, .motorRpm, .aux12V, .engineLoad, .coolantTemp, .intakeAirTemp, .throttlePosition, .fuelLevel, .soc,
+            .ambientAirTemp, .maf, .manifoldPressure, .oilTemp, .timingAdvance, .barometricPressure
+        ]
     }
 
     public init() {}
@@ -78,6 +87,31 @@ public struct GenericOBD2Profile: VehicleProfile {
         case "015B", "01 5B":
             guard let byte = extractByte(from: cleanHex, header: "415B") else { return nil }
             return .soc(Double(byte) * 100.0 / 255.0)
+
+        case "0146", "01 46":
+            guard let byte = extractByte(from: cleanHex, header: "4146") else { return nil }
+            return .ambientAirTemp(Double(byte) - 40.0)
+
+        case "0110", "01 10":
+            guard let bytes = extractBytes(from: cleanHex, header: "4110", count: 2) else { return nil }
+            let maf = (Double(bytes[0]) * 256.0 + Double(bytes[1])) / 100.0
+            return .maf(maf)
+
+        case "010B", "01 0B":
+            guard let byte = extractByte(from: cleanHex, header: "410B") else { return nil }
+            return .manifoldPressure(Double(byte))
+
+        case "015C", "01 5C":
+            guard let byte = extractByte(from: cleanHex, header: "415C") else { return nil }
+            return .oilTemp(Double(byte) - 40.0)
+
+        case "010E", "01 0E":
+            guard let byte = extractByte(from: cleanHex, header: "410E") else { return nil }
+            return .timingAdvance(Double(byte) / 2.0 - 64.0)
+
+        case "0133", "01 33":
+            guard let byte = extractByte(from: cleanHex, header: "4133") else { return nil }
+            return .barometricPressure(Double(byte))
 
         default:
             return nil

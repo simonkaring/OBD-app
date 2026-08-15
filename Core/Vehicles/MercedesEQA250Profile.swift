@@ -38,7 +38,10 @@ public struct MercedesEQA250Profile: VehicleProfile {
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.speed, .power, .soc, .soh, .batteryTemp, .aux12V, .motorRpm, .motorTorque]
+        [
+            .speed, .power, .soc, .soh, .batteryTemp, .aux12V, .motorRpm, .motorTorque,
+            .packVoltage, .packCurrent, .batteryTempMin, .batteryTempMax, .instantEfficiency
+        ]
     }
 
     public init() {}

@@ -119,7 +119,10 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             snap.powerKW = kw
         case .soc(let soc): snap.stateOfChargePct = soc
         case .soh(let soh): snap.stateOfHealthPct = soh
-        case .batteryTemp(_, _, let avg): snap.batteryTempC = avg
+        case .batteryTemp(let min, let max, let avg):
+            snap.batteryTempC = avg
+            snap.batteryTempMinC = min
+            snap.batteryTempMaxC = max
         case .aux12V(let v): snap.aux12VVolts = v
         case .motorStats(let rpm, let torque):
             snap.motorRpm = rpm
@@ -133,6 +136,12 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .engineLoad(let pct): snap.engineLoadPct = pct
         case .coolantTemp(let c): snap.coolantTempC = c
         case .intakeAirTemp(let c): snap.intakeAirTempC = c
+        case .ambientAirTemp(let c): snap.ambientAirTempC = c
+        case .maf(let g): snap.mafGramsPerSec = g
+        case .manifoldPressure(let kPa): snap.manifoldPressureKPa = kPa
+        case .oilTemp(let c): snap.oilTempC = c
+        case .timingAdvance(let deg): snap.timingAdvanceDeg = deg
+        case .barometricPressure(let kPa): snap.barometricPressureKPa = kPa
         case .genericPid: break
         }
         latestTelemetry = snap

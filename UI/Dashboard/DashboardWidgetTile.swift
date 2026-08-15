@@ -34,7 +34,7 @@ public struct DashboardWidgetTile: View {
         Group {
             switch config.style {
             case .numeric:
-                MetricNumericTileView(value: value, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
+                MetricNumericTileView(value: value, unit: metric.unitSymbol, label: metric.displayName, decimalPlaces: metric.decimalPlaces, isUnavailable: !isAvailable)
             case .dial:
                 MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable)
             case .bar:

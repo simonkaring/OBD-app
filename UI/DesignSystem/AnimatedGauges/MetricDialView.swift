@@ -81,7 +81,8 @@ public struct MetricDialView: View {
             let estimatedKm = (value / 100.0) * 400.0
             return (String(format: "%.0f", estimatedKm), "km")
         }
-        let formatted = String(format: value >= 100 ? "%.0f" : "%.1f", abs(value))
+        let decimals = metric?.decimalPlaces ?? (value >= 100 ? 0 : 1)
+        let formatted = String(format: "%.\(decimals)f", abs(value))
         return (formatted, unit)
     }
 

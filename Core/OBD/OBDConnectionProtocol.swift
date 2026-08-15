@@ -14,8 +14,14 @@ public enum TelemetryUpdate: Sendable {
     case fuelLevel(Double)              // %
     case throttlePosition(Double)       // %
     case engineLoad(Double)             // %
-    case coolantTemp(Double)            // °C
-    case intakeAirTemp(Double)          // °C
+    case coolantTemp(Double)            // C
+    case intakeAirTemp(Double)          // C
+    case ambientAirTemp(Double)         // C
+    case maf(Double)                    // grams/sec
+    case manifoldPressure(Double)       // kPa
+    case oilTemp(Double)                // C
+    case timingAdvance(Double)          // degrees before TDC
+    case barometricPressure(Double)     // kPa
 }
 
 public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
@@ -28,6 +34,8 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var stateOfChargePct: Double = 0.0
     public var stateOfHealthPct: Double = 98.5
     public var batteryTempC: Double = 25.0
+    public var batteryTempMinC: Double = 25.0
+    public var batteryTempMaxC: Double = 25.0
     public var aux12VVolts: Double = 12.6
     public var motorRpm: Double = 0.0
     public var motorTorqueNm: Double = 0.0
@@ -39,6 +47,12 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var engineLoadPct: Double = 0.0
     public var coolantTempC: Double = 20.0
     public var intakeAirTempC: Double = 20.0
+    public var ambientAirTempC: Double = 20.0
+    public var mafGramsPerSec: Double = 0.0
+    public var manifoldPressureKPa: Double = 100.0
+    public var oilTempC: Double = 90.0
+    public var timingAdvanceDeg: Double = 0.0
+    public var barometricPressureKPa: Double = 100.0
 
     public init() {}
 }
