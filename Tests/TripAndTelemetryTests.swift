@@ -106,6 +106,24 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(older.distanceKm, 10.0, accuracy: 0.01)
     }
 
+    func testChargingDetectedFromNegativeCurrentWhileParked() {
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.speed(0.0))
+        manager.applyUpdate(.power(voltage: 380.0, current: -50.0, powerKW: -19.0))
+
+        XCTAssertTrue(manager.latestTelemetry.isCharging)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 19.0, accuracy: 0.01)
+    }
+
+    func testNegativeCurrentWhileMovingIsRegenNotCharging() {
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.speed(50.0))
+        manager.applyUpdate(.power(voltage: 380.0, current: -50.0, powerKW: -19.0))
+
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0.0, accuracy: 0.01)
+    }
+
     func testDemoModeFlagControllingDemoTrips() {
         let manager = VehicleDataManager()
         XCTAssertFalse(manager.isDemoMode)

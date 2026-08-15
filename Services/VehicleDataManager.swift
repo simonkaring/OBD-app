@@ -108,7 +108,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         }
     }
 
-    private func applyUpdate(_ update: TelemetryUpdate) {
+    func applyUpdate(_ update: TelemetryUpdate) {
         var snap = latestTelemetry
         snap.timestamp = Date()
         switch update {
@@ -117,6 +117,15 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             snap.voltageV = v
             snap.currentA = a
             snap.powerKW = kw
+            // Negative pack current = energy into the battery. Only treat it as
+            // charging (not regen) when parked, since regen only occurs while moving.
+            if a < -1.0 && snap.speedKmH < 1.0 {
+                snap.isCharging = true
+                snap.chargePowerKW = abs(kw)
+            } else if a >= -1.0 {
+                snap.isCharging = false
+                snap.chargePowerKW = 0.0
+            }
         case .soc(let soc): snap.stateOfChargePct = soc
         case .soh(let soh): snap.stateOfHealthPct = soh
         case .batteryTemp(let min, let max, let avg):
