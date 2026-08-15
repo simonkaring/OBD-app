@@ -50,33 +50,6 @@ public struct ChargingLiveView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Scanner Connection Disconnected Banner
-                        if !isConnected {
-                            HStack(spacing: 12) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(Theme.highPowerAmber)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("OBD SCANNER DISCONNECTED")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                        .foregroundColor(Theme.highPowerAmber)
-                                    Text("Connect to a Bluetooth scanner in Settings or turn on Demo Mode to stream live charging data.")
-                                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                                        .foregroundColor(Theme.textSecondary)
-                                }
-                                Spacer()
-                            }
-                            .padding()
-                            .background(Theme.highPowerAmber.opacity(0.12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Theme.highPowerAmber.opacity(0.4), lineWidth: 1)
-                            )
-                            .cornerRadius(12)
-                            .padding(.horizontal)
-                        }
-
                         // Charging Header Status
                         VStack(spacing: 8) {
                             Image(systemName: isCharging ? "bolt.batteryblock.fill" : "batteryblock")

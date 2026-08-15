@@ -97,32 +97,6 @@ public struct DashboardView: View {
                         }
                         .padding(.horizontal)
 
-                        if !vehicleData.isDemoMode && !vehicleData.connectionState.isConnected {
-                            HStack(spacing: 12) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(Theme.highPowerAmber)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("OBD SCANNER NOT CONNECTED")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                        .foregroundColor(Theme.highPowerAmber)
-                                    Text("Telemetry gauges remain blank until connected via Bluetooth in Settings or Demo Mode is enabled.")
-                                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                                        .foregroundColor(Theme.textSecondary)
-                                }
-                                Spacer()
-                            }
-                            .padding()
-                            .background(Theme.highPowerAmber.opacity(0.12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Theme.highPowerAmber.opacity(0.4), lineWidth: 1)
-                            )
-                            .cornerRadius(12)
-                            .padding(.horizontal)
-                        }
-
                         if isEditMode {
                             HStack {
                                 Text("Edit Dashboard")

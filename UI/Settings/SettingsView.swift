@@ -4,6 +4,8 @@ public struct SettingsView: View {
     @ObservedObject public var vehicleData: VehicleDataManager
     @ObservedObject public var tripTracker: TripTrackingManager
 
+    @State private var showVehiclePicker = false
+
     @State private var targetSpeed: Double = 50.0
     @State private var regenLevel: Double = 0.5
 
@@ -24,16 +26,6 @@ public struct SettingsView: View {
                         get: { vehicleData.isDemoMode },
                         set: { vehicleData.toggleDemoMode($0) }
                     ))
-
-                    Button(role: .destructive) {
-                        vehicleData.clearDemoData()
-                        tripTracker.clearAllTrips()
-                    } label: {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Clear Demo & Recorded Data")
-                        }
-                    }
                 }
 
                 if vehicleData.isDemoMode, let engine = mockEngine {
@@ -110,12 +102,22 @@ public struct SettingsView: View {
                 }
 
                 Section("Vehicle Profile") {
-                    Picker("Active Profile", selection: Binding(
-                        get: { vehicleData.selectedProfileID },
-                        set: { vehicleData.selectProfile($0) }
-                    )) {
-                        ForEach(VehicleProfileID.allCases) { id in
-                            Text(id.displayName).tag(id)
+                    Button {
+                        showVehiclePicker = true
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Active Vehicle")
+                                    .font(.body)
+                                    .foregroundColor(Theme.textPrimary)
+                                Text(vehicleData.selectedProfile.vehicleName)
+                                    .font(.caption)
+                                    .foregroundColor(Theme.electricCyan)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -146,6 +148,9 @@ public struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .inlineTitleDisplayMode()
+            .sheet(isPresented: $showVehiclePicker) {
+                VehicleProfilePickerSheet(vehicleData: vehicleData)
+            }
         }
     }
 }

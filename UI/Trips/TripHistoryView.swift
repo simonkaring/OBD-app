@@ -74,29 +74,32 @@ public struct TripHistoryView: View {
                             Spacer()
                         }
                     } else {
-                        List(sampleTrips, id: \.id) { trip in
-                            NavigationLink(destination: TripDetailView(trip: trip)) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
-                                            .font(.system(size: 14, weight: .bold))
-                                        Spacer()
-                                        Text(String(format: "%.1f km", trip.distanceKm))
-                                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                                            .foregroundColor(Theme.electricCyan)
-                                    }
-                                    HStack {
-                                        Text(String(format: "Efficiency: %.1f kWh/100km", trip.efficiencyKWhPer100Km))
-                                            .font(.caption)
-                                            .foregroundColor(Theme.textSecondary)
-                                        Spacer()
-                                        Text(String(format: "%.1f kWh", trip.totalKWhUsed))
-                                            .font(.caption)
-                                            .foregroundColor(Theme.textSecondary)
+                        List {
+                            ForEach(sampleTrips, id: \.id) { trip in
+                                NavigationLink(destination: TripDetailView(trip: trip)) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
+                                                .font(.system(size: 14, weight: .bold))
+                                            Spacer()
+                                            Text(String(format: "%.1f km", trip.distanceKm))
+                                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                                .foregroundColor(Theme.electricCyan)
+                                        }
+                                        HStack {
+                                            Text(String(format: "Efficiency: %.1f kWh/100km", trip.efficiencyKWhPer100Km))
+                                                .font(.caption)
+                                                .foregroundColor(Theme.textSecondary)
+                                            Spacer()
+                                            Text(String(format: "%.1f kWh", trip.totalKWhUsed))
+                                                .font(.caption)
+                                                .foregroundColor(Theme.textSecondary)
+                                        }
                                     }
                                 }
+                                .listRowBackground(Theme.cardBackground)
                             }
-                            .listRowBackground(Theme.cardBackground)
+                            .onDelete(perform: deleteTrips)
                         }
                         .listStyle(.plain)
                     }
@@ -137,7 +140,20 @@ public struct TripHistoryView: View {
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ClearSampleTrips"))) { _ in
                 sampleTrips.removeAll()
             }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DeleteTripNotification"))) { note in
+                if let tripID = note.object as? UUID {
+                    sampleTrips.removeAll { $0.id == tripID }
+                }
+            }
         }
+    }
+
+    private func deleteTrips(at offsets: IndexSet) {
+        for index in offsets {
+            let trip = sampleTrips[index]
+            tripTracker.deleteTrip(trip)
+        }
+        sampleTrips.remove(atOffsets: offsets)
     }
 
     private func updateSampleHistory() {

@@ -56,6 +56,19 @@ public final class TripTrackingManager: ObservableObject {
         resetStationaryTimer()
     }
 
+    public func deleteTrip(_ trip: TripModel, modelContext: ModelContext? = nil) {
+        if currentTrip?.id == trip.id {
+            self.currentTrip = nil
+            self.isRecordingTrip = false
+            resetStationaryTimer()
+        }
+        if let context = modelContext {
+            context.delete(trip)
+            try? context.save()
+        }
+        NotificationCenter.default.post(name: Notification.Name("DeleteTripNotification"), object: trip.id)
+    }
+
     public func clearAllTrips() {
         self.currentTrip = nil
         self.isRecordingTrip = false

@@ -2,6 +2,9 @@ import SwiftUI
 import Charts
 
 public struct TripDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var tripTracker: TripTrackingManager
+    @State private var showDeleteConfirmation = false
     public let trip: TripModel
 
     public init(trip: TripModel) {
@@ -295,6 +298,36 @@ public struct TripDetailView: View {
         }
         .navigationTitle("Trip Details")
         .inlineTitleDisplayMode()
+        .toolbar {
+            #if os(iOS)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+            }
+            #else
+            ToolbarItem(placement: .automatic) {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+            }
+            #endif
+        }
+        .confirmationDialog("Delete Trip", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button("Delete Trip", role: .destructive) {
+                tripTracker.deleteTrip(trip)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this trip record?")
+        }
     }
 }
 

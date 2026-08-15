@@ -47,34 +47,83 @@ struct MainTabView: View {
     @EnvironmentObject private var vehicleData: VehicleDataManager
     @EnvironmentObject private var tripTracker: TripTrackingManager
     @EnvironmentObject private var dtcService: DTCScannerService
+    @State private var selectedTab: Int = 0
+    @State private var isBannerDismissedManually: Bool = false
+
+    private var isDisconnectedBannerActive: Bool {
+        !vehicleData.isDemoMode && !vehicleData.connectionState.isConnected && !isBannerDismissedManually
+    }
+
+    @ViewBuilder
+    private func withBannerInset<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .overlay(alignment: .bottom) {
+                if isDisconnectedBannerActive {
+                    FloatingConnectionBanner(
+                        onConnectTap: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                selectedTab = 4
+                            }
+                        },
+                        onDismissTap: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                isBannerDismissedManually = true
+                            }
+                        }
+                    )
+                    .padding(.bottom, 6)
+                    .transition(AnyTransition.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+    }
 
     var body: some View {
-        TabView {
-            DashboardView(vehicleData: vehicleData, tripTracker: tripTracker)
-                .tabItem {
-                    Label("Telemetry", systemImage: "gauge.with.dots.needle.bottom.50percent")
-                }
+        TabView(selection: $selectedTab) {
+            withBannerInset {
+                DashboardView(vehicleData: vehicleData, tripTracker: tripTracker)
+            }
+            .tabItem {
+                Label("Telemetry", systemImage: "gauge.with.dots.needle.bottom.50percent")
+            }
+            .tag(0)
 
-            DiagnosticsView(dtcService: dtcService, vehicleData: vehicleData)
-                .tabItem {
-                    Label("Diagnostics", systemImage: "stethoscope")
-                }
+            withBannerInset {
+                DiagnosticsView(dtcService: dtcService, vehicleData: vehicleData)
+            }
+            .tabItem {
+                Label("Diagnostics", systemImage: "stethoscope")
+            }
+            .tag(1)
 
-            TripHistoryView(tripTracker: tripTracker)
-                .tabItem {
-                    Label("Trips", systemImage: "road.lanes")
-                }
+            withBannerInset {
+                TripHistoryView(tripTracker: tripTracker)
+            }
+            .tabItem {
+                Label("Trips", systemImage: "road.lanes")
+            }
+            .tag(2)
 
-            ChargingLiveView(vehicleData: vehicleData)
-                .tabItem {
-                    Label("Charging", systemImage: "bolt.batteryblock")
-                }
+            withBannerInset {
+                ChargingLiveView(vehicleData: vehicleData)
+            }
+            .tabItem {
+                Label("Charging", systemImage: "bolt.batteryblock")
+            }
+            .tag(3)
 
-            SettingsView(vehicleData: vehicleData, tripTracker: tripTracker)
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape")
-                }
+            withBannerInset {
+                SettingsView(vehicleData: vehicleData, tripTracker: tripTracker)
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .tag(4)
         }
         .accentColor(Theme.electricCyan)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isDisconnectedBannerActive)
+        .onChange(of: vehicleData.isDemoMode) { _, _ in
+            isBannerDismissedManually = false
+        }
     }
 }
+
