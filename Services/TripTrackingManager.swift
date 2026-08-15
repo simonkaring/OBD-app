@@ -20,6 +20,12 @@ public final class TripTrackingManager: ObservableObject {
 
     @Published public private(set) var stationarySecondsRemaining: Int? = nil
 
+    public var modelContext: ModelContext?
+
+    /// A trip resumed via `merge(_:into:)` within this window of a prior trip's end is
+    /// eligible for merging; the merge itself is user-triggered, never automatic.
+    public static let mergeWindow: TimeInterval = 30 * 60
+
     private var cancellables = Set<AnyCancellable>()
     private let locationManager = TripLocationManager()
     private var stationaryStartDate: Date? = nil
@@ -38,34 +44,30 @@ public final class TripTrackingManager: ObservableObject {
         self.isRecordingTrip = true
         resetStationaryTimer()
         locationManager.startTracking()
+        modelContext?.insert(trip)
+        try? modelContext?.save()
     }
 
-    public func stopTrip(endSoc: Double = 75.0, modelContext: ModelContext? = nil) {
+    public func stopTrip(endSoc: Double = 75.0) {
         guard let trip = currentTrip else { return }
         trip.endTime = Date()
         trip.endSocPct = endSoc
         locationManager.stopTracking()
-
-        if let context = modelContext {
-            context.insert(trip)
-            try? context.save()
-        }
+        try? modelContext?.save()
 
         self.currentTrip = nil
         self.isRecordingTrip = false
         resetStationaryTimer()
     }
 
-    public func deleteTrip(_ trip: TripModel, modelContext: ModelContext? = nil) {
+    public func deleteTrip(_ trip: TripModel) {
         if currentTrip?.id == trip.id {
             self.currentTrip = nil
             self.isRecordingTrip = false
             resetStationaryTimer()
         }
-        if let context = modelContext {
-            context.delete(trip)
-            try? context.save()
-        }
+        modelContext?.delete(trip)
+        try? modelContext?.save()
         NotificationCenter.default.post(name: Notification.Name("DeleteTripNotification"), object: trip.id)
     }
 
@@ -73,7 +75,39 @@ public final class TripTrackingManager: ObservableObject {
         self.currentTrip = nil
         self.isRecordingTrip = false
         resetStationaryTimer()
+
+        if let context = modelContext {
+            if let allTrips = try? context.fetch(FetchDescriptor<TripModel>()) {
+                for trip in allTrips {
+                    context.delete(trip)
+                }
+                try? context.save()
+            }
+        }
         NotificationCenter.default.post(name: Notification.Name("ClearSampleTrips"), object: nil)
+    }
+
+    /// Trips always record separately; merging is an explicit user action from the trip list,
+    /// never automatic, so a short stop (e.g. a fuel/charging break) doesn't silently vanish.
+    public func canMerge(_ newer: TripModel, into older: TripModel) -> Bool {
+        guard let olderEnd = older.endTime, newer.endTime != nil, newer.id != older.id else { return false }
+        let gap = newer.startTime.timeIntervalSince(olderEnd)
+        return gap >= 0 && gap <= Self.mergeWindow
+    }
+
+    public func merge(_ newer: TripModel, into older: TripModel) {
+        guard canMerge(newer, into: older) else { return }
+
+        older.samples.append(contentsOf: newer.samples)
+        older.distanceKm += newer.distanceKm
+        older.totalKWhUsed += newer.totalKWhUsed
+        older.maxPowerKW = max(older.maxPowerKW, newer.maxPowerKW)
+        older.maxRegenKW = min(older.maxRegenKW, newer.maxRegenKW)
+        older.endTime = newer.endTime
+        older.endSocPct = newer.endSocPct
+
+        modelContext?.delete(newer)
+        try? modelContext?.save()
     }
 
     private func resetStationaryTimer() {
@@ -83,7 +117,7 @@ public final class TripTrackingManager: ObservableObject {
         stationarySecondsRemaining = nil
     }
 
-    private func startStationaryCountdownIfNeeded(lastSoc: Double, modelContext: ModelContext?) {
+    private func startStationaryCountdownIfNeeded(lastSoc: Double) {
         if stationaryStartDate == nil {
             stationaryStartDate = Date()
         }
@@ -99,23 +133,23 @@ public final class TripTrackingManager: ObservableObject {
                 self.stationarySecondsRemaining = remaining
 
                 if currentElapsed >= self.autoStopDelaySeconds {
-                    self.stopTrip(endSoc: lastSoc, modelContext: modelContext)
+                    self.stopTrip(endSoc: lastSoc)
                 }
             }
         }
 
         if elapsed >= autoStopDelaySeconds {
-            stopTrip(endSoc: lastSoc, modelContext: modelContext)
+            stopTrip(endSoc: lastSoc)
         }
     }
 
-    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250", modelContext: ModelContext? = nil) {
+    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250") {
         if isRecordingTrip {
             recordSnapshot(telemetry)
 
             if isAutoTripEnabled {
                 if telemetry.speedKmH < 1.0 || telemetry.isCharging {
-                    startStationaryCountdownIfNeeded(lastSoc: telemetry.stateOfChargePct, modelContext: modelContext)
+                    startStationaryCountdownIfNeeded(lastSoc: telemetry.stateOfChargePct)
                 } else {
                     resetStationaryTimer()
                 }

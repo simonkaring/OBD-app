@@ -47,6 +47,7 @@ struct MainTabView: View {
     @EnvironmentObject private var vehicleData: VehicleDataManager
     @EnvironmentObject private var tripTracker: TripTrackingManager
     @EnvironmentObject private var dtcService: DTCScannerService
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedTab: Int = 0
     @State private var isBannerDismissedManually: Bool = false
 
@@ -123,6 +124,9 @@ struct MainTabView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isDisconnectedBannerActive)
         .onChange(of: vehicleData.isDemoMode) { _, _ in
             isBannerDismissedManually = false
+        }
+        .onAppear {
+            tripTracker.modelContext = modelContext
         }
     }
 }

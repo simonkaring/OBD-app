@@ -1,9 +1,16 @@
 import SwiftUI
+import SwiftData
 
 public struct TripHistoryView: View {
     @EnvironmentObject private var vehicleData: VehicleDataManager
     @ObservedObject public var tripTracker: TripTrackingManager
     @State private var sampleTrips: [TripModel] = []
+    @Query(filter: #Predicate<TripModel> { $0.endTime != nil }, sort: \TripModel.startTime, order: .reverse)
+    private var persistedTrips: [TripModel]
+
+    private var displayedTrips: [TripModel] {
+        vehicleData.isDemoMode ? sampleTrips : persistedTrips
+    }
 
     public init(tripTracker: TripTrackingManager) {
         self.tripTracker = tripTracker
@@ -58,7 +65,7 @@ public struct TripHistoryView: View {
                         }
                     }
 
-                    if sampleTrips.isEmpty {
+                    if displayedTrips.isEmpty {
                         VStack(spacing: 12) {
                             Spacer()
                             Image(systemName: "road.lanes")
@@ -75,7 +82,7 @@ public struct TripHistoryView: View {
                         }
                     } else {
                         List {
-                            ForEach(sampleTrips, id: \.id) { trip in
+                            ForEach(Array(displayedTrips.enumerated()), id: \.element.id) { index, trip in
                                 NavigationLink(destination: TripDetailView(trip: trip)) {
                                     VStack(alignment: .leading, spacing: 6) {
                                         HStack {
@@ -98,6 +105,17 @@ public struct TripHistoryView: View {
                                     }
                                 }
                                 .listRowBackground(Theme.cardBackground)
+                                .swipeActions(edge: .leading) {
+                                    if index + 1 < displayedTrips.count,
+                                       tripTracker.canMerge(trip, into: displayedTrips[index + 1]) {
+                                        Button {
+                                            tripTracker.merge(trip, into: displayedTrips[index + 1])
+                                        } label: {
+                                            Label("Merge with previous", systemImage: "arrow.triangle.merge")
+                                        }
+                                        .tint(Theme.electricCyan)
+                                    }
+                                }
                             }
                             .onDelete(perform: deleteTrips)
                         }
@@ -108,7 +126,7 @@ public struct TripHistoryView: View {
             .navigationTitle("Trip Log")
             .inlineTitleDisplayMode()
             .toolbar {
-                if !sampleTrips.isEmpty || tripTracker.currentTrip != nil {
+                if !displayedTrips.isEmpty || tripTracker.currentTrip != nil {
                     #if os(iOS)
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(role: .destructive) {
@@ -150,10 +168,12 @@ public struct TripHistoryView: View {
 
     private func deleteTrips(at offsets: IndexSet) {
         for index in offsets {
-            let trip = sampleTrips[index]
+            let trip = displayedTrips[index]
             tripTracker.deleteTrip(trip)
         }
-        sampleTrips.remove(atOffsets: offsets)
+        if vehicleData.isDemoMode {
+            sampleTrips.remove(atOffsets: offsets)
+        }
     }
 
     private func updateSampleHistory() {

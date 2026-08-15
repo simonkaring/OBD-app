@@ -66,6 +66,46 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertNil(tracker.currentTrip)
     }
 
+    func testMergeWithinWindowCombinesTrips() {
+        let tracker = TripTrackingManager()
+        let older = TripModel(startTime: Date().addingTimeInterval(-3600), distanceKm: 10.0, startSocPct: 90.0)
+        older.endTime = Date().addingTimeInterval(-3600 + 600)
+        older.endSocPct = 85.0
+        older.totalKWhUsed = 2.0
+        older.maxPowerKW = 30.0
+        older.maxRegenKW = -5.0
+
+        let newer = TripModel(startTime: older.endTime!.addingTimeInterval(10 * 60), distanceKm: 5.0, startSocPct: 85.0)
+        newer.endTime = newer.startTime.addingTimeInterval(300)
+        newer.endSocPct = 82.0
+        newer.totalKWhUsed = 1.0
+        newer.maxPowerKW = 40.0
+        newer.maxRegenKW = -8.0
+
+        XCTAssertTrue(tracker.canMerge(newer, into: older))
+        tracker.merge(newer, into: older)
+
+        XCTAssertEqual(older.distanceKm, 15.0, accuracy: 0.01)
+        XCTAssertEqual(older.totalKWhUsed, 3.0, accuracy: 0.01)
+        XCTAssertEqual(older.maxPowerKW, 40.0, accuracy: 0.01)
+        XCTAssertEqual(older.maxRegenKW, -8.0, accuracy: 0.01)
+        XCTAssertEqual(older.endSocPct, 82.0, accuracy: 0.01)
+        XCTAssertEqual(older.endTime, newer.endTime)
+    }
+
+    func testMergeOutsideWindowIsRejected() {
+        let tracker = TripTrackingManager()
+        let older = TripModel(startTime: Date().addingTimeInterval(-7200), distanceKm: 10.0, startSocPct: 90.0)
+        older.endTime = Date().addingTimeInterval(-7200 + 600)
+
+        let newer = TripModel(startTime: older.endTime!.addingTimeInterval(31 * 60), distanceKm: 5.0, startSocPct: 85.0)
+        newer.endTime = newer.startTime.addingTimeInterval(300)
+
+        XCTAssertFalse(tracker.canMerge(newer, into: older))
+        tracker.merge(newer, into: older)
+        XCTAssertEqual(older.distanceKm, 10.0, accuracy: 0.01)
+    }
+
     func testDemoModeFlagControllingDemoTrips() {
         let manager = VehicleDataManager()
         XCTAssertFalse(manager.isDemoMode)
