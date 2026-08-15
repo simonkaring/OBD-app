@@ -90,6 +90,13 @@ public struct DashboardLayout: Equatable, Sendable {
     public init(widgets: [DashboardWidgetConfig]) {
         self.widgets = widgets
     }
+
+    // Explicit, since conforming to both Equatable and RawRepresentable would otherwise
+    // resolve to the stdlib's RawRepresentable `==`, which compares `rawValue` JSON strings —
+    // and JSONEncoder's key ordering isn't guaranteed stable across separate encode() calls.
+    public static func == (lhs: DashboardLayout, rhs: DashboardLayout) -> Bool {
+        lhs.widgets == rhs.widgets
+    }
 }
 
 extension DashboardLayout: RawRepresentable {
