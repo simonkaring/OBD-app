@@ -134,9 +134,12 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         inFlightCommand = nil
 
         let responseText: String
+        var wasTimeout = false
         switch result {
         case .success(let raw): responseText = raw
-        case .failure(let err): responseText = "ERROR: \(err.localizedDescription)"
+        case .failure(let err):
+            responseText = "ERROR: \(err.localizedDescription)"
+            wasTimeout = (err as NSError).code == -2
         }
         appendLog(sent: completed.command, response: responseText)
 
@@ -145,7 +148,18 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
             delegate?.obdConnectionDidReceiveResponse(command: completed.command, rawResponse: raw)
         }
 
-        dispatchNextCommandIfIdle()
+        if wasTimeout {
+            // The adapter may still deliver a late notification for the command
+            // that just timed out. Drop whatever's buffered now, wait it out, then
+            // drop it again right before starting the next command.
+            buffer = ""
+            DispatchQueue.main.asyncAfter(deadline: .now() + BLEConstants.staleResponseDrainDelay) { [weak self] in
+                self?.buffer = ""
+                self?.dispatchNextCommandIfIdle()
+            }
+        } else {
+            dispatchNextCommandIfIdle()
+        }
     }
 
     private func appendLog(sent: String, response: String) {

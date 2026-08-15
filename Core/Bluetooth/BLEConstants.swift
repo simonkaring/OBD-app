@@ -24,6 +24,11 @@ public enum BLEConstants {
     ]
 
     public static let defaultTimeout: TimeInterval = 4.0
+
+    // Grace period after a command timeout before dispatching the next command,
+    // so a late/stale BLE notification for the timed-out command drains and gets
+    // discarded instead of being merged into the next command's response buffer.
+    public static let staleResponseDrainDelay: TimeInterval = 0.3
 }
 
 public enum BLEConnectionState: Equatable {
