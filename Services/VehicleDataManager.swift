@@ -126,6 +126,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 snap.isCharging = false
                 snap.chargePowerKW = 0.0
             }
+        case .packVoltage(let v): snap.voltageV = v
         case .soc(let soc): snap.stateOfChargePct = soc
         case .soh(let soh): snap.stateOfHealthPct = soh
         case .batteryTemp(let min, let max, let avg):

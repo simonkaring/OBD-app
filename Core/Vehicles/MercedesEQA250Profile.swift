@@ -8,6 +8,18 @@ public struct MercedesEQA250Profile: VehicleProfile {
 
     private let isoParser = ISO15765Parser()
 
+    // Confirmed against a real EQA via direct BLE probing (see scratch/bus_probe.swift):
+    // the diagnostic gateway uses 29-bit extended CAN addressing (ISO 15765-4 CAN 29/500,
+    // protocol 7), not the 11-bit protocol 6 originally assumed. AT SP 6 / 7E0 / 7E4
+    // headers get no useful UDS responses on this car; SAE J1979 Mode 01 (010D etc.) is
+    // also a dead end on a BEV, which has no emissions system to report on.
+    //
+    // Physical addressing (tester F1 -> ECU) reaches two distinct nodes:
+    //   0x59 (header 18DA59F1) answers DID 010A with pack voltage (~0.1 V/bit)
+    //   0x29 (header 18DA29F1) answers DID 012F with an SOC-like value (~0.1 %/bit,
+    //     read ~3-4 points below the dash display — consistent with a raw BMS SOC vs.
+    //     the dash's rescaled "customer SOC", a common EV discrepancy)
+    // SOH, battery temp, 12V aux, and motor stats DIDs are not yet identified.
     public var initializationCommands: [String] {
         [
             "AT Z",       // Reset ELM327
@@ -16,32 +28,25 @@ public struct MercedesEQA250Profile: VehicleProfile {
             "AT S1",      // Spaces On (required by the space-delimited ISO-TP token parser)
             "AT H1",      // Headers On (for CAN ID recognition)
             "AT CAF 1",   // CAN Auto Formatting
-            "AT SP 6",    // Force ISO 15765-4 CAN (11-bit ID, 500 kbps) — auto-detect (AT SP 0) races the app's 4s command timeout and never completes
+            "AT SP 7",    // Force ISO 15765-4 CAN (29-bit ID, 500 kbps)
+            "AT ST FF",   // ELM response timeout ~1.02s — default (~200ms) is too short for UDS 22xx replies through the gateway
             "AT DP",      // Report negotiated protocol (visible in the OBD log)
             "AT AL",      // Allow Long messages
-            "AT SH 7E4"   // Set Header to BMS (Battery Management System)
+            "AT SH 18DA59F1" // Physical addressing: tester (F1) -> pack voltage ECU (0x59)
         ]
     }
 
     public var pollingCommands: [String] {
         [
-            "AT SH 7E4", // Select BMS ECU Header
-            "220101",    // State of Charge (SOC %)
-            "220102",    // State of Health (SOH %)
-            "220105",    // Pack Voltage & Amperage
-            "220110",    // Pack & Coolant Temperatures
-            "220120",    // 12V Aux Battery
-            "AT SH 7E0", // Select Powertrain ECU Header
-            "010D",      // Vehicle Speed
-            "220301"     // Motor RPM & Torque
+            "AT SH 18DA59F1", // Physical addressing -> pack voltage ECU (0x59)
+            "22010A",         // Pack Voltage
+            "AT SH 18DA29F1", // Physical addressing -> SOC ECU (0x29)
+            "22012F"          // State of Charge
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [
-            .speed, .power, .soc, .soh, .batteryTemp, .aux12V, .motorRpm, .motorTorque,
-            .packVoltage, .packCurrent, .batteryTempMin, .batteryTempMax, .instantEfficiency
-        ]
+        [.soc, .packVoltage]
     }
 
     public init() {}
@@ -50,58 +55,19 @@ public struct MercedesEQA250Profile: VehicleProfile {
         let cleanHex = isoParser.assembleISOTPPayload(rawResponse)
         
         switch command {
-        case "010D", "01 0D":
-            // Standard SAE speed byte
-            guard let speedByte = extractByte(from: cleanHex, header: "410D") else { return nil }
-            return .speed(Double(speedByte))
-
-        case "220101": // SOC
-            guard let byte = extractByte(from: cleanHex, header: "620101") else { return nil }
-            let soc = Double(byte) * 0.5
-            return .soc(min(100.0, max(0.0, soc)))
-
-        case "220102": // SOH
-            guard let byte = extractByte(from: cleanHex, header: "620102") else { return nil }
-            let soh = Double(byte) * 0.5
-            return .soh(min(100.0, max(0.0, soh)))
-
-        case "220105": // Voltage & Current -> kW
-            // Format: 62 01 05 VV VV AA AA
-            guard let bytes = extractBytes(from: cleanHex, header: "620105", count: 4) else { return nil }
+        case "22010A": // Pack Voltage (ECU 0x59)
+            guard let bytes = extractBytes(from: cleanHex, header: "62010A", count: 2) else { return nil }
             let voltage = (Double(bytes[0]) * 256.0 + Double(bytes[1])) * 0.1
-            let rawCurrentInt = Int16(bitPattern: UInt16(bytes[2]) << 8 | UInt16(bytes[3]))
-            let current = Double(rawCurrentInt) * 0.1
-            let powerKW = (voltage * current) / 1000.0
-            return .power(voltage: voltage, current: current, powerKW: powerKW)
+            return .packVoltage(voltage)
 
-        case "220110": // Battery Temp
-            guard let bytes = extractBytes(from: cleanHex, header: "620110", count: 2) else { return nil }
-            let minTemp = Double(bytes[0]) - 40.0
-            let maxTemp = Double(bytes[1]) - 40.0
-            return .batteryTemp(min: minTemp, max: maxTemp, avg: (minTemp + maxTemp) / 2.0)
-
-        case "220120": // 12V Aux
-            guard let bytes = extractBytes(from: cleanHex, header: "620120", count: 2) else { return nil }
-            let volts = (Double(bytes[0]) * 256.0 + Double(bytes[1])) / 1000.0
-            return .aux12V(volts)
-
-        case "220301": // Motor RPM & Torque
-            guard let bytes = extractBytes(from: cleanHex, header: "620301", count: 4) else { return nil }
-            let rpm = Double(bytes[0]) * 256.0 + Double(bytes[1])
-            let torque = Double(bytes[2]) * 256.0 + Double(bytes[3]) - 500.0
-            return .motorStats(rpm: rpm, torque: torque)
+        case "22012F": // State of Charge (ECU 0x29)
+            guard let bytes = extractBytes(from: cleanHex, header: "62012F", count: 2) else { return nil }
+            let soc = (Double(bytes[0]) * 256.0 + Double(bytes[1])) * 0.1
+            return .soc(min(100.0, max(0.0, soc)))
 
         default:
             return nil
         }
-    }
-
-    private func extractByte(from hex: String, header: String) -> UInt8? {
-        guard let range = hex.range(of: header) else { return nil }
-        let afterHeader = String(hex[range.upperBound...])
-        guard afterHeader.count >= 2 else { return nil }
-        let byteStr = String(afterHeader.prefix(2))
-        return UInt8(byteStr, radix: 16)
     }
 
     private func extractBytes(from hex: String, header: String, count: Int) -> [UInt8]? {

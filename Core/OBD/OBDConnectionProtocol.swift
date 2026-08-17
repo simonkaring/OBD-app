@@ -3,6 +3,7 @@ import Foundation
 public enum TelemetryUpdate: Sendable {
     case speed(Double)                  // km/h
     case power(voltage: Double, current: Double, powerKW: Double) // V, A, kW (positive = draw, negative = regen)
+    case packVoltage(Double)            // V, standalone (no matching current reading available)
     case soc(Double)                    // State of Charge %
     case soh(Double)                    // State of Health %
     case batteryTemp(min: Double, max: Double, avg: Double) // °C

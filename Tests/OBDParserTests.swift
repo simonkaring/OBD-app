@@ -26,53 +26,54 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(payload, "")
     }
 
-    func testMercedesEQA250PowerParsingMultiFrame() {
-        let profile = MercedesEQA250Profile()
-        let rawResponse = "7E8 10 0A 62 01 05 0E 74 03\r\n7E8 21 E8 00 00 00 00 00 00\r\n>"
-        let update = profile.parseResponse(command: "220105", rawResponse: rawResponse)
+    func testISO15765Parser29BitHeaderSingleFrame() {
+        let parser = ISO15765Parser()
+        // Mercedes physical addressing: tester(F1) <- ECU(59), spaces on (AT S1)
+        let raw = "18 DA F1 59 05 62 01 0A 0D 3E\r\n>"
+        let payload = parser.assembleISOTPPayload(raw)
+        XCTAssertEqual(payload, "62010A0D3E")
+    }
 
-        if case .power(let v, let a, let kw) = update {
-            XCTAssertEqual(v, 370.0, accuracy: 0.1)
-            XCTAssertEqual(a, 100.0, accuracy: 0.1)
-            XCTAssertEqual(kw, 37.0, accuracy: 0.1)
-        } else {
-            XCTFail("Expected Power update from reassembled multi-frame payload")
-        }
+    func testISO15765Parser29BitHeaderMultiFrame() {
+        let parser = ISO15765Parser()
+        let raw = "18 DA F1 59 10 0B 62 01 00 00 00\r\n18 DA F1 59 21 FF 00 02 FF FF AA\r\n>"
+        let payload = parser.assembleISOTPPayload(raw)
+        XCTAssertEqual(payload, "6201000000FF0002FFFFAA")
     }
 
     func testMercedesEQA250ForcesCANProtocolInsteadOfAutoDetect() {
         let profile = MercedesEQA250Profile()
-        // AT SP 0 (auto-detect) races the app's 4s command timeout and never completes on real hardware;
-        // must force ISO 15765-4 CAN 11/500 (AT SP 6) instead.
-        XCTAssertTrue(profile.initializationCommands.contains("AT SP 6"))
+        // Confirmed via direct BLE probing against a real EQA (scratch/bus_probe.swift):
+        // the gateway uses 29-bit extended CAN addressing (AT SP 7), not 11-bit (AT SP 6)
+        // or auto-detect (AT SP 0, which also races the app's 4s command timeout).
+        XCTAssertTrue(profile.initializationCommands.contains("AT SP 7"))
+        XCTAssertFalse(profile.initializationCommands.contains("AT SP 6"))
         XCTAssertFalse(profile.initializationCommands.contains("AT SP 0"))
     }
 
     func testMercedesEQA250SOCParsing() {
         let profile = MercedesEQA250Profile()
-        // Response format: 62 01 01 9C (9C hex = 156 dec -> 156 * 0.5 = 78%)
-        let rawResponse = "7E8 04 62 01 01 9C\r\n>"
-        let update = profile.parseResponse(command: "220101", rawResponse: rawResponse)
-        
+        // ECU 0x29, DID 012F. Bytes 01 6F = 0x016F = 367 dec -> 367 * 0.1 = 36.7%
+        let rawResponse = "18 DA F1 29 05 62 01 2F 01 6F\r\n>"
+        let update = profile.parseResponse(command: "22012F", rawResponse: rawResponse)
+
         if case .soc(let percentage) = update {
-            XCTAssertEqual(percentage, 78.0, accuracy: 0.1)
+            XCTAssertEqual(percentage, 36.7, accuracy: 0.1)
         } else {
             XCTFail("Expected SOC update")
         }
     }
 
-    func testMercedesEQA250PowerParsing() {
+    func testMercedesEQA250PackVoltageParsing() {
         let profile = MercedesEQA250Profile()
-        // Voltage: 370.0V (3700 = 0x0E74), Current: 100.0A (1000 = 0x03E8) -> 37.0 kW
-        let rawResponse = "7E8 07 62 01 05 0E 74 03 E8\r\n>"
-        let update = profile.parseResponse(command: "220105", rawResponse: rawResponse)
+        // ECU 0x59, DID 010A. Bytes 0D 3E = 0x0D3E = 3390 dec -> 3390 * 0.1 = 339.0V
+        let rawResponse = "18 DA F1 59 05 62 01 0A 0D 3E\r\n>"
+        let update = profile.parseResponse(command: "22010A", rawResponse: rawResponse)
 
-        if case .power(let v, let a, let kw) = update {
-            XCTAssertEqual(v, 370.0, accuracy: 0.1)
-            XCTAssertEqual(a, 100.0, accuracy: 0.1)
-            XCTAssertEqual(kw, 37.0, accuracy: 0.1)
+        if case .packVoltage(let voltage) = update {
+            XCTAssertEqual(voltage, 339.0, accuracy: 0.1)
         } else {
-            XCTFail("Expected Power update")
+            XCTFail("Expected packVoltage update")
         }
     }
 

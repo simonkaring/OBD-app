@@ -27,9 +27,14 @@ public final class ISO15765Parser: Sendable {
             let tokens = line.split(separator: " ").map(String.init)
             guard !tokens.isEmpty else { continue }
             
-            // Check if headers are included (e.g. 7E8 06 41 0D ...)
+            // Check if headers are included, either 11-bit (e.g. 7E8 06 41 0D ...) or
+            // 29-bit ISO 15765-4 extended addressing (e.g. 18 DA F1 59 05 62 01 0A ...,
+            // used by the Mercedes UDS gateway's physical/functional addressing).
             var hexTokens = tokens
-            if tokens.first?.count == 3, Int(tokens.first!, radix: 16) != nil {
+            if tokens.count >= 4, ["18", "19"].contains(tokens[0].uppercased()),
+               tokens[1...3].allSatisfy({ $0.count == 2 && Int($0, radix: 16) != nil }) {
+                hexTokens = Array(tokens.dropFirst(4))
+            } else if tokens.first?.count == 3, Int(tokens.first!, radix: 16) != nil {
                 hexTokens = Array(tokens.dropFirst())
             }
 
