@@ -40,6 +40,14 @@ final class OBDParserTests: XCTestCase {
         }
     }
 
+    func testMercedesEQA250ForcesCANProtocolInsteadOfAutoDetect() {
+        let profile = MercedesEQA250Profile()
+        // AT SP 0 (auto-detect) races the app's 4s command timeout and never completes on real hardware;
+        // must force ISO 15765-4 CAN 11/500 (AT SP 6) instead.
+        XCTAssertTrue(profile.initializationCommands.contains("AT SP 6"))
+        XCTAssertFalse(profile.initializationCommands.contains("AT SP 0"))
+    }
+
     func testMercedesEQA250SOCParsing() {
         let profile = MercedesEQA250Profile()
         // Response format: 62 01 01 9C (9C hex = 156 dec -> 156 * 0.5 = 78%)

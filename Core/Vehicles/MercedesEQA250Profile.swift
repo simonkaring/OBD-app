@@ -16,7 +16,7 @@ public struct MercedesEQA250Profile: VehicleProfile {
             "AT S1",      // Spaces On (required by the space-delimited ISO-TP token parser)
             "AT H1",      // Headers On (for CAN ID recognition)
             "AT CAF 1",   // CAN Auto Formatting
-            "AT SP 0",    // Auto-detect protocol
+            "AT SP 6",    // Force ISO 15765-4 CAN (11-bit ID, 500 kbps) — auto-detect (AT SP 0) races the app's 4s command timeout and never completes
             "AT DP",      // Report negotiated protocol (visible in the OBD log)
             "AT AL",      // Allow Long messages
             "AT SH 7E4"   // Set Header to BMS (Battery Management System)

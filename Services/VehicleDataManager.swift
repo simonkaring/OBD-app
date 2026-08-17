@@ -172,6 +172,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             startPolling()
         } else if case .disconnected = state {
             stopPolling()
+            latestTelemetry = TelemetrySnapshot()
         }
     }
 }

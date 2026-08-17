@@ -5,7 +5,7 @@ public struct BatteryLevelBar: View {
     public var batteryTempC: Double
     public var isCharging: Bool
 
-    public init(socPct: Double, batteryTempC: Double = 25.0, isCharging: Bool = false) {
+    public init(socPct: Double, batteryTempC: Double = 0.0, isCharging: Bool = false) {
         self.socPct = socPct
         self.batteryTempC = batteryTempC
         self.isCharging = isCharging

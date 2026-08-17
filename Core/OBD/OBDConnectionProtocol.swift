@@ -32,11 +32,11 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var voltageV: Double = 0.0
     public var currentA: Double = 0.0
     public var stateOfChargePct: Double = 0.0
-    public var stateOfHealthPct: Double = 98.5
-    public var batteryTempC: Double = 25.0
-    public var batteryTempMinC: Double = 25.0
-    public var batteryTempMaxC: Double = 25.0
-    public var aux12VVolts: Double = 12.6
+    public var stateOfHealthPct: Double = 0.0
+    public var batteryTempC: Double = 0.0
+    public var batteryTempMinC: Double = 0.0
+    public var batteryTempMaxC: Double = 0.0
+    public var aux12VVolts: Double = 0.0
     public var motorRpm: Double = 0.0
     public var motorTorqueNm: Double = 0.0
     public var hvacPowerKW: Double = 0.0
