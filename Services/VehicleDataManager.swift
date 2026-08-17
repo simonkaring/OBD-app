@@ -15,6 +15,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     private var pollingIndex = 0
     private var pollingGeneration = 0
 
+    private var socHistory: [(timestamp: Date, soc: Double)] = []
+    private var smoothedChargeKW: Double = 0.0
+
     public init(connection: OBDConnectionProtocol? = nil) {
         if let conn = connection {
             self.obdConnection = conn
@@ -29,6 +32,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
     public func toggleDemoMode(_ enabled: Bool) {
         isDemoMode = enabled
+        socHistory.removeAll()
+        smoothedChargeKW = 0.0
         if enabled {
             let mock = MockOBDAdapter()
             self.obdConnection = mock
@@ -47,6 +52,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
     public func clearDemoData() {
         latestTelemetry = TelemetrySnapshot()
+        socHistory.removeAll()
+        smoothedChargeKW = 0.0
         if let mock = obdConnection as? MockOBDAdapter {
             mock.simulationEngine.scenario = .cityDriving
             mock.simulationEngine.injectedFaultCode = nil
@@ -60,6 +67,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         selectedProfileID = id
         selectedProfile = id.makeProfile()
         pollingIndex = 0
+        socHistory.removeAll()
+        smoothedChargeKW = 0.0
         for cmd in selectedProfile.initializationCommands {
             obdConnection.sendCommand(cmd, completion: nil)
         }
@@ -112,7 +121,16 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         var snap = latestTelemetry
         snap.timestamp = Date()
         switch update {
-        case .speed(let s): snap.speedKmH = s
+        case .speed(let s):
+            snap.speedKmH = s
+            if s > 1.0 {
+                // If moving, we cannot be plugged in and charging
+                snap.isCharging = false
+                snap.chargePowerKW = 0.0
+                socHistory.removeAll()
+                smoothedChargeKW = 0.0
+            }
+
         case .power(let v, let a, let kw):
             snap.voltageV = v
             snap.currentA = a
@@ -126,8 +144,19 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 snap.isCharging = false
                 snap.chargePowerKW = 0.0
             }
-        case .packVoltage(let v): snap.voltageV = v
-        case .soc(let soc): snap.stateOfChargePct = soc
+
+        case .packVoltage(let v):
+            snap.voltageV = v
+            if snap.currentA < -1.0 && snap.speedKmH < 1.0 {
+                snap.powerKW = (v * snap.currentA) / 1000.0
+                snap.isCharging = true
+                snap.chargePowerKW = abs(snap.powerKW)
+            }
+
+        case .soc(let soc):
+            snap.stateOfChargePct = soc
+            updateChargingState(newSOC: soc, timestamp: snap.timestamp, snap: &snap)
+
         case .soh(let soh): snap.stateOfHealthPct = soh
         case .batteryTemp(let min, let max, let avg):
             snap.batteryTempC = avg
@@ -157,6 +186,55 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         latestTelemetry = snap
     }
 
+    private func updateChargingState(newSOC: Double, timestamp: Date, snap: inout TelemetrySnapshot) {
+        // If direct pack current already established charging power, use that
+        if snap.currentA < -1.0 && snap.speedKmH < 1.0 {
+            snap.isCharging = true
+            snap.chargePowerKW = abs(snap.powerKW)
+            return
+        }
+
+        // Only compute slope-based charging when parked / stationary
+        guard snap.speedKmH < 1.0 else {
+            socHistory.removeAll()
+            smoothedChargeKW = 0.0
+            return
+        }
+
+        socHistory.append((timestamp: timestamp, soc: newSOC))
+        let cutoff = timestamp.addingTimeInterval(-180)
+        socHistory.removeAll { $0.timestamp < cutoff }
+
+        guard let oldest = socHistory.first, let newest = socHistory.last else { return }
+        let dt = newest.timestamp.timeIntervalSince(oldest.timestamp)
+        let dSOC = newest.soc - oldest.soc
+
+        if dt >= 5.0 {
+            if dSOC > 0.005 {
+                let capacity = selectedProfile.batteryUsableCapacityKWh > 0 ? selectedProfile.batteryUsableCapacityKWh : 66.5
+                let calculatedKW = (dSOC / 100.0 * capacity) / (dt / 3600.0)
+                if calculatedKW >= 0.5 && calculatedKW <= 350.0 {
+                    smoothedChargeKW = (smoothedChargeKW == 0.0) ? calculatedKW : (0.7 * smoothedChargeKW + 0.3 * calculatedKW)
+                    snap.isCharging = true
+                    snap.chargePowerKW = smoothedChargeKW
+                }
+            } else if dSOC < -0.1 {
+                smoothedChargeKW = 0.0
+                snap.isCharging = false
+                snap.chargePowerKW = 0.0
+            } else if dt >= 60.0 && dSOC == 0.0 && snap.chargePowerKW > 0 {
+                smoothedChargeKW = max(0.0, smoothedChargeKW * 0.5)
+                if smoothedChargeKW < 0.5 {
+                    smoothedChargeKW = 0.0
+                    snap.isCharging = false
+                    snap.chargePowerKW = 0.0
+                } else {
+                    snap.chargePowerKW = smoothedChargeKW
+                }
+            }
+        }
+    }
+
     public func obdConnectionDidReceiveResponse(command: String, rawResponse: String) {
         // Handled via sendCommand completion or mock stream
         if isDemoMode, let mock = obdConnection as? MockOBDAdapter {
@@ -167,12 +245,16 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public func obdConnectionStateDidChange(_ state: BLEConnectionState) {
         self.connectionState = state
         if case .ready = state {
+            socHistory.removeAll()
+            smoothedChargeKW = 0.0
             for cmd in selectedProfile.initializationCommands {
                 obdConnection.sendCommand(cmd, completion: nil)
             }
             startPolling()
         } else if case .disconnected = state {
             stopPolling()
+            socHistory.removeAll()
+            smoothedChargeKW = 0.0
             latestTelemetry = TelemetrySnapshot()
         }
     }

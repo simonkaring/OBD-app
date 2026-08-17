@@ -15,6 +15,22 @@ public struct ChargingLiveView: View {
         isConnected && (vehicleData.latestTelemetry.isCharging || vehicleData.latestTelemetry.chargePowerKW > 0)
     }
 
+    private var chargingStatusText: String {
+        if !isConnected {
+            return "SCANNER DISCONNECTED"
+        }
+        if !isCharging {
+            return "NOT CHARGING"
+        }
+        if vehicleData.latestTelemetry.chargePowerKW >= 25.0 {
+            return "DC FAST CHARGING"
+        } else if vehicleData.latestTelemetry.chargePowerKW > 0.0 {
+            return "AC CHARGING"
+        } else {
+            return "CHARGING DETECTED"
+        }
+    }
+
     private var usableCapacityKWh: Double {
         vehicleData.selectedProfile.batteryUsableCapacityKWh
     }
@@ -27,20 +43,27 @@ public struct ChargingLiveView: View {
         usableCapacityKWh * ((100.0 - vehicleData.latestTelemetry.stateOfChargePct) / 100.0)
     }
 
+    private var effectiveChargeRateKW: Double {
+        if vehicleData.latestTelemetry.chargePowerKW > 0.5 {
+            return vehicleData.latestTelemetry.chargePowerKW
+        }
+        return 11.0 // Typical AC default baseline if charging is active but rate is establishing
+    }
+
     private var timeTo80Min: Int {
-        guard isConnected else { return 0 }
+        guard isConnected && isCharging else { return 0 }
         let remainingPct = max(0, 80.0 - vehicleData.latestTelemetry.stateOfChargePct)
+        guard remainingPct > 0 else { return 0 }
         let neededKWh = (remainingPct / 100.0) * usableCapacityKWh
-        let rate = max(10.0, vehicleData.latestTelemetry.chargePowerKW)
-        return Int((neededKWh / rate) * 60.0)
+        return Int((neededKWh / effectiveChargeRateKW) * 60.0)
     }
 
     private var timeTo100Min: Int {
-        guard isConnected else { return 0 }
+        guard isConnected && isCharging else { return 0 }
         let remainingPct = max(0, 100.0 - vehicleData.latestTelemetry.stateOfChargePct)
+        guard remainingPct > 0 else { return 0 }
         let neededKWh = (remainingPct / 100.0) * usableCapacityKWh
-        let rate = max(10.0, vehicleData.latestTelemetry.chargePowerKW)
-        return Int((neededKWh / rate) * 60.0)
+        return Int((neededKWh / effectiveChargeRateKW) * 60.0)
     }
 
     public var body: some View {
@@ -57,13 +80,13 @@ public struct ChargingLiveView: View {
                                 .foregroundColor(isCharging ? Theme.regenGreen : (isConnected ? Theme.electricCyan : Theme.textSecondary))
                                 .symbolEffect(.bounce, value: isCharging)
 
-                            Text(isCharging ? "FAST CHARGING ACTIVE" : (isConnected ? "NOT CHARGING" : "SCANNER DISCONNECTED"))
+                            Text(chargingStatusText)
                                 .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundColor(isCharging ? Theme.regenGreen : Theme.textSecondary)
 
                             Text(isConnected ? String(format: "%.1f kW", vehicleData.latestTelemetry.chargePowerKW) : "-- kW")
                                 .font(.system(size: 48, weight: .black, design: .rounded))
-                                .foregroundColor(Theme.textPrimary)
+                                .foregroundColor(isCharging ? Theme.regenGreen : Theme.textPrimary)
                         }
                         .padding()
                         .frame(maxWidth: .infinity)
@@ -145,7 +168,7 @@ public struct ChargingLiveView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("BATTERY SOH HEALTH")
                                     .font(.caption).fontWeight(.bold).foregroundColor(Theme.textSecondary)
-                                Text(isConnected ? String(format: "%.1f%%", vehicleData.latestTelemetry.stateOfHealthPct) : "--%")
+                                Text(isConnected && vehicleData.latestTelemetry.stateOfHealthPct > 0 ? String(format: "%.1f%%", vehicleData.latestTelemetry.stateOfHealthPct) : "--%")
                                     .font(.system(size: 24, weight: .bold, design: .rounded))
                                     .foregroundColor(Theme.regenGreen)
                             }

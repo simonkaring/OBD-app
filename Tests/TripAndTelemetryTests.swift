@@ -124,6 +124,26 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0.0, accuracy: 0.01)
     }
 
+    func testChargingCalculatedFromSOCSlopeWhileParked() {
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.speed(0.0))
+
+        // Initial sample
+        manager.applyUpdate(.soc(36.0))
+
+        // Wait small interval then report SOC gain
+        Thread.sleep(forTimeInterval: 5.1)
+        manager.applyUpdate(.soc(36.2))
+
+        XCTAssertTrue(manager.latestTelemetry.isCharging)
+        XCTAssertGreaterThan(manager.latestTelemetry.chargePowerKW, 0.5)
+
+        // When vehicle moves, charging resets
+        manager.applyUpdate(.speed(20.0))
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0.0)
+    }
+
     func testDemoModeFlagControllingDemoTrips() {
         let manager = VehicleDataManager()
         XCTAssertFalse(manager.isDemoMode)

@@ -34,6 +34,7 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     private var commandQueue: [QueuedCommand] = []
     private var inFlightCommand: QueuedCommand?
     private var commandTimer: Timer?
+    private var connectionTimeoutTimer: Timer?
 
     private static let maxLogEntries = 500
 
@@ -57,6 +58,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         let name = peripheral.name ?? "OBD Adapter"
         state = .connecting(deviceName: name)
         delegate?.obdConnectionStateDidChange(state)
+
+        startConnectionTimeout(deviceName: name)
         centralManager.connect(peripheral, options: nil)
     }
 
@@ -69,7 +72,25 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         delegate?.obdConnectionStateDidChange(.disconnected)
     }
 
+    private func startConnectionTimeout(deviceName: String) {
+        connectionTimeoutTimer?.invalidate()
+        connectionTimeoutTimer = Timer.scheduledTimer(withTimeInterval: BLEConstants.connectionTimeout, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            if case .connecting = self.state {
+                self.disconnect()
+                self.state = .error("Connection to \(deviceName) timed out")
+                self.delegate?.obdConnectionStateDidChange(self.state)
+            }
+        }
+    }
+
+    private func cancelConnectionTimeout() {
+        connectionTimeoutTimer?.invalidate()
+        connectionTimeoutTimer = nil
+    }
+
     private func resetConnectionState() {
+        cancelConnectionTimeout()
         activePeripheral = nil
         boundService = nil
         writeCharacteristic = nil
@@ -190,14 +211,19 @@ extension BluetoothManager: CBCentralManagerDelegate {
         let name = peripheral.name ?? advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? ""
         let advertisedServices = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []
         let matchesKnownService = !Set(advertisedServices).isDisjoint(with: Set(BLEConstants.allSupportedServices))
-        let matchesName = name.contains("Vlink") || name.contains("iCar") || name.contains("OBD") || name.contains("BLE") || name.contains("VEEPEAK")
+
+        let targetKeywords = ["vlink", "ios-vlink", "icar", "obd", "ble", "veepeak", "link", "elm", "konnwei", "lelink"]
+        let lowerName = name.lowercased()
+        let matchesName = targetKeywords.contains { lowerName.contains($0) }
 
         if matchesKnownService || matchesName {
             central.stopScan()
             activePeripheral = peripheral
             peripheral.delegate = self
-            state = .connecting(deviceName: name.isEmpty ? "OBD Adapter" : name)
+            let devName = name.isEmpty ? "OBD Adapter" : name
+            state = .connecting(deviceName: devName)
             delegate?.obdConnectionStateDidChange(state)
+            startConnectionTimeout(deviceName: devName)
             central.connect(peripheral, options: nil)
         }
     }
@@ -205,6 +231,14 @@ extension BluetoothManager: CBCentralManagerDelegate {
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         didRetryServiceDiscovery = false
         peripheral.discoverServices(BLEConstants.allSupportedServices)
+    }
+
+    public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        let name = peripheral.name ?? "OBD Adapter"
+        let msg = error?.localizedDescription ?? "Failed to connect to \(name)"
+        resetConnectionState()
+        state = .error(msg)
+        delegate?.obdConnectionStateDidChange(state)
     }
 
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
@@ -216,32 +250,48 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
 extension BluetoothManager: CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        let knownServices = (peripheral.services ?? []).filter { BLEConstants.allSupportedServices.contains($0.uuid) }
-
-        if knownServices.isEmpty {
-            if !didRetryServiceDiscovery {
-                didRetryServiceDiscovery = true
-                peripheral.discoverServices(nil)
-            }
+        guard error == nil else {
+            let msg = error?.localizedDescription ?? "Service discovery failed"
+            resetConnectionState()
+            state = .error(msg)
+            delegate?.obdConnectionStateDidChange(state)
             return
         }
 
-        for service in knownServices {
-            peripheral.discoverCharacteristics(nil, for: service)
+        let services = peripheral.services ?? []
+        let knownServices = services.filter { BLEConstants.allSupportedServices.contains($0.uuid) }
+
+        if !knownServices.isEmpty {
+            for service in knownServices {
+                peripheral.discoverCharacteristics(nil, for: service)
+            }
+        } else if !didRetryServiceDiscovery {
+            didRetryServiceDiscovery = true
+            peripheral.discoverServices(nil)
+        } else {
+            // Fallback: discover characteristics for any candidate non-standard service
+            let candidateServices = services.filter { !BLEConstants.ignoredStandardServices.contains($0.uuid) }
+            if candidateServices.isEmpty {
+                for service in services {
+                    peripheral.discoverCharacteristics(nil, for: service)
+                }
+            } else {
+                for service in candidateServices {
+                    peripheral.discoverCharacteristics(nil, for: service)
+                }
+            }
         }
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard boundService == nil else { return }
-        guard BLEConstants.allSupportedServices.contains(service.uuid) else { return }
-        guard let characteristics = service.characteristics else { return }
+        guard let characteristics = service.characteristics, !characteristics.isEmpty else { return }
 
-        let knownWriteUUIDs: Set<CBUUID> = [BLEConstants.vgateWriteCharUUID, BLEConstants.genericUARTWrite, BLEConstants.isscWriteCharUUID]
-        let knownNotifyUUIDs: Set<CBUUID> = [BLEConstants.vgateNotifyCharUUID, BLEConstants.genericUARTNotify, BLEConstants.isscNotifyCharUUID]
+        // 1. Try known write & notify characteristics first
+        var write = characteristics.first { BLEConstants.knownWriteCharacteristics.contains($0.uuid) }
+        var notify = characteristics.first { BLEConstants.knownNotifyCharacteristics.contains($0.uuid) }
 
-        var write = characteristics.first { knownWriteUUIDs.contains($0.uuid) }
-        var notify = characteristics.first { knownNotifyUUIDs.contains($0.uuid) }
-
+        // 2. Fallback to properties inspection
         if write == nil {
             write = characteristics.first { $0.properties.contains(.write) || $0.properties.contains(.writeWithoutResponse) }
         }
@@ -258,15 +308,30 @@ extension BluetoothManager: CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-        guard characteristic === notifyCharacteristic, error == nil, characteristic.isNotifying else { return }
+        guard characteristic === notifyCharacteristic, error == nil, characteristic.isNotifying else {
+            if let error = error {
+                let msg = "Notification setup failed: \(error.localizedDescription)"
+                resetConnectionState()
+                state = .error(msg)
+                delegate?.obdConnectionStateDidChange(state)
+            }
+            return
+        }
         notifyConfirmed = true
+        cancelConnectionTimeout()
         let devName = peripheral.name ?? "OBD Adapter"
         state = .ready(deviceName: devName)
         delegate?.obdConnectionStateDidChange(state)
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        guard let data = characteristic.value, let str = String(data: data, encoding: .utf8) else { return }
+        guard let data = characteristic.value else { return }
+        let str = String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .ascii)
+            ?? String(data: data, encoding: .isoLatin1)
+            ?? ""
+        guard !str.isEmpty else { return }
+
         buffer += str
 
         if buffer.contains(">") {

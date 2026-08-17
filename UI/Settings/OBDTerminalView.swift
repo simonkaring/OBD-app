@@ -178,19 +178,28 @@ public struct OBDTerminalView: View {
         isSweepingDIDs = true
         vehicleData.stopPolling()
         sweepTask = Task {
-            let headers = ["7E0", "7E1", "7E2", "7E3", "7E4", "7E5", "7E6", "7E7"]
-            let total = headers.count * 256
+            _ = await sendCommandAsync("AT SP 7")
+            let headers = [
+                ("18DA59F1", "BMS (0x59)"),
+                ("18DA29F1", "Inverter (0x29)"),
+                ("18DA17F1", "Charger (0x17)"),
+                ("7E4", "BMS 11-bit"),
+                ("7E0", "Powertrain 11-bit")
+            ]
+            let candidateLowBytes = Array(0x00...0x35) + [0x5B, 0x90, 0xA0, 0xAF]
+            let total = headers.count * candidateLowBytes.count
             var done = 0
-            for header in headers {
+            for (header, label) in headers {
                 if Task.isCancelled { break }
                 _ = await sendCommandAsync("AT SH \(header)")
-                for low in 0...255 {
+                _ = await sendCommandAsync("AT CRA")
+                for low in candidateLowBytes {
                     if Task.isCancelled { break }
                     let didLow = String(format: "%02X", low)
                     let raw = await sendCommandAsync("2201\(didLow)")
                     let clean = ISO15765Parser().assembleISOTPPayload(raw)
                     if isPositiveUDSResponse(clean) {
-                        let line = "\(header) DID 01\(didLow): \(clean)"
+                        let line = "\(label) DID 01\(didLow): \(clean)"
                         await MainActor.run { sweepResults.append(line) }
                     }
                     done += 1
@@ -198,6 +207,7 @@ public struct OBDTerminalView: View {
                     await MainActor.run { sweepProgress = progress }
                 }
             }
+            vehicleData.selectProfile(vehicleData.selectedProfileID)
             await MainActor.run {
                 isSweepingDIDs = false
                 vehicleData.startPolling()
