@@ -7,12 +7,14 @@ public struct DashboardWidgetTile: View {
     public var snapshot: TelemetrySnapshot
     public var profile: VehicleProfile
     public var telemetryHistory: [TelemetrySnapshot]
+    public var isConnected: Bool = true
 
-    public init(config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, telemetryHistory: [TelemetrySnapshot]) {
+    public init(config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, telemetryHistory: [TelemetrySnapshot], isConnected: Bool = true) {
         self.config = config
         self.snapshot = snapshot
         self.profile = profile
         self.telemetryHistory = telemetryHistory
+        self.isConnected = isConnected
     }
 
     public var body: some View {
@@ -26,7 +28,8 @@ public struct DashboardWidgetTile: View {
 
     @ViewBuilder
     private func metricTile(_ metric: TelemetryMetric) -> some View {
-        let isAvailable = profile.supportedMetrics.contains(metric)
+        let isSupported = profile.supportedMetrics.contains(metric)
+        let isAvailable = isSupported && isConnected
         let value = metric.value(in: snapshot)
         let range = metric.defaultRange
         let dialMode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional
@@ -42,7 +45,7 @@ public struct DashboardWidgetTile: View {
             }
         }
         .overlay(alignment: .topTrailing) {
-            if !isAvailable {
+            if !isSupported {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundColor(Theme.highPowerAmber)
