@@ -32,12 +32,14 @@ public struct MercedesEQA250Profile: VehicleProfile {
             "ATCRA 18DAF159",
             "AT SH 18DA59F1",
             "22010A",         // BMS pack voltage (0.1V resolution)
-            "220210"          // Customer SOC (0.004% resolution)
+            "220210",         // Customer SOC (0.004% resolution)
+            "22010B",         // BMS pack current (signed, 0.1A resolution)
+            "22010C"          // BMS battery temperature
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.soc, .packVoltage, .power]
+        [.soc, .packVoltage, .power, .batteryTemp, .packCurrent]
     }
 
     public init() {}
@@ -61,6 +63,22 @@ public struct MercedesEQA250Profile: VehicleProfile {
                 if (0...100).contains(soc) {
                     return .soc(soc)
                 }
+            }
+            return nil
+
+        case "22010B", "22 01 0B": // BMS pack current (ECU 0x59)
+            if let bytes = extractBytes(from: cleanHex, header: "62010B", count: 2) {
+                let rawInt16 = Int16(Int8(bitPattern: bytes[0])) * 256 + Int16(bytes[1])
+                let current = Double(rawInt16) * 0.1
+                let voltage = 390.0
+                return .power(voltage: voltage, current: current, powerKW: (voltage * current) / 1000.0)
+            }
+            return nil
+
+        case "22010C", "22 01 0C": // BMS pack temperature
+            if let bytes = extractBytes(from: cleanHex, header: "62010C", count: 1) {
+                let temp = Double(Int(bytes[0]) - 40)
+                return .batteryTemp(min: temp, max: temp, avg: temp)
             }
             return nil
 

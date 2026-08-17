@@ -47,26 +47,28 @@ public final class MockDrivingSimulation: ObservableObject {
         timer = nil
     }
 
-    private func stepSimulation() {
+    func stepSimulation() {
         simulationStep += 0.2
+        var nextTelemetry = telemetry
 
         switch scenario {
         case .cityDriving:
-            simulateCityDriving()
+            simulateCityDriving(&nextTelemetry)
         case .highwayCruising:
-            simulateHighwayDriving()
+            simulateHighwayDriving(&nextTelemetry)
         case .dcFastCharging:
-            simulateDCFastCharging()
+            simulateDCFastCharging(&nextTelemetry)
         case .faultInjection:
-            simulateFaultScenario()
+            simulateFaultScenario(&nextTelemetry)
         }
 
-        stepGenericDerivedMetrics()
+        stepGenericDerivedMetrics(&nextTelemetry)
+        telemetry = nextTelemetry
     }
 
     /// Derives the "any car" (non-EV, SAE J1979) fields from the same physics state
     /// used above, so switching to `GenericOBD2Profile` in Demo Mode isn't flatlined at zero.
-    private func stepGenericDerivedMetrics() {
+    private func stepGenericDerivedMetrics(_ telemetry: inout TelemetrySnapshot) {
         let throttle = userThrottleOverride ?? max(0.0, min(1.0, telemetry.powerKW / 85.0))
         telemetry.throttlePositionPct = throttle * 100.0
         telemetry.engineLoadPct = max(0.0, min(100.0, (telemetry.powerKW / 140.0) * 100.0))
@@ -81,7 +83,7 @@ public final class MockDrivingSimulation: ObservableObject {
         }
     }
 
-    private func simulateCityDriving() {
+    private func simulateCityDriving(_ telemetry: inout TelemetrySnapshot) {
         telemetry.isCharging = false
         telemetry.chargePowerKW = 0.0
 
@@ -124,7 +126,7 @@ public final class MockDrivingSimulation: ObservableObject {
         telemetry.voltageV = 370.0 - (telemetry.powerKW * 0.15)
     }
 
-    private func simulateHighwayDriving() {
+    private func simulateHighwayDriving(_ telemetry: inout TelemetrySnapshot) {
         telemetry.isCharging = false
         telemetry.chargePowerKW = 0.0
 
@@ -144,7 +146,7 @@ public final class MockDrivingSimulation: ObservableObject {
         telemetry.motorTorqueNm = 185.0
     }
 
-    private func simulateDCFastCharging() {
+    private func simulateDCFastCharging(_ telemetry: inout TelemetrySnapshot) {
         telemetry.speedKmH = 0.0
         telemetry.powerKW = 0.0
         telemetry.motorRpm = 0.0
@@ -174,8 +176,8 @@ public final class MockDrivingSimulation: ObservableObject {
         telemetry.batteryTempC = min(45.0, 28.0 + (soc * 0.15))
     }
 
-    private func simulateFaultScenario() {
-        simulateCityDriving()
+    private func simulateFaultScenario(_ telemetry: inout TelemetrySnapshot) {
+        simulateCityDriving(&telemetry)
         injectedFaultCode = "P0A80"
     }
 }

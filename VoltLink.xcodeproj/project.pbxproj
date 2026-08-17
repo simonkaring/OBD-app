@@ -49,6 +49,7 @@
 		2A85CA5BDD764EC5A8C87479 /* volkswagen_eGolf.json in Sources */ = {isa = PBXBuildFile; fileRef = F72A1135536F441291B7CC13 /* volkswagen_eGolf.json */; };
 		9463B88059DC49E88891825E /* volkswagen_eUP.json in Sources */ = {isa = PBXBuildFile; fileRef = C6BF4ACDE2404365816C12DA /* volkswagen_eUP.json */; };
 		367B1A7CCC1B4D2C82A33C4D /* dtc_definitions.json in Sources */ = {isa = PBXBuildFile; fileRef = 0CB5A0218CB7430CBD639D42 /* dtc_definitions.json */; };
+		A1B2C3D4E5F60718293A4B5C /* vehicle_catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A60718293A4B5C /* vehicle_catalog.json */; };
 		37CE5508BBB149A4A8AAD405 /* DTCScannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F63A4A74A964E7A973BCABA /* DTCScannerService.swift */; };
 		8E2AF80C48534DD6A14FEF2F /* TripTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E50D6B6E004F648119AA92 /* TripTrackingManager.swift */; };
 		B9C589A51DB54F658D34066D /* VehicleDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 215232D96AC0434290896176 /* VehicleDataManager.swift */; };
@@ -122,6 +123,7 @@
 		F72A1135536F441291B7CC13 /* volkswagen_eGolf.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_eGolf.json"; sourceTree = "<group>"; };
 		C6BF4ACDE2404365816C12DA /* volkswagen_eUP.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_eUP.json"; sourceTree = "<group>"; };
 		0CB5A0218CB7430CBD639D42 /* dtc_definitions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "dtc_definitions.json"; sourceTree = "<group>"; };
+		B1C2D3E4F5A60718293A4B5C /* vehicle_catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vehicle_catalog.json"; sourceTree = "<group>"; };
 		0F63A4A74A964E7A973BCABA /* DTCScannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCScannerService.swift"; sourceTree = "<group>"; };
 		F5E50D6B6E004F648119AA92 /* TripTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripTrackingManager.swift"; sourceTree = "<group>"; };
 		215232D96AC0434290896176 /* VehicleDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleDataManager.swift"; sourceTree = "<group>"; };
@@ -308,7 +310,8 @@
 			isa = PBXGroup;
 			children = (
 				66CD7BCD442B42BC8BA17FB1,
-				0CB5A0218CB7430CBD639D42
+				0CB5A0218CB7430CBD639D42,
+				B1C2D3E4F5A60718293A4B5C /* vehicle_catalog.json */
 			);
 			path = "Seed";
 			sourceTree = "<group>";
@@ -532,6 +535,7 @@
 				2A85CA5BDD764EC5A8C87479 /* volkswagen_eGolf.json in Resources */,
 				9463B88059DC49E88891825E /* volkswagen_eUP.json in Resources */,
 				367B1A7CCC1B4D2C82A33C4D /* dtc_definitions.json in Resources */,
+				A1B2C3D4E5F60718293A4B5C /* vehicle_catalog.json in Resources */,
 				0F07A5700CE94840B2C8DEDA /* Assets.xcassets in Resources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -53,4 +53,18 @@ final class ABRPProfileLoaderTests: XCTestCase {
         }
         XCTAssertEqual(voltVal, 370.0, accuracy: 0.1)
     }
+
+    func testVehicleCatalogDataDrivenLoading() {
+        XCTAssertFalse(VehicleCatalog.brands.isEmpty, "Catalog brands should not be empty")
+        XCTAssertGreaterThan(VehicleCatalog.allModels.count, 20, "Should load many vehicles from dataset")
+        XCTAssertEqual(VehicleCatalog.dataSource, "OpenEV Data Dataset & Iternio EV-OBD-PIDs")
+
+        let brands = VehicleCatalog.brands.map { $0.name }
+        XCTAssertTrue(brands.contains("Tesla"))
+        XCTAssertTrue(brands.contains("Mercedes-Benz"))
+        XCTAssertTrue(brands.contains("Hyundai"))
+        XCTAssertTrue(brands.contains("Volkswagen"))
+        XCTAssertFalse(VehicleCatalog.allModels.contains { $0.batteryCapacityKWh == 0 })
+        XCTAssertEqual(VehicleCatalog.allModels.first { $0.id == "mb-eqa-250" }?.batteryCapacityKWh, 66.5)
+    }
 }

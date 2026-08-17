@@ -1,0 +1,1255 @@
+{
+  "version": "1.0",
+  "source": "OpenEV Data Dataset & Iternio EV-OBD-PIDs",
+  "lastUpdated": "2026-08-17",
+  "brands": [
+    {
+      "id": "tesla",
+      "name": "Tesla",
+      "iconSymbol": "bolt.shield.fill",
+      "models": [
+        {
+          "id": "tesla-cybertruck-122",
+          "brandName": "Tesla",
+          "modelName": "Cybertruck Long Range",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 122.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "tesla-model_3-79",
+          "brandName": "Tesla",
+          "modelName": "Model 3 Performance",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 79.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "tesla-model_s-95",
+          "brandName": "Tesla",
+          "modelName": "Model S Plaid",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 95.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "tesla-model_x-95",
+          "brandName": "Tesla",
+          "modelName": "Model X Plaid",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 95.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "tesla-model_y-79",
+          "brandName": "Tesla",
+          "modelName": "Model Y Performance",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 79.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "mercedes_benz",
+      "name": "Mercedes-Benz",
+      "iconSymbol": "star.circle.fill",
+      "models": [
+        {
+          "id": "mercedes_benz-cla_ev-82",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Cla EV Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 82.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mercedes_benz-eqa-0",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Eqa 350 4MATIC",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "mercedesEQA250",
+          "telemetrySupport": "verified"
+        },
+        {
+          "id": "mercedes_benz-eqb-0",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Eqb 7-Seater",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mercedes_benz-eqe-0",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Eqe 53 AMG",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mercedes_benz-eqe_suv-0",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Eqe Suv 53 AMG",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mercedes_benz-eqs-110",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Eqs 580 4MATIC",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 110.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mercedes_benz-eqs_suv-110",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Eqs Suv 580 4MATIC",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 110.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mercedes_benz-eqv-85",
+          "brandName": "Mercedes-Benz",
+          "modelName": "Eqv Long Range",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 85.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mercedes_benz-g_580_eq-108",
+          "brandName": "Mercedes-Benz",
+          "modelName": "G 580 EQ Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 108.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "bmw",
+      "name": "BMW",
+      "iconSymbol": "car.side.fill",
+      "models": [
+        {
+          "id": "bmw-i4-81",
+          "brandName": "BMW",
+          "modelName": "I4 xDrive40",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 81.3,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "bmw-i5-81",
+          "brandName": "BMW",
+          "modelName": "I5 M60",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 81.2,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "bmw-i7-101",
+          "brandName": "BMW",
+          "modelName": "I7 M70",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 101.7,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "bmw-ix-105",
+          "brandName": "BMW",
+          "modelName": "Ix xDrive50",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 105.2,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "bmw-ix1-64",
+          "brandName": "BMW",
+          "modelName": "Ix1 xDrive30",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 64.7,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "bmw-ix2-64",
+          "brandName": "BMW",
+          "modelName": "Ix2 xDrive30",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 64.7,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "bmw-ix3-74",
+          "brandName": "BMW",
+          "modelName": "Ix3",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 74.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "audi",
+      "name": "Audi",
+      "iconSymbol": "circle.grid.2x2.fill",
+      "models": [
+        {
+          "id": "audi-a6_e_tron-94",
+          "brandName": "Audi",
+          "modelName": "A6 E Tron Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 94.9,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "audi-e_tron_gt-85",
+          "brandName": "Audi",
+          "modelName": "E Tron Gt RS",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 85.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "audi-q4_e_tron-73",
+          "brandName": "Audi",
+          "modelName": "Q4 E Tron quattro",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 73.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "audi-q6_e_tron-94",
+          "brandName": "Audi",
+          "modelName": "Q6 E Tron SQ6",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 94.9,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "audi-q8_e_tron-100",
+          "brandName": "Audi",
+          "modelName": "Q8 E Tron quattro",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 100.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "porsche",
+      "name": "Porsche",
+      "iconSymbol": "shield.fill",
+      "models": [
+        {
+          "id": "porsche-718_boxster-75",
+          "brandName": "Porsche",
+          "modelName": "718 Boxster Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 75.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "porsche-718_cayman-75",
+          "brandName": "Porsche",
+          "modelName": "718 Cayman Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 75.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "porsche-macan-95",
+          "brandName": "Porsche",
+          "modelName": "Macan Turbo",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 95.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "porsche-taycan-83",
+          "brandName": "Porsche",
+          "modelName": "Taycan Turbo S",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 83.7,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "volkswagen",
+      "name": "Volkswagen",
+      "iconSymbol": "car.2.fill",
+      "models": [
+        {
+          "id": "volkswagen-id_3-77",
+          "brandName": "Volkswagen",
+          "modelName": "ID. 3 PRO S",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 77.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "volkswagen-id_4-77",
+          "brandName": "Volkswagen",
+          "modelName": "ID. 4 GTX",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 77.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "volkswagen-id_5-77",
+          "brandName": "Volkswagen",
+          "modelName": "ID. 5 GTX",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 77.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "volkswagen-id_7-86",
+          "brandName": "Volkswagen",
+          "modelName": "ID. 7 Tour",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 86.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "volkswagen-id_buzz-77",
+          "brandName": "Volkswagen",
+          "modelName": "ID. Buzz Cargo",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 77.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        }
+      ]
+    },
+    {
+      "id": "hyundai",
+      "name": "Hyundai",
+      "iconSymbol": "car.circle.fill",
+      "models": [
+        {
+          "id": "hyundai-ioniq_5-78",
+          "brandName": "Hyundai",
+          "modelName": "Ioniq 5",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 78.0,
+          "profileID": "hkmc_Ioniq5",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "hyundai-ioniq_6-72",
+          "brandName": "Hyundai",
+          "modelName": "Ioniq 6 Long Range",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 72.6,
+          "profileID": "hkmc_Ioniq5",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "hyundai-ioniq_9-99",
+          "brandName": "Hyundai",
+          "modelName": "Ioniq 9 Long Range AWD",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 99.5,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "hyundai-kona_electric-58",
+          "brandName": "Hyundai",
+          "modelName": "Kona Electric Long Range",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 58.0,
+          "profileID": "hkmc_hkmc2019",
+          "telemetrySupport": "community"
+        }
+      ]
+    },
+    {
+      "id": "ford",
+      "name": "Ford",
+      "iconSymbol": "oval.portrait.fill",
+      "models": [
+        {
+          "id": "ford-capri_ev-72",
+          "brandName": "Ford",
+          "modelName": "Capri EV Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 72.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "ford-e_tourneo_courier-51",
+          "brandName": "Ford",
+          "modelName": "E Tourneo Courier Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 51.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "ford-e_transit-64",
+          "brandName": "Ford",
+          "modelName": "E Transit Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 64.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "ford-e_transit_courier-51",
+          "brandName": "Ford",
+          "modelName": "E Transit Courier Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 51.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "ford-explorer_ev-75",
+          "brandName": "Ford",
+          "modelName": "Explorer EV Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 75.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "ford-f_150_lightning-91",
+          "brandName": "Ford",
+          "modelName": "F 150 Lightning XLT",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 91.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "ford-mustang_mach_e-70",
+          "brandName": "Ford",
+          "modelName": "Mustang Mach E Select",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 70.0,
+          "profileID": "ford_MachE",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "ford-puma_gen_e-51",
+          "brandName": "Ford",
+          "modelName": "Puma Gen E Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 51.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "volvo",
+      "name": "Volvo",
+      "iconSymbol": "shield.checkered",
+      "models": [
+        {
+          "id": "volvo-ec40-69",
+          "brandName": "Volvo",
+          "modelName": "Ec40 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 69.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "volvo-ex30-66",
+          "brandName": "Volvo",
+          "modelName": "Ex30 Performance",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 66.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "volvo-ex40-69",
+          "brandName": "Volvo",
+          "modelName": "Ex40 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 69.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "volvo-ex90-107",
+          "brandName": "Volvo",
+          "modelName": "Ex90 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 107.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "polestar",
+      "name": "Polestar",
+      "iconSymbol": "sparkles",
+      "models": [
+        {
+          "id": "polestar-polestar_2-67",
+          "brandName": "Polestar",
+          "modelName": "Polestar 2 Standard Range Single Motor",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 67.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "polestar-polestar_3-0",
+          "brandName": "Polestar",
+          "modelName": "Polestar 3 Performance Pack",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "polestar-polestar_4-0",
+          "brandName": "Polestar",
+          "modelName": "Polestar 4 Long Range Single Motor",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "polestar-polestar_5-0",
+          "brandName": "Polestar",
+          "modelName": "Polestar 5 Dual Motor",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "renault",
+      "name": "Renault",
+      "iconSymbol": "diamond.fill",
+      "models": [
+        {
+          "id": "renault-4_e_tech-38",
+          "brandName": "Renault",
+          "modelName": "4 E Tech 40 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 38.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "renault-5_e_tech-38",
+          "brandName": "Renault",
+          "modelName": "5 E Tech 40 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 38.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "renault-kangoo_e_tech-43",
+          "brandName": "Renault",
+          "modelName": "Kangoo E Tech Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 43.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "renault-megane_e_tech-38",
+          "brandName": "Renault",
+          "modelName": "Megane E Tech 40 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 38.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "renault-scenic_e_tech-57",
+          "brandName": "Renault",
+          "modelName": "Scenic E Tech 60 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 57.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "nissan",
+      "name": "Nissan",
+      "iconSymbol": "circle.circle.fill",
+      "models": [
+        {
+          "id": "nissan-ariya-87",
+          "brandName": "Nissan",
+          "modelName": "Ariya AWD e-4ORCE 87 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 87.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "nissan-ariya_nismo-91",
+          "brandName": "Nissan",
+          "modelName": "Ariya Nismo B9",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 91.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "nissan-leaf-62",
+          "brandName": "Nissan",
+          "modelName": "Leaf 62 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 62.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "nissan-micra_ev-52",
+          "brandName": "Nissan",
+          "modelName": "Micra EV 52 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 52.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "mg",
+      "name": "MG",
+      "iconSymbol": "octagon.fill",
+      "models": [
+        {
+          "id": "mg-cyberster-73",
+          "brandName": "MG",
+          "modelName": "Cyberster Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 73.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mg-mg4-61",
+          "brandName": "MG",
+          "modelName": "Mg4 XPower",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 61.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "mg-s5-64",
+          "brandName": "MG",
+          "modelName": "S5 Luxury",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 64.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "byd",
+      "name": "BYD",
+      "iconSymbol": "bolt.horizontal.circle.fill",
+      "models": [
+        {
+          "id": "byd-dolphin-60",
+          "brandName": "BYD",
+          "modelName": "Dolphin Premium",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 60.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-dolphin_mini-38",
+          "brandName": "BYD",
+          "modelName": "Dolphin Mini Plus",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 38.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-han-85",
+          "brandName": "BYD",
+          "modelName": "Han Flagship",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 85.4,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-king-26",
+          "brandName": "BYD",
+          "modelName": "King Premium",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 26.6,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-seal-82",
+          "brandName": "BYD",
+          "modelName": "Seal Premium",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 82.56,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-song_plus-71",
+          "brandName": "BYD",
+          "modelName": "Song Plus Comfort",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 71.8,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-tang-108",
+          "brandName": "BYD",
+          "modelName": "Tang Flagship",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 108.8,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-yuan_plus-60",
+          "brandName": "BYD",
+          "modelName": "Yuan Plus Extended Range",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 60.48,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "byd-yuan_up-45",
+          "brandName": "BYD",
+          "modelName": "Yuan Up Superior",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 45.12,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "peugeot",
+      "name": "Peugeot",
+      "iconSymbol": "shield.lefthalf.filled",
+      "models": [
+        {
+          "id": "peugeot-e_2008-50",
+          "brandName": "Peugeot",
+          "modelName": "E 2008 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 50.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "peugeot-e_208-50",
+          "brandName": "Peugeot",
+          "modelName": "E 208 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 50.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "peugeot-e_3008-96",
+          "brandName": "Peugeot",
+          "modelName": "E 3008 Long Range",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 96.9,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "peugeot-e_408-70",
+          "brandName": "Peugeot",
+          "modelName": "E 408 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 70.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "peugeot-e_5008-96",
+          "brandName": "Peugeot",
+          "modelName": "E 5008 Long Range",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 96.9,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "fiat",
+      "name": "Fiat",
+      "iconSymbol": "circle.bottomhalf.filled",
+      "models": [
+        {
+          "id": "fiat-500e-0",
+          "brandName": "Fiat",
+          "modelName": "500e Pop",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "fiat-600e-0",
+          "brandName": "Fiat",
+          "modelName": "600e Red",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "fiat-topolino-5",
+          "brandName": "Fiat",
+          "modelName": "Topolino Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 5.4,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "skoda",
+      "name": "Škoda",
+      "iconSymbol": "arrow.triangle.2.circlepath.circle.fill",
+      "models": [
+        {
+          "id": "skoda-elroq-77",
+          "brandName": "Škoda",
+          "modelName": "Elroq Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 77.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "skoda-elroq_rs-77",
+          "brandName": "Škoda",
+          "modelName": "Elroq Rs",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 77.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "skoda-enyaq_coupe_iv-0",
+          "brandName": "Škoda",
+          "modelName": "Enyaq Coupe Iv RS",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "skoda-enyaq_iv-0",
+          "brandName": "Škoda",
+          "modelName": "Enyaq Iv RS",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        }
+      ]
+    },
+    {
+      "id": "cupra",
+      "name": "Cupra",
+      "iconSymbol": "triangle.fill",
+      "models": [
+        {
+          "id": "cupra-born-77",
+          "brandName": "Cupra",
+          "modelName": "Born 77 kWh",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 77.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "cupra-raval-0",
+          "brandName": "Cupra",
+          "modelName": "Raval VZ",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "cupra-tavascan-0",
+          "brandName": "Cupra",
+          "modelName": "Tavascan VZ",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
+        }
+      ]
+    },
+    {
+      "id": "jaguar",
+      "name": "Jaguar",
+      "iconSymbol": "hare.fill",
+      "models": [
+        {
+          "id": "jaguar-i_pace-84",
+          "brandName": "Jaguar",
+          "modelName": "I Pace Base",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 84.7,
+          "profileID": "jaguar_ipace2021",
+          "telemetrySupport": "community"
+        }
+      ]
+    },
+    {
+      "id": "lucid",
+      "name": "Lucid Motors",
+      "iconSymbol": "sparkles",
+      "models": [
+        {
+          "id": "lucid-air-88",
+          "brandName": "Lucid Motors",
+          "modelName": "Air Touring",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 88.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "lucid-gravity-112",
+          "brandName": "Lucid Motors",
+          "modelName": "Gravity Grand Touring",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 112.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "rivian",
+      "name": "Rivian",
+      "iconSymbol": "mountain.2.fill",
+      "models": [
+        {
+          "id": "rivian-r1s-171",
+          "brandName": "Rivian",
+          "modelName": "R1s Quad Motor Max Pack",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 171.5,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "rivian-r1t-171",
+          "brandName": "Rivian",
+          "modelName": "R1t Quad Motor Max Pack",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 171.5,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "honda",
+      "name": "Honda",
+      "iconSymbol": "h.square.fill",
+      "models": [
+        {
+          "id": "honda-e_np2-65",
+          "brandName": "Honda",
+          "modelName": "E Np2 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 65.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "honda-e_ns2-65",
+          "brandName": "Honda",
+          "modelName": "E Ns2 Base",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 65.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "honda-prologue-81",
+          "brandName": "Honda",
+          "modelName": "Prologue Elite",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 81.7,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "chevrolet",
+      "name": "Chevrolet",
+      "iconSymbol": "cross.fill",
+      "models": [
+        {
+          "id": "chevrolet-blazer_ev-0",
+          "brandName": "Chevrolet",
+          "modelName": "Blazer EV SS",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "chevrolet-bolt_euv-0",
+          "brandName": "Chevrolet",
+          "modelName": "Bolt Euv 2LT",
+          "years": "2023",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "gmc_bolt19",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "chevrolet-bolt_ev-0",
+          "brandName": "Chevrolet",
+          "modelName": "Bolt EV 2LT",
+          "years": "2023",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "gmc_bolt19",
+          "telemetrySupport": "community"
+        },
+        {
+          "id": "chevrolet-captiva_ev-0",
+          "brandName": "Chevrolet",
+          "modelName": "Captiva EV Premier",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "chevrolet-equinox_ev-0",
+          "brandName": "Chevrolet",
+          "modelName": "Equinox EV RS",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "chevrolet-silverado_ev-0",
+          "brandName": "Chevrolet",
+          "modelName": "Silverado EV WT",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "chevrolet-spark_euv-0",
+          "brandName": "Chevrolet",
+          "modelName": "Spark Euv Activ",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
+      "id": "generic",
+      "name": "Generic OBD-II & Others",
+      "iconSymbol": "wrench.and.screwdriver.fill",
+      "models": [
+        {
+          "id": "generic-sae-j1979",
+          "brandName": "Generic",
+          "modelName": "Standard SAE J1979 (Gas / Hybrid)",
+          "years": "1996+",
+          "powertrain": "Gasoline / Diesel (ICE)",
+          "batteryCapacityKWh": 0.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "generic-ev-can",
+          "brandName": "Generic",
+          "modelName": "Standard EV CAN Bus Profile",
+          "years": "2015+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 60.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "name": "Deepal S05 (community candidate)",
+  "description": "Starter ABRP-compatible OBD profile candidate derived from current Car Scanner sensors. Intended for community testing; lifetime charged energy / odometer are NOT validated.",
+  "obd_protocol": 6,
+  "init_commands": [
+    "ATSP6",
+    "ATH1"
+  ],
+  "data_commands": [
+    "22F22F",
+    "22F228",
+    "22F229",
+    "22F250",
+    "22F251",
+    "22F252",
+    "22F253",
+    "22F255",
+    "22F27D",
+    "22F264"
+  ],
+  "soc": {
+    "header": "7A1",
+    "command": "22F22F",
+    "formula": "A",
+    "unit": "%",
+    "label": "SOC direct",
+    "status": "validated_for_daily_use"
+  },
+  "voltage": {
+    "header": "7A1",
+    "command": "22F228",
+    "formula": "(A*256+B)/10",
+    "unit": "V",
+    "label": "V DC pack",
+    "status": "validated_for_daily_use"
+  },
+  "current": {
+    "header": "7A1",
+    "command": "22F229",
+    "formula": "((A*256+B)-6015)/10",
+    "unit": "A",
+    "label": "I DC pack",
+    "status": "validated_for_daily_use"
+  },
+  "power": {
+    "formula": "{voltage}*{current}/1000",
+    "unit": "kW",
+    "label": "P DC pack",
+    "status": "derived_from_validated_signals"
+  },
+  "soh": {
+    "header": "7A1",
+    "command": "22F27D",
+    "formula": "(A*65536+B*256+C)/10000",
+    "unit": "%",
+    "label": "SOH candidate",
+    "status": "candidate_used_in_practice"
+  },
+  "cell_max_voltage": {
+    "header": "7A1",
+    "command": "22F250",
+    "formula": "(A*256+B)/1000",
+    "unit": "V",
+    "label": "Vmax cells",
+    "status": "validated_for_daily_use"
+  },
+  "cell_min_voltage": {
+    "header": "7A1",
+    "command": "22F251",
+    "formula": "(A*256+B)/1000",
+    "unit": "V",
+    "label": "Vmin cells",
+    "status": "validated_for_daily_use"
+  },
+  "battery_temp_max": {
+    "header": "7A1",
+    "command": "22F252",
+    "formula": "A-40",
+    "unit": "C",
+    "label": "Tmax battery",
+    "status": "validated_for_daily_use"
+  },
+  "battery_temp_min": {
+    "header": "7A1",
+    "command": "22F253",
+    "formula": "A-40",
+    "unit": "C",
+    "label": "Tmin battery",
+    "status": "validated_for_daily_use"
+  },
+  "charge_temp": {
+    "header": "7A1",
+    "command": "22F255",
+    "formula": "(A-32)/1.8",
+    "unit": "C",
+    "label": "T charge",
+    "status": "validated_for_daily_use"
+  },
+  "energy_available_candidate": {
+    "header": "7A1",
+    "command": "22F264",
+    "formula": "68-(A*256+B)/1000",
+    "unit": "kWh",
+    "label": "Eavailable candidate",
+    "status": "experimental_not_lifetime"
+  },
+  "legacy_et_sum_experimental": {
+    "header": "7A1",
+    "command": "22F264",
+    "formula": "(A*256+B)/100",
+    "unit": "kWh",
+    "label": "Et sum legacy/experimental",
+    "status": "experimental_not_lifetime"
+  },
+  "legacy_efc_experimental": {
+    "formula": "{legacy_et_sum_experimental}/68",
+    "unit": "cycles",
+    "label": "Charge cycles EFC legacy/experimental",
+    "status": "experimental_not_lifetime"
+  }
+}

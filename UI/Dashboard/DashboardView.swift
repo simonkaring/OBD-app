@@ -141,6 +141,7 @@ public struct DashboardView: View {
                                         profile: vehicleData.selectedProfile,
                                         telemetryHistory: telemetryHistory,
                                         isConnected: vehicleData.isDemoMode || vehicleData.connectionState.isConnected,
+                                        isDemoMode: vehicleData.isDemoMode,
                                         onDelete: {
                                             withAnimation {
                                                 layout.widgets.removeAll { $0.id == widget.id }
@@ -306,6 +307,7 @@ private struct WidgetTileWrapper: View {
     let profile: VehicleProfile
     let telemetryHistory: [TelemetrySnapshot]
     let isConnected: Bool
+    let isDemoMode: Bool
     let onDelete: () -> Void
     let onDecreaseSize: () -> Void
     let onIncreaseSize: () -> Void
@@ -320,7 +322,8 @@ private struct WidgetTileWrapper: View {
                 snapshot: snapshot,
                 profile: profile,
                 telemetryHistory: telemetryHistory,
-                isConnected: isConnected
+                isConnected: isConnected,
+                isDemoMode: isDemoMode
             )
             .rotationEffect(.degrees(isEditMode && isWiggling ? Double.random(in: -1.2...1.2) : 0))
             .animation(

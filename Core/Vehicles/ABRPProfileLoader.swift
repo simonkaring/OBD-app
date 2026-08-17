@@ -258,35 +258,51 @@ public final class ABRPProfileLoader {
 
     private init() {}
 
-    public static func loadBundledProfiles() -> [ABRPGenericVehicleProfile] {
-        var profiles: [ABRPGenericVehicleProfile] = []
-        
-        let knownFiles: [(name: String, filename: String, capacity: Double)] = [
-            ("Ford Mustang Mach-E", "ford_MachE.json", 91.0),
-            ("Hyundai IONIQ 5 / Kia EV6", "hkmc_Ioniq5.json", 77.4),
-            ("Volkswagen ID.3 / ID.4 / MEB", "volkswagen_MEB.json", 77.0),
-            ("Volkswagen e-Golf", "volkswagen_eGolf.json", 35.8),
-            ("Volkswagen e-Up!", "volkswagen_eUP.json", 32.3),
-            ("Mini Cooper SE", "Mini_MiniCooperSE.json", 28.9),
-            ("Renault Zoe (ZE50)", "renault_zoe2.json", 52.0),
-            ("MG ZS EV", "mg_mgzsev.json", 68.3),
-            ("Jaguar I-Pace", "jaguar_ipace2021.json", 84.7)
-        ]
-
+    public static func loadProfile(filename: String, name: String = "Community Profile", capacityKWh: Double = 75.0) -> ABRPGenericVehicleProfile? {
         #if SWIFT_PACKAGE
         let bundle = Bundle.module
         #else
         let bundle = Bundle.main
         #endif
 
+        let baseName = (filename as NSString).deletingPathExtension
+        if let url = bundle.url(forResource: baseName, withExtension: "json", subdirectory: "abrp_pids") ??
+                     bundle.url(forResource: baseName, withExtension: "json") ??
+                     bundle.url(forResource: baseName, withExtension: "json", subdirectory: "Seed/abrp_pids") {
+            if let data = try? Data(contentsOf: url),
+               let def = try? JSONDecoder().decode(ABRPProfileDefinition.self, from: data) {
+                return ABRPGenericVehicleProfile(name: name, capacityKWh: capacityKWh, definition: def)
+            }
+        }
+        return nil
+    }
+
+    public static func loadBundledProfiles() -> [ABRPGenericVehicleProfile] {
+        var profiles: [ABRPGenericVehicleProfile] = []
+        
+        let knownFiles: [(name: String, filename: String, capacity: Double)] = [
+            ("Ford Mustang Mach-E", "ford_MachE.json", 91.0),
+            ("Hyundai IONIQ 5 / Kia EV6", "hkmc_Ioniq5.json", 77.4),
+            ("Hyundai / Kia (2019+)", "hkmc_hkmc2019.json", 64.0),
+            ("Hyundai / Kia (2017)", "hkmc_hkmc2017.json", 28.0),
+            ("Volkswagen ID.3 / ID.4 / MEB", "volkswagen_MEB.json", 77.0),
+            ("Volkswagen e-Golf", "volkswagen_eGolf.json", 35.8),
+            ("Volkswagen e-Up!", "volkswagen_eUP.json", 32.3),
+            ("Mini Cooper SE", "Mini_MiniCooperSE.json", 28.9),
+            ("Renault Zoe (ZE50)", "renault_zoe2.json", 52.0),
+            ("Renault Zoe (ZE40)", "renault_zoe.json", 41.0),
+            ("MG ZS EV", "mg_mgzsev.json", 68.3),
+            ("Jaguar I-Pace (2021+)", "jaguar_ipace2021.json", 84.7),
+            ("Jaguar I-Pace (2019)", "jaguar_ipace2019.json", 84.7),
+            ("Chevrolet Bolt EV (2019+)", "gmc_bolt19.json", 66.0),
+            ("Chevrolet Bolt EV (2017)", "gmc_bolt17.json", 60.0),
+            ("Honda e:Ny1", "honda_eny1.json", 68.8),
+            ("Aiways U5", "aiways_u5.json", 63.0)
+        ]
+
         for item in knownFiles {
-            let baseName = (item.filename as NSString).deletingPathExtension
-            if let url = bundle.url(forResource: baseName, withExtension: "json", subdirectory: "abrp_pids") ??
-                         bundle.url(forResource: baseName, withExtension: "json") {
-                if let data = try? Data(contentsOf: url),
-                   let def = try? JSONDecoder().decode(ABRPProfileDefinition.self, from: data) {
-                    profiles.append(ABRPGenericVehicleProfile(name: item.name, capacityKWh: item.capacity, definition: def))
-                }
+            if let profile = loadProfile(filename: item.filename, name: item.name, capacityKWh: item.capacity) {
+                profiles.append(profile)
             }
         }
 

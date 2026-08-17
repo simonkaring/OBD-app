@@ -57,6 +57,7 @@ let package = Package(
             ],
             resources: [
                 .process("Data/Seed/dtc_definitions.json"),
+                .process("Data/Seed/vehicle_catalog.json"),
                 .copy("Data/Seed/abrp_pids")
             ]
         ),

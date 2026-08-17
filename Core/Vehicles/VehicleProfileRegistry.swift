@@ -5,26 +5,72 @@ import Foundation
 public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Sendable {
     case mercedesEQA250
     case hyundaiKiaEGMP
+    case hkmcIoniq5 = "hkmc_Ioniq5"
+    case hkmc2019 = "hkmc_hkmc2019"
     case volkswagenMEB
+    case volkswagenMEBABRP = "volkswagen_MEB"
+    case volkswagenEGolf = "volkswagen_eGolf"
+    case volkswagenEUp = "volkswagen_eUP"
     case genericOBD2
+    case fordMachE = "ford_MachE"
+    case miniCooperSE = "Mini_MiniCooperSE"
+    case renaultZoe = "renault_zoe2"
+    case mgZSEV = "mg_mgzsev"
+    case jaguarIPace = "jaguar_ipace2021"
+    case chevyBolt = "gmc_bolt19"
+    case hondaENy1 = "honda_eny1"
+    case aiwaysU5 = "aiways_u5"
 
     public var id: String { rawValue }
 
     public var displayName: String {
         switch self {
         case .mercedesEQA250: return "Mercedes-Benz EQA 250 (2021)"
-        case .hyundaiKiaEGMP: return "Hyundai/Kia E-GMP (community profile)"
-        case .volkswagenMEB: return "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)"
+        case .hyundaiKiaEGMP, .hkmcIoniq5: return "Hyundai/Kia E-GMP (IONIQ 5 / EV6)"
+        case .hkmc2019: return "Hyundai / Kia (Kona / Niro EV)"
+        case .volkswagenMEB, .volkswagenMEBABRP: return "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)"
+        case .volkswagenEGolf: return "Volkswagen e-Golf (ABRP)"
+        case .volkswagenEUp: return "Volkswagen e-Up! (ABRP)"
         case .genericOBD2: return "Generic SAE J1979 OBD-II"
+        case .fordMachE: return "Ford Mustang Mach-E (ABRP)"
+        case .miniCooperSE: return "Mini Cooper SE (ABRP)"
+        case .renaultZoe: return "Renault Zoe (ABRP)"
+        case .mgZSEV: return "MG ZS EV (ABRP)"
+        case .jaguarIPace: return "Jaguar I-Pace (ABRP)"
+        case .chevyBolt: return "Chevrolet Bolt EV (ABRP)"
+        case .hondaENy1: return "Honda e:Ny1 (ABRP)"
+        case .aiwaysU5: return "Aiways U5 (ABRP)"
         }
     }
 
     public func makeProfile() -> VehicleProfile {
         switch self {
         case .mercedesEQA250: return MercedesEQA250Profile()
-        case .hyundaiKiaEGMP: return HyundaiKiaEGMPProfile()
-        case .volkswagenMEB: return VolkswagenMEBProfile()
+        case .hyundaiKiaEGMP, .hkmcIoniq5: return HyundaiKiaEGMPProfile()
+        case .hkmc2019:
+            return ABRPProfileLoader.loadProfile(filename: "hkmc_hkmc2019.json", name: "Hyundai / Kia (2019+)", capacityKWh: 64.0) ?? GenericOBD2Profile()
+        case .volkswagenMEB, .volkswagenMEBABRP: return VolkswagenMEBProfile()
+        case .volkswagenEGolf:
+            return ABRPProfileLoader.loadProfile(filename: "volkswagen_eGolf.json", name: "Volkswagen e-Golf", capacityKWh: 35.8) ?? GenericOBD2Profile()
+        case .volkswagenEUp:
+            return ABRPProfileLoader.loadProfile(filename: "volkswagen_eUP.json", name: "Volkswagen e-Up!", capacityKWh: 32.3) ?? GenericOBD2Profile()
         case .genericOBD2: return GenericOBD2Profile()
+        case .fordMachE:
+            return ABRPProfileLoader.loadProfile(filename: "ford_MachE.json", name: "Ford Mustang Mach-E", capacityKWh: 91.0) ?? GenericOBD2Profile()
+        case .miniCooperSE:
+            return ABRPProfileLoader.loadProfile(filename: "Mini_MiniCooperSE.json", name: "Mini Cooper SE", capacityKWh: 28.9) ?? GenericOBD2Profile()
+        case .renaultZoe:
+            return ABRPProfileLoader.loadProfile(filename: "renault_zoe2.json", name: "Renault Zoe (ZE50)", capacityKWh: 52.0) ?? GenericOBD2Profile()
+        case .mgZSEV:
+            return ABRPProfileLoader.loadProfile(filename: "mg_mgzsev.json", name: "MG ZS EV", capacityKWh: 68.3) ?? GenericOBD2Profile()
+        case .jaguarIPace:
+            return ABRPProfileLoader.loadProfile(filename: "jaguar_ipace2021.json", name: "Jaguar I-Pace", capacityKWh: 84.7) ?? GenericOBD2Profile()
+        case .chevyBolt:
+            return ABRPProfileLoader.loadProfile(filename: "gmc_bolt19.json", name: "Chevrolet Bolt EV", capacityKWh: 66.0) ?? GenericOBD2Profile()
+        case .hondaENy1:
+            return ABRPProfileLoader.loadProfile(filename: "honda_eny1.json", name: "Honda e:Ny1", capacityKWh: 68.8) ?? GenericOBD2Profile()
+        case .aiwaysU5:
+            return ABRPProfileLoader.loadProfile(filename: "aiways_u5.json", name: "Aiways U5", capacityKWh: 63.0) ?? GenericOBD2Profile()
         }
     }
 }

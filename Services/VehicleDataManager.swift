@@ -8,9 +8,11 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     @Published public private(set) var selectedProfile: VehicleProfile = MercedesEQA250Profile()
     @Published public private(set) var selectedProfileID: VehicleProfileID = .mercedesEQA250
     @Published public private(set) var selectedVehicle = VehicleCatalog.defaultModel
+    @Published public private(set) var chargingSession = ChargingSessionState()
     @Published public var isDemoMode: Bool = false
 
     public var obdConnection: OBDConnectionProtocol
+    public let chargingTracker = ChargingSessionTracker()
 
     public var vehicleName: String { selectedVehicle.fullName }
     public var usableBatteryCapacityKWh: Double {
@@ -37,6 +39,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public func toggleDemoMode(_ enabled: Bool) {
         isDemoMode = enabled
         if enabled {
+            stopPolling()
             let mock = MockOBDAdapter()
             self.obdConnection = mock
             self.obdConnection.delegate = self
@@ -80,7 +83,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     }
 
     public func startPolling() {
-        guard !isPolling else { return }
+        guard !isDemoMode, !isPolling else { return }
         isPolling = true
         pollingGeneration += 1
         pollNextCommand(generation: pollingGeneration)
@@ -196,6 +199,18 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .genericPid: break
         }
         latestTelemetry = snap
+
+        // Update live charging session tracker
+        let isStationary = snap.speedKmH < 1.0
+        let currentPower = snap.isCharging ? (snap.chargePowerKW > 0 ? snap.chargePowerKW : abs(snap.powerKW)) : (snap.currentA < -1.0 && isStationary ? abs(snap.powerKW) : nil)
+        self.chargingSession = chargingTracker.update(
+            soc: snap.stateOfChargePct,
+            packVoltage: snap.voltageV,
+            packCurrent: snap.currentA != 0.0 ? snap.currentA : nil,
+            powerKW: currentPower,
+            vehicleBatteryCapacityKWh: usableBatteryCapacityKWh,
+            isStationary: isStationary
+        )
     }
 
     private func updateEstimatedChargingPower(soc: Double, snapshot: inout TelemetrySnapshot) {

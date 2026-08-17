@@ -19,6 +19,66 @@
       "target": "Streamer",
       "configuration": "release",
       "preLaunchTask": "swift: Build Release Streamer (swift)"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:OBD-app}",
+      "name": "Debug EQAProbe",
+      "target": "EQAProbe",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug EQAProbe"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:OBD-app}",
+      "name": "Release EQAProbe",
+      "target": "EQAProbe",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release EQAProbe"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:OBD-app}",
+      "name": "Debug VoltLinkCLI",
+      "target": "VoltLinkCLI",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug VoltLinkCLI"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:OBD-app}",
+      "name": "Release VoltLinkCLI",
+      "target": "VoltLinkCLI",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release VoltLinkCLI"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:OBD-app}",
+      "name": "Debug SyncVehicleData",
+      "target": "SyncVehicleData",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug SyncVehicleData"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:OBD-app}",
+      "name": "Release SyncVehicleData",
+      "target": "SyncVehicleData",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release SyncVehicleData"
     }
   ]
 }
