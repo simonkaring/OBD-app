@@ -12,27 +12,32 @@ public struct ChargingLiveView: View {
     }
 
     private var isCharging: Bool {
-        isConnected && (vehicleData.latestTelemetry.isCharging || vehicleData.latestTelemetry.chargePowerKW > 0)
+        hasChargePower && (vehicleData.latestTelemetry.isCharging || vehicleData.latestTelemetry.chargePowerKW > 0)
+    }
+
+    private var hasSOC: Bool {
+        vehicleData.isDemoMode || vehicleData.latestTelemetry.socUpdatedAt != nil
+    }
+
+    private var hasChargePower: Bool {
+        vehicleData.isDemoMode || vehicleData.latestTelemetry.chargePowerUpdatedAt != nil
     }
 
     private var chargingStatusText: String {
         if !isConnected {
             return "SCANNER DISCONNECTED"
         }
+        if !hasChargePower {
+            return "CHARGE DATA UNAVAILABLE"
+        }
         if !isCharging {
             return "NOT CHARGING"
         }
-        if vehicleData.latestTelemetry.chargePowerKW >= 25.0 {
-            return "DC FAST CHARGING"
-        } else if vehicleData.latestTelemetry.chargePowerKW > 0.0 {
-            return "AC CHARGING"
-        } else {
-            return "CHARGING DETECTED"
-        }
+        return "CHARGING"
     }
 
     private var usableCapacityKWh: Double {
-        vehicleData.selectedProfile.batteryUsableCapacityKWh
+        vehicleData.usableBatteryCapacityKWh
     }
 
     private var storedEnergyKWh: Double {
@@ -43,27 +48,20 @@ public struct ChargingLiveView: View {
         usableCapacityKWh * ((100.0 - vehicleData.latestTelemetry.stateOfChargePct) / 100.0)
     }
 
-    private var effectiveChargeRateKW: Double {
-        if vehicleData.latestTelemetry.chargePowerKW > 0.5 {
-            return vehicleData.latestTelemetry.chargePowerKW
-        }
-        return 11.0 // Typical AC default baseline if charging is active but rate is establishing
-    }
-
     private var timeTo80Min: Int {
-        guard isConnected && isCharging else { return 0 }
+        guard isConnected && hasSOC && isCharging else { return 0 }
         let remainingPct = max(0, 80.0 - vehicleData.latestTelemetry.stateOfChargePct)
         guard remainingPct > 0 else { return 0 }
         let neededKWh = (remainingPct / 100.0) * usableCapacityKWh
-        return Int((neededKWh / effectiveChargeRateKW) * 60.0)
+        return Int((neededKWh / vehicleData.latestTelemetry.chargePowerKW) * 60.0)
     }
 
     private var timeTo100Min: Int {
-        guard isConnected && isCharging else { return 0 }
+        guard isConnected && hasSOC && isCharging else { return 0 }
         let remainingPct = max(0, 100.0 - vehicleData.latestTelemetry.stateOfChargePct)
         guard remainingPct > 0 else { return 0 }
         let neededKWh = (remainingPct / 100.0) * usableCapacityKWh
-        return Int((neededKWh / effectiveChargeRateKW) * 60.0)
+        return Int((neededKWh / vehicleData.latestTelemetry.chargePowerKW) * 60.0)
     }
 
     public var body: some View {
@@ -84,7 +82,7 @@ public struct ChargingLiveView: View {
                                 .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundColor(isCharging ? Theme.regenGreen : Theme.textSecondary)
 
-                            Text(isConnected ? String(format: "%.1f kW", vehicleData.latestTelemetry.chargePowerKW) : "-- kW")
+                            Text(hasChargePower ? String(format: "%.1f kW", vehicleData.latestTelemetry.chargePowerKW) : "— kW")
                                 .font(.system(size: 48, weight: .black, design: .rounded))
                                 .foregroundColor(isCharging ? Theme.regenGreen : Theme.textPrimary)
                         }
@@ -95,7 +93,7 @@ public struct ChargingLiveView: View {
 
                         // Battery State of Charge Ring
                         BatteryLevelBar(
-                            socPct: isConnected ? vehicleData.latestTelemetry.stateOfChargePct : 0.0,
+                            socPct: hasSOC ? vehicleData.latestTelemetry.stateOfChargePct : nil,
                             batteryTempC: isConnected ? vehicleData.latestTelemetry.batteryTempC : 0.0,
                             isCharging: isCharging
                         )
@@ -121,7 +119,7 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .trailing, spacing: 4) {
                                         Text("Current Stored Energy")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
-                                        Text(isConnected ? String(format: "%.1f kWh", storedEnergyKWh) : "-- kWh")
+                                        Text(hasSOC ? String(format: "%.1f kWh", storedEnergyKWh) : "— kWh")
                                             .font(.system(size: 20, weight: .bold, design: .rounded))
                                             .foregroundColor(Theme.textPrimary)
                                     }
@@ -133,7 +131,7 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Energy Needed to 100%")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
-                                        Text(isConnected ? String(format: "%.1f kWh", energyNeededToFullKWh) : "-- kWh")
+                                        Text(hasSOC ? String(format: "%.1f kWh", energyNeededToFullKWh) : "— kWh")
                                             .font(.system(size: 16, weight: .bold, design: .rounded))
                                             .foregroundColor(Theme.highPowerAmber)
                                     }
@@ -141,7 +139,7 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .trailing, spacing: 4) {
                                         Text("Vehicle Profile")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
-                                        Text(vehicleData.selectedProfile.vehicleName)
+                                        Text(vehicleData.vehicleName)
                                             .font(.system(size: 13, weight: .semibold, design: .rounded))
                                             .foregroundColor(Theme.textSecondary)
                                     }
@@ -157,7 +155,7 @@ public struct ChargingLiveView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("ESTIMATED TO 80%")
                                     .font(.caption).fontWeight(.bold).foregroundColor(Theme.textSecondary)
-                                Text(isCharging ? "\(timeTo80Min) min" : "--")
+                                Text(hasSOC && isCharging ? "\(timeTo80Min) min" : "—")
                                     .font(.system(size: 24, weight: .bold, design: .rounded))
                                     .foregroundColor(Theme.electricCyan)
                             }

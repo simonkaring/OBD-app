@@ -124,24 +124,50 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0.0, accuracy: 0.01)
     }
 
-    func testChargingCalculatedFromSOCSlopeWhileParked() {
+    func testSOCDoesNotInventChargingPower() {
         let manager = VehicleDataManager()
         manager.applyUpdate(.speed(0.0))
-
-        // Initial sample
         manager.applyUpdate(.soc(36.0))
-
-        // Wait small interval then report SOC gain
-        Thread.sleep(forTimeInterval: 5.1)
         manager.applyUpdate(.soc(36.2))
 
-        XCTAssertTrue(manager.latestTelemetry.isCharging)
-        XCTAssertGreaterThan(manager.latestTelemetry.chargePowerKW, 0.5)
-
-        // When vehicle moves, charging resets
-        manager.applyUpdate(.speed(20.0))
         XCTAssertFalse(manager.latestTelemetry.isCharging)
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0.0)
+        XCTAssertNotNil(manager.latestTelemetry.socUpdatedAt)
+    }
+
+    func testSustainedHighResolutionSOCEstimatesChargingPower() {
+        let manager = VehicleDataManager()
+        let startedAt = Date.now
+        manager.applyUpdate(.soc(62.000), timestamp: startedAt)
+        manager.applyUpdate(.soc(62.137), timestamp: startedAt.addingTimeInterval(30))
+
+        XCTAssertTrue(manager.latestTelemetry.isCharging)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 10.93, accuracy: 0.2)
+    }
+
+    func testSelectedVehicleCapacityDrivesChargingEstimate() {
+        let manager = VehicleDataManager()
+        let ioniq = VehicleCatalog.allModels.first { $0.id == "hy-ioniq5-77" }!
+        manager.selectVehicle(ioniq)
+
+        let startedAt = Date.now
+        manager.applyUpdate(.soc(62.000), timestamp: startedAt)
+        manager.applyUpdate(.soc(62.137), timestamp: startedAt.addingTimeInterval(30))
+
+        XCTAssertEqual(manager.vehicleName, "Hyundai IONIQ 5 Long Range")
+        XCTAssertEqual(manager.usableBatteryCapacityKWh, 77.4, accuracy: 0.01)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 12.73, accuracy: 0.2)
+        XCTAssertEqual(manager.selectedProfileID, .hyundaiKiaEGMP)
+    }
+
+    func testDirectPackPowerWinsOverSOCEstimate() {
+        let manager = VehicleDataManager()
+        let startedAt = Date.now
+        manager.applyUpdate(.soc(50.0), timestamp: startedAt)
+        manager.applyUpdate(.power(voltage: 400, current: -25, powerKW: -10), timestamp: startedAt.addingTimeInterval(30))
+        manager.applyUpdate(.soc(50.2), timestamp: startedAt.addingTimeInterval(31))
+
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 10.0, accuracy: 0.01)
     }
 
     func testDemoModeFlagControllingDemoTrips() {

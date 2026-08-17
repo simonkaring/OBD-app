@@ -1,17 +1,18 @@
 import SwiftUI
 
 public struct BatteryLevelBar: View {
-    public var socPct: Double
+    public var socPct: Double?
     public var batteryTempC: Double
     public var isCharging: Bool
 
-    public init(socPct: Double, batteryTempC: Double = 0.0, isCharging: Bool = false) {
+    public init(socPct: Double?, batteryTempC: Double = 0.0, isCharging: Bool = false) {
         self.socPct = socPct
         self.batteryTempC = batteryTempC
         self.isCharging = isCharging
     }
 
     private var barColor: Color {
+        guard let socPct else { return Theme.textSecondary }
         if isCharging { return Theme.regenGreen }
         if socPct < 20.0 { return Theme.criticalRed }
         if socPct < 40.0 { return Theme.highPowerAmber }
@@ -56,13 +57,13 @@ public struct BatteryLevelBar: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(0, min(geo.size.width, geo.size.width * (socPct / 100.0))), height: 20)
+                            .frame(width: max(0, min(geo.size.width, geo.size.width * ((socPct ?? 0) / 100.0))), height: 20)
                             .animation(.spring(response: 0.5, dampingFraction: 0.8), value: socPct)
                     }
                 }
                 .frame(height: 20)
 
-                Text(String(format: "%.0f%%", socPct))
+                Text(socPct.map { String(format: "%.0f%%", $0) } ?? "—")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(Theme.textPrimary)
                     .frame(width: 50, alignment: .trailing)

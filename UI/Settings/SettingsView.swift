@@ -110,7 +110,7 @@ public struct SettingsView: View {
                                 Text("Active Vehicle")
                                     .font(.body)
                                     .foregroundColor(Theme.textPrimary)
-                                Text(vehicleData.selectedProfile.vehicleName)
+                                Text(vehicleData.vehicleName)
                                     .font(.caption)
                                     .foregroundColor(Theme.electricCyan)
                             }

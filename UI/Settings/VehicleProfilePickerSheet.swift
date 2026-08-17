@@ -88,7 +88,7 @@ public struct VehicleProfilePickerSheet: View {
 
                             List(filteredModels) { model in
                                 Button {
-                                    vehicleData.selectProfile(model.profileID)
+                                    vehicleData.selectVehicle(model)
                                     dismiss()
                                 } label: {
                                     HStack(spacing: 12) {
@@ -116,6 +116,10 @@ public struct VehicleProfilePickerSheet: View {
                                                         .foregroundColor(Theme.electricCyan)
                                                 }
                                             }
+
+                                            Text(model.telemetrySupport.displayName)
+                                                .font(.caption2)
+                                                .foregroundColor(model.telemetrySupport == .generic ? Theme.textSecondary : Theme.regenGreen)
                                         }
 
                                         Spacer()

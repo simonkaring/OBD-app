@@ -33,6 +33,7 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var voltageV: Double = 0.0
     public var currentA: Double = 0.0
     public var stateOfChargePct: Double = 0.0
+    public var socUpdatedAt: Date?
     public var stateOfHealthPct: Double = 0.0
     public var batteryTempC: Double = 0.0
     public var batteryTempMinC: Double = 0.0
@@ -43,6 +44,7 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var hvacPowerKW: Double = 0.0
     public var isCharging: Bool = false
     public var chargePowerKW: Double = 0.0
+    public var chargePowerUpdatedAt: Date?
     public var fuelLevelPct: Double = 0.0
     public var throttlePositionPct: Double = 0.0
     public var engineLoadPct: Double = 0.0

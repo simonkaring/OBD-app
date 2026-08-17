@@ -30,7 +30,7 @@ public struct DashboardView: View {
                                 Circle()
                                     .fill(vehicleData.isDemoMode ? Theme.electricCyan : (vehicleData.connectionState.isConnected ? Theme.regenGreen : Theme.criticalRed))
                                     .frame(width: 10, height: 10)
-                                Text(vehicleData.isDemoMode ? "DEMO MODE (\(vehicleData.selectedProfile.vehicleName))" : (vehicleData.connectionState.isConnected ? "CONNECTED (\(vehicleData.selectedProfile.vehicleName))" : "DISCONNECTED (OBD-II Scanner)"))
+                                Text(vehicleData.isDemoMode ? "DEMO MODE (\(vehicleData.vehicleName))" : (vehicleData.connectionState.isConnected ? "CONNECTED (\(vehicleData.vehicleName))" : "DISCONNECTED (OBD-II Scanner)"))
                                     .font(.system(size: 12, weight: .bold, design: .rounded))
                                     .foregroundColor(Theme.textPrimary)
                             }
@@ -221,7 +221,7 @@ public struct DashboardView: View {
                                 if tripTracker.isRecordingTrip {
                                     tripTracker.stopTrip(endSoc: vehicleData.latestTelemetry.stateOfChargePct)
                                 } else {
-                                    tripTracker.startTrip(startSoc: vehicleData.latestTelemetry.stateOfChargePct, vehicleName: vehicleData.selectedProfile.vehicleName)
+                                    tripTracker.startTrip(startSoc: vehicleData.latestTelemetry.stateOfChargePct, vehicleName: vehicleData.vehicleName)
                                 }
                             } label: {
                                 Text(tripTracker.isRecordingTrip ? "Stop Trip" : "Start Trip")
@@ -245,7 +245,7 @@ public struct DashboardView: View {
                 if telemetryHistory.count > 50 {
                     telemetryHistory.removeFirst()
                 }
-                tripTracker.processTelemetrySnapshot(snap, vehicleName: vehicleData.selectedProfile.vehicleName)
+                tripTracker.processTelemetrySnapshot(snap, vehicleName: vehicleData.vehicleName)
             }
             #if os(iOS)
             .fullScreenCover(isPresented: $showHUDMode) {

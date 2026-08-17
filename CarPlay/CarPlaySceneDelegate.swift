@@ -76,7 +76,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         let remainingPct = max(0.0, 80.0 - snapshot.stateOfChargePct)
         let timeMin: String
         if powerKW > 1.0 {
-            let batteryCapacityKWh = 66.5
+            let batteryCapacityKWh = AppEnvironment.shared.vehicleData.usableBatteryCapacityKWh
             let neededKWh = (remainingPct / 100.0) * batteryCapacityKWh
             let hours = neededKWh / powerKW
             let mins = Int(ceil(hours * 60.0))

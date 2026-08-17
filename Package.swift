@@ -11,6 +11,18 @@ let package = Package(
         .library(
             name: "VoltLinkEngine",
             targets: ["VoltLinkEngine"]
+        ),
+        .executable(
+            name: "EQAProbe",
+            targets: ["EQAProbe"]
+        ),
+        .executable(
+            name: "VoltLinkCLI",
+            targets: ["VoltLinkCLI"]
+        ),
+        .executable(
+            name: "SyncVehicleData",
+            targets: ["SyncVehicleData"]
         )
     ],
     targets: [
@@ -20,6 +32,15 @@ let package = Package(
             exclude: [
                 "README.md",
                 "LICENSE",
+                "CLAUDE.md",
+                "INSTRUCTIONS.md",
+                "ruvector.db",
+                "skills-lock.json",
+                "build",
+                "docs",
+                "scratch",
+                "Tools",
+                "Tests",
                 "App/Info.plist",
                 "App/Assets.xcassets",
                 "App/VoltLink.entitlements"
@@ -35,13 +56,29 @@ let package = Package(
                 "Widgets"
             ],
             resources: [
-                .process("Data/Seed/dtc_definitions.json")
+                .process("Data/Seed/dtc_definitions.json"),
+                .copy("Data/Seed/abrp_pids")
             ]
         ),
         .testTarget(
             name: "VoltLinkTests",
             dependencies: ["VoltLinkEngine"],
             path: "Tests"
+        ),
+        .executableTarget(
+            name: "EQAProbe",
+            dependencies: ["VoltLinkEngine"],
+            path: "Tools/EQAProbe"
+        ),
+        .executableTarget(
+            name: "VoltLinkCLI",
+            dependencies: ["VoltLinkEngine"],
+            path: "Tools/VoltLinkCLI"
+        ),
+        .executableTarget(
+            name: "SyncVehicleData",
+            dependencies: ["VoltLinkEngine"],
+            path: "Tools/SyncVehicleData"
         )
     ]
 )

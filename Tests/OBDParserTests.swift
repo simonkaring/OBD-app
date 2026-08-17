@@ -51,14 +51,21 @@ final class OBDParserTests: XCTestCase {
         XCTAssertFalse(profile.initializationCommands.contains("AT SP 0"))
     }
 
-    func testMercedesEQA250SOCParsing() {
+    func testMercedesEQA250IgnoresUnverifiedInverterSOC() {
         let profile = MercedesEQA250Profile()
-        // ECU 0x29, DID 012F. Bytes 01 6F = 0x016F = 367 dec -> 367 * 0.1 = 36.7%
+        // DID 012F is an internal SOC-like value, not yet verified against customer SOC.
         let rawResponse = "18 DA F1 29 05 62 01 2F 01 6F\r\n>"
         let update = profile.parseResponse(command: "22012F", rawResponse: rawResponse)
+        XCTAssertNil(update)
+    }
 
-        if case .soc(let percentage) = update {
-            XCTAssertEqual(percentage, 36.7, accuracy: 0.1)
+    func testMercedesEQA250CustomerSOCParsing() {
+        let profile = MercedesEQA250Profile()
+        let rawResponse = "18 DA F1 59 09 62 02 10 04 00 00 3C AC 00 00 00\r\n>"
+        let update = profile.parseResponse(command: "220210", rawResponse: rawResponse)
+
+        if case .soc(let soc) = update {
+            XCTAssertEqual(soc, 62.128, accuracy: 0.001)
         } else {
             XCTFail("Expected SOC update")
         }
@@ -74,6 +81,21 @@ final class OBDParserTests: XCTestCase {
             XCTAssertEqual(voltage, 339.0, accuracy: 0.1)
         } else {
             XCTFail("Expected packVoltage update")
+        }
+    }
+
+    func testHyundaiKiaEGMPParsesPublicPackPowerFormula() {
+        let profile = HyundaiKiaEGMPProfile()
+        // Payload bytes K/L = 0xFF9C (-10.0 A), N/O = 0x0E74 (370.0 V).
+        let rawResponse = "62 01 01 00 00 00 00 00 00 00 00 00 00 FF 9C 00 0E 74\r\n>"
+        let update = profile.parseResponse(command: "220101", rawResponse: rawResponse)
+
+        if case .power(let voltage, let current, let powerKW) = update {
+            XCTAssertEqual(voltage, 370.0, accuracy: 0.01)
+            XCTAssertEqual(current, -10.0, accuracy: 0.01)
+            XCTAssertEqual(powerKW, -3.7, accuracy: 0.01)
+        } else {
+            XCTFail("Expected public Hyundai/Kia pack-power update")
         }
     }
 

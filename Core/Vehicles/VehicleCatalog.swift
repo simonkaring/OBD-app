@@ -16,6 +16,22 @@ public enum PowertrainType: String, Codable, CaseIterable, Identifiable, Sendabl
     }
 }
 
+/// Describes the best telemetry path available for a catalog vehicle. Static
+/// specifications are always available; live values still depend on the car.
+public enum LiveTelemetrySupport: String, Codable, Sendable {
+    case verified
+    case community
+    case generic
+
+    public var displayName: String {
+        switch self {
+        case .verified: return "Verified live telemetry"
+        case .community: return "Community live telemetry"
+        case .generic: return "Generic OBD telemetry"
+        }
+    }
+}
+
 public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
     public let id: String
     public let brandName: String
@@ -24,6 +40,27 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
     public let powertrain: PowertrainType
     public let batteryCapacityKWh: Double
     public let profileID: VehicleProfileID
+    public let telemetrySupport: LiveTelemetrySupport
+
+    public init(
+        id: String,
+        brandName: String,
+        modelName: String,
+        years: String,
+        powertrain: PowertrainType,
+        batteryCapacityKWh: Double,
+        profileID: VehicleProfileID,
+        telemetrySupport: LiveTelemetrySupport = .generic
+    ) {
+        self.id = id
+        self.brandName = brandName
+        self.modelName = modelName
+        self.years = years
+        self.powertrain = powertrain
+        self.batteryCapacityKWh = batteryCapacityKWh
+        self.profileID = profileID
+        self.telemetrySupport = telemetrySupport
+    }
 
     public var fullName: String {
         "\(brandName) \(modelName)"
@@ -38,6 +75,11 @@ public struct VehicleBrand: Identifiable, Hashable, Sendable {
 }
 
 public struct VehicleCatalog {
+    /// Capacity values are usable-pack values curated from public manufacturer
+    /// specifications. Replace this catalog with a pinned OpenEV Data snapshot
+    /// when the release-update tool can fetch upstream data.
+    public static let dataSource = "Bundled EV specifications"
+
     public static let brands: [VehicleBrand] = [
         VehicleBrand(
             id: "tesla",
@@ -58,12 +100,12 @@ public struct VehicleCatalog {
             name: "Mercedes-Benz",
             iconSymbol: "star.circle.fill",
             models: [
-                VehicleModelEntry(id: "mb-eqa-250", brandName: "Mercedes-Benz", modelName: "EQA 250", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 66.5, profileID: .mercedesEQA250),
-                VehicleModelEntry(id: "mb-eqb-300", brandName: "Mercedes-Benz", modelName: "EQB 300 4MATIC", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 66.5, profileID: .mercedesEQA250),
-                VehicleModelEntry(id: "mb-eqc-400", brandName: "Mercedes-Benz", modelName: "EQC 400 4MATIC", years: "2019-2023", powertrain: .ev, batteryCapacityKWh: 80.0, profileID: .mercedesEQA250),
-                VehicleModelEntry(id: "mb-eqe-350", brandName: "Mercedes-Benz", modelName: "EQE 350+ Sedan / SUV", years: "2022-2024", powertrain: .ev, batteryCapacityKWh: 90.6, profileID: .mercedesEQA250),
-                VehicleModelEntry(id: "mb-eqs-450", brandName: "Mercedes-Benz", modelName: "EQS 450+ / 580 Sedan", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 107.8, profileID: .mercedesEQA250),
-                VehicleModelEntry(id: "mb-g580-eq", brandName: "Mercedes-Benz", modelName: "G 580 with EQ Technology", years: "2024+", powertrain: .ev, batteryCapacityKWh: 116.0, profileID: .mercedesEQA250)
+                VehicleModelEntry(id: "mb-eqa-250", brandName: "Mercedes-Benz", modelName: "EQA 250", years: "2021", powertrain: .ev, batteryCapacityKWh: 66.5, profileID: .mercedesEQA250, telemetrySupport: .verified),
+                VehicleModelEntry(id: "mb-eqb-300", brandName: "Mercedes-Benz", modelName: "EQB 300 4MATIC", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 66.5, profileID: .genericOBD2),
+                VehicleModelEntry(id: "mb-eqc-400", brandName: "Mercedes-Benz", modelName: "EQC 400 4MATIC", years: "2019-2023", powertrain: .ev, batteryCapacityKWh: 80.0, profileID: .genericOBD2),
+                VehicleModelEntry(id: "mb-eqe-350", brandName: "Mercedes-Benz", modelName: "EQE 350+ Sedan / SUV", years: "2022-2024", powertrain: .ev, batteryCapacityKWh: 90.6, profileID: .genericOBD2),
+                VehicleModelEntry(id: "mb-eqs-450", brandName: "Mercedes-Benz", modelName: "EQS 450+ / 580 Sedan", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 107.8, profileID: .genericOBD2),
+                VehicleModelEntry(id: "mb-g580-eq", brandName: "Mercedes-Benz", modelName: "G 580 with EQ Technology", years: "2024+", powertrain: .ev, batteryCapacityKWh: 116.0, profileID: .genericOBD2)
             ]
         ),
         VehicleBrand(
@@ -83,7 +125,7 @@ public struct VehicleCatalog {
             name: "Audi",
             iconSymbol: "circle.grid.2x2.fill",
             models: [
-                VehicleModelEntry(id: "audi-q4-etron", brandName: "Audi", modelName: "Q4 e-tron 40 / 50", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .genericOBD2),
+                VehicleModelEntry(id: "audi-q4-etron", brandName: "Audi", modelName: "Q4 e-tron 40 / 50", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .volkswagenMEB, telemetrySupport: .community),
                 VehicleModelEntry(id: "audi-q8-etron", brandName: "Audi", modelName: "Q8 e-tron / Sportback", years: "2023-2024", powertrain: .ev, batteryCapacityKWh: 106.0, profileID: .genericOBD2),
                 VehicleModelEntry(id: "audi-etron-gt", brandName: "Audi", modelName: "e-tron GT / RS e-tron GT", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 83.7, profileID: .genericOBD2)
             ]
@@ -103,10 +145,10 @@ public struct VehicleCatalog {
             name: "Volkswagen",
             iconSymbol: "car.2.fill",
             models: [
-                VehicleModelEntry(id: "vw-id3", brandName: "Volkswagen", modelName: "ID.3 Pro / Pro S", years: "2020-2024", powertrain: .ev, batteryCapacityKWh: 58.0, profileID: .genericOBD2),
-                VehicleModelEntry(id: "vw-id4", brandName: "Volkswagen", modelName: "ID.4 Pro / GTX", years: "2020-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .genericOBD2),
-                VehicleModelEntry(id: "vw-id5", brandName: "Volkswagen", modelName: "ID.5 GTX", years: "2022-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .genericOBD2),
-                VehicleModelEntry(id: "vw-idbuzz", brandName: "Volkswagen", modelName: "ID. Buzz Pro / LWB", years: "2022-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .genericOBD2)
+                VehicleModelEntry(id: "vw-id3", brandName: "Volkswagen", modelName: "ID.3 Pro / Pro S", years: "2020-2024", powertrain: .ev, batteryCapacityKWh: 58.0, profileID: .volkswagenMEB, telemetrySupport: .community),
+                VehicleModelEntry(id: "vw-id4", brandName: "Volkswagen", modelName: "ID.4 Pro / GTX", years: "2020-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .volkswagenMEB, telemetrySupport: .community),
+                VehicleModelEntry(id: "vw-id5", brandName: "Volkswagen", modelName: "ID.5 GTX", years: "2022-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .volkswagenMEB, telemetrySupport: .community),
+                VehicleModelEntry(id: "vw-idbuzz", brandName: "Volkswagen", modelName: "ID. Buzz Pro / LWB", years: "2022-2024", powertrain: .ev, batteryCapacityKWh: 77.0, profileID: .volkswagenMEB, telemetrySupport: .community)
             ]
         ),
         VehicleBrand(
@@ -114,7 +156,7 @@ public struct VehicleCatalog {
             name: "Hyundai",
             iconSymbol: "car.circle.fill",
             models: [
-                VehicleModelEntry(id: "hy-ioniq5-77", brandName: "Hyundai", modelName: "IONIQ 5 Long Range", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 77.4, profileID: .genericOBD2),
+                VehicleModelEntry(id: "hy-ioniq5-77", brandName: "Hyundai", modelName: "IONIQ 5 Long Range", years: "2022", powertrain: .ev, batteryCapacityKWh: 77.4, profileID: .hyundaiKiaEGMP, telemetrySupport: .community),
                 VehicleModelEntry(id: "hy-ioniq5-n", brandName: "Hyundai", modelName: "IONIQ 5 N", years: "2024+", powertrain: .ev, batteryCapacityKWh: 84.0, profileID: .genericOBD2),
                 VehicleModelEntry(id: "hy-ioniq6-77", brandName: "Hyundai", modelName: "IONIQ 6 Long Range", years: "2022-2024", powertrain: .ev, batteryCapacityKWh: 77.4, profileID: .genericOBD2),
                 VehicleModelEntry(id: "hy-kona-ev", brandName: "Hyundai", modelName: "Kona Electric (64 kWh)", years: "2018-2024", powertrain: .ev, batteryCapacityKWh: 64.0, profileID: .genericOBD2)
@@ -125,7 +167,7 @@ public struct VehicleCatalog {
             name: "Kia",
             iconSymbol: "car.fill",
             models: [
-                VehicleModelEntry(id: "kia-ev6-gt", brandName: "Kia", modelName: "EV6 GT / Long Range", years: "2021-2024", powertrain: .ev, batteryCapacityKWh: 77.4, profileID: .genericOBD2),
+                VehicleModelEntry(id: "kia-ev6-gt", brandName: "Kia", modelName: "EV6 GT / Long Range", years: "2022", powertrain: .ev, batteryCapacityKWh: 77.4, profileID: .hyundaiKiaEGMP, telemetrySupport: .community),
                 VehicleModelEntry(id: "kia-ev9-gt", brandName: "Kia", modelName: "EV9 GT-Line (99.8 kWh)", years: "2023-2024", powertrain: .ev, batteryCapacityKWh: 99.8, profileID: .genericOBD2),
                 VehicleModelEntry(id: "kia-niro-ev", brandName: "Kia", modelName: "Niro EV (64.8 kWh)", years: "2018-2024", powertrain: .ev, batteryCapacityKWh: 64.8, profileID: .genericOBD2)
             ]
@@ -201,4 +243,15 @@ public struct VehicleCatalog {
     public static var allModels: [VehicleModelEntry] {
         brands.flatMap { $0.models }
     }
+
+    public static let defaultModel = VehicleModelEntry(
+        id: "mb-eqa-250",
+        brandName: "Mercedes-Benz",
+        modelName: "EQA 250",
+        years: "2021",
+        powertrain: .ev,
+        batteryCapacityKWh: 66.5,
+        profileID: .mercedesEQA250,
+        telemetrySupport: .verified
+    )
 }
