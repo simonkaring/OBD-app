@@ -38,6 +38,7 @@ public struct DiagnosticsView: View {
                             Spacer()
 
                             Button {
+                                vehicleData.stopPolling()
                                 dtcService.scanDTCs(connection: vehicleData.obdConnection, isDemo: vehicleData.isDemoMode)
                             } label: {
                                 HStack(spacing: 6) {
@@ -133,6 +134,11 @@ public struct DiagnosticsView: View {
             }
             .navigationTitle("Diagnostics")
             .inlineTitleDisplayMode()
+            .onChange(of: dtcService.isScanning) { _, isScanning in
+                if !isScanning {
+                    vehicleData.startPolling()
+                }
+            }
             .sheet(item: $selectedDTC) { dtc in
                 DTCDetailSheet(dtc: dtc)
             }
