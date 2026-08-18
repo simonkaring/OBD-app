@@ -61,11 +61,12 @@ final class OBDParserTests: XCTestCase {
 
     func testMercedesEQA250CustomerSOCParsing() {
         let profile = MercedesEQA250Profile()
-        let rawResponse = "18 DA F1 59 09 62 02 10 04 00 00 3C AC 00 00 00\r\n>"
+        // Raw 0x3990 / 250 = 58.944% gross -> maps to 44.0% usable customer SoC
+        let rawResponse = "18 DA F1 59 10 0B 62 02 10 04 00 00\r\n18 DA F1 59 21 39 90 00 00 00 AA AA\r\n>"
         let update = profile.parseResponse(command: "220210", rawResponse: rawResponse)
 
         if case .soc(let soc) = update {
-            XCTAssertEqual(soc, 62.128, accuracy: 0.001)
+            XCTAssertEqual(soc, 44.02, accuracy: 0.1)
         } else {
             XCTFail("Expected SOC update")
         }

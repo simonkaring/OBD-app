@@ -56,13 +56,17 @@ public struct MercedesEQA250Profile: VehicleProfile {
             return nil
 
         case "220210", "22 02 10": // BMS customer SOC (ECU 0x59)
-            // Capture: 62 02 10 04 00 00 3C AC ... => 0x3CAC / 250 = 62.128%
+            // Live capture: 62 02 10 04 00 00 39 90 ... => 0x3990 / 250 = 58.944% gross cell SoC
+            // Maps gross chemical SoC (with top & bottom reserve buffers) to usable customer display SoC (0–100%)
             if let bytes = extractBytes(from: cleanHex, header: "620210", count: 5), bytes[0] == 0x04 {
                 let raw = UInt32(bytes[1]) << 24 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 8 | UInt32(bytes[4])
-                let soc = Double(raw) / 250.0
-                if (0...100).contains(soc) {
-                    return .soc(soc)
-                }
+                let grossSoC = Double(raw) / 250.0
+                guard (0...100).contains(grossSoC) else { return nil }
+                
+                let minGross = 29.8
+                let maxGross = 96.0
+                let usableSoC = min(100.0, max(0.0, ((grossSoC - minGross) / (maxGross - minGross)) * 100.0))
+                return .soc(usableSoC)
             }
             return nil
 
