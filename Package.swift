@@ -34,6 +34,7 @@ let package = Package(
                 "LICENSE",
                 "CLAUDE.md",
                 "INSTRUCTIONS.md",
+                "AGENTS.md",
                 "ruvector.db",
                 "skills-lock.json",
                 "build",

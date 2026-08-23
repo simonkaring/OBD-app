@@ -6,6 +6,9 @@ public struct SettingsView: View {
 
     @State private var showVehiclePicker = false
 
+    @AppStorage("developerModeEnabled") private var developerModeEnabled: Bool = false
+    @AppStorage("aiApiKey") private var aiApiKey: String = ""
+
     @State private var targetSpeed: Double = 50.0
     @State private var regenLevel: Double = 0.5
 
@@ -176,8 +179,30 @@ public struct SettingsView: View {
                     NavigationLink("Scan Nearby BLE Devices") {
                         AdapterScanView(vehicleData: vehicleData)
                     }
-                    NavigationLink("OBD Terminal & PID Discovery") {
-                        OBDTerminalView(vehicleData: vehicleData)
+                }
+
+                Section("Developer & Reverse Engineering") {
+                    Toggle("Developer Mode", isOn: $developerModeEnabled)
+
+                    if developerModeEnabled {
+                        NavigationLink("OBD Terminal & AI Discovery") {
+                            OBDTerminalView(vehicleData: vehicleData)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("AI API Key (Optional)")
+                                .font(.caption)
+                                .foregroundColor(Theme.textSecondary)
+                            SecureField("Gemini or OpenAI API Key", text: $aiApiKey)
+                                .autocorrectionDisabled()
+                                #if os(iOS)
+                                .textInputAutocapitalization(.never)
+                                #endif
+                        }
+
+                        Text("Supports Google Gemini or OpenAI API keys stored locally on-device. If left blank, you can still export formatted traces for AI using the Share button.")
+                            .font(.caption2)
+                            .foregroundColor(Theme.textSecondary)
                     }
                 }
 

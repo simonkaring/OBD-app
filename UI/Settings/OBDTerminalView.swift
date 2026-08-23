@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct OBDTerminalView: View {
     @ObservedObject public var vehicleData: VehicleDataManager
+    @AppStorage("aiApiKey") private var aiApiKey: String = ""
 
     @State private var commandText = ""
     @State private var supportedPIDs: [String] = []
@@ -14,8 +15,21 @@ public struct OBDTerminalView: View {
     @State private var isProbing = false
     @State private var probeProgress: Double = 0
 
+    @State private var manualLogs: [OBDLogEntry] = []
+    @State private var showAISheet = false
+
     private var bluetoothManager: BluetoothManager? {
         vehicleData.obdConnection as? BluetoothManager
+    }
+
+    private var combinedLogs: [OBDLogEntry] {
+        var logs = bluetoothManager?.log ?? []
+        for manual in manualLogs {
+            if !logs.contains(where: { $0.id == manual.id }) {
+                logs.append(manual)
+            }
+        }
+        return logs.sorted(by: { $0.timestamp < $1.timestamp })
     }
 
     public init(vehicleData: VehicleDataManager) {
@@ -23,19 +37,60 @@ public struct OBDTerminalView: View {
     }
 
     public var body: some View {
-        Group {
-            if let manager = bluetoothManager {
-                terminalList(manager: manager)
-            } else {
-                ContentUnavailableCompat(message: "The OBD terminal talks directly to the BLE adapter. Turn off Demo Mode and connect to a real adapter to use it.")
+        terminalList
+            .navigationTitle("OBD Terminal")
+            .inlineTitleDisplayMode()
+            .toolbar {
+                #if os(iOS)
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        showAISheet = true
+                    } label: {
+                        Label("AI Analyze", systemImage: "sparkles")
+                            .foregroundColor(Theme.electricCyan)
+                    }
+                    .disabled(combinedLogs.isEmpty)
+
+                    ShareLink(
+                        item: AILogAnalyzer.buildAnalysisPrompt(log: combinedLogs, vehicleContext: vehicleData.vehicleName),
+                        subject: Text("OBD CAN Trace - \(vehicleData.vehicleName)"),
+                        message: Text("Help me decode this CAN trace for VoltLink")
+                    ) {
+                        Label("Export for AI", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(combinedLogs.isEmpty)
+                }
+                #else
+                ToolbarItemGroup(placement: .automatic) {
+                    Button {
+                        showAISheet = true
+                    } label: {
+                        Label("AI Analyze", systemImage: "sparkles")
+                    }
+                    .disabled(combinedLogs.isEmpty)
+
+                    ShareLink(
+                        item: AILogAnalyzer.buildAnalysisPrompt(log: combinedLogs, vehicleContext: vehicleData.vehicleName),
+                        subject: Text("OBD CAN Trace - \(vehicleData.vehicleName)"),
+                        message: Text("Help me decode this CAN trace for VoltLink")
+                    ) {
+                        Label("Export for AI", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(combinedLogs.isEmpty)
+                }
+                #endif
             }
-        }
-        .navigationTitle("OBD Terminal")
-        .inlineTitleDisplayMode()
+            .sheet(isPresented: $showAISheet) {
+                AIAnalysisSheet(
+                    logs: combinedLogs,
+                    vehicleContext: vehicleData.vehicleName,
+                    apiKey: aiApiKey
+                )
+            }
     }
 
     @ViewBuilder
-    private func terminalList(manager: BluetoothManager) -> some View {
+    private var terminalList: some View {
         List {
             Section("Discovery Tools") {
                 Button {
@@ -91,9 +146,7 @@ public struct OBDTerminalView: View {
                     TextField("e.g. 220101 or AT SH 7E4", text: $commandText)
                         .autocorrectionDisabled()
                     Button("Send") {
-                        let cmd = commandText.trimmingCharacters(in: .whitespaces)
-                        commandText = ""
-                        vehicleData.obdConnection.sendCommand(cmd, completion: nil)
+                        sendManualCommand()
                     }
                     .disabled(commandText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
@@ -101,26 +154,46 @@ public struct OBDTerminalView: View {
 
             Section {
                 HStack {
-                    Text("Log (\(manager.log.count) entries)")
+                    Text("Trace Log (\(combinedLogs.count) entries)")
                         .foregroundColor(Theme.textSecondary)
                     Spacer()
-                    if !manager.log.isEmpty {
-                        ShareLink(item: exportText(manager.log)) {
-                            Image(systemName: "square.and.arrow.up")
+                    if !combinedLogs.isEmpty {
+                        Button("Clear") {
+                            manualLogs.removeAll()
                         }
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
                     }
                 }
             }
 
-            ForEach(manager.log.reversed()) { entry in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("→ \(entry.sent)")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(Theme.electricCyan)
-                    Text(entry.response.replacingOccurrences(of: "\r\n", with: " ").replacingOccurrences(of: "\r", with: " "))
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(Theme.textSecondary)
+            if combinedLogs.isEmpty {
+                Text("No commands sent yet. Run a discovery tool or send a raw command above.")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+            } else {
+                ForEach(combinedLogs.reversed()) { entry in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("→ \(entry.sent)")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(Theme.electricCyan)
+                        Text(entry.response.replacingOccurrences(of: "\r\n", with: " ").replacingOccurrences(of: "\r", with: " "))
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(Theme.textSecondary)
+                    }
                 }
+            }
+        }
+    }
+
+    private func sendManualCommand() {
+        let cmd = commandText.trimmingCharacters(in: .whitespaces)
+        guard !cmd.isEmpty else { return }
+        commandText = ""
+        Task {
+            let response = await sendCommandAsync(cmd)
+            await MainActor.run {
+                manualLogs.append(OBDLogEntry(timestamp: Date(), sent: cmd, response: response))
             }
         }
     }
@@ -141,11 +214,14 @@ public struct OBDTerminalView: View {
         supportedPIDs = []
         vehicleData.stopPolling()
         Task {
-            _ = await sendCommandAsync("AT SH 7DF") // functional broadcast — reaches whichever ECU actually answers Mode 01
+            _ = await sendCommandAsync("AT SH 7DF")
             let queries = ["0100", "0120", "0140", "0160"]
             var found: [String] = []
             for query in queries {
                 let raw = await sendCommandAsync(query)
+                await MainActor.run {
+                    manualLogs.append(OBDLogEntry(timestamp: Date(), sent: query, response: raw))
+                }
                 guard let pids = parsePIDBitmask(raw, query: query) else { break }
                 found.append(contentsOf: pids)
             }
@@ -196,11 +272,15 @@ public struct OBDTerminalView: View {
                 for low in candidateLowBytes {
                     if Task.isCancelled { break }
                     let didLow = String(format: "%02X", low)
-                    let raw = await sendCommandAsync("2201\(didLow)")
+                    let cmd = "2201\(didLow)"
+                    let raw = await sendCommandAsync(cmd)
                     let clean = ISO15765Parser().assembleISOTPPayload(raw)
                     if isPositiveUDSResponse(clean) {
                         let line = "\(label) DID 01\(didLow): \(clean)"
-                        await MainActor.run { sweepResults.append(line) }
+                        await MainActor.run {
+                            sweepResults.append(line)
+                            manualLogs.append(OBDLogEntry(timestamp: Date(), sent: cmd, response: raw))
+                        }
                     }
                     done += 1
                     let progress = Double(done) / Double(total)
@@ -225,8 +305,6 @@ public struct OBDTerminalView: View {
         vehicleData.startPolling()
     }
 
-    /// Candidate ELM protocol + header combinations to probe, in order.
-    /// Protocol 6/8 = 11-bit CAN; protocol 7/9 = 29-bit CAN with Mercedes physical addressing.
     private static let probeMatrix: [(protocol: String, headers: [String])] = [
         ("6", ["7DF", "7E0", "7E4"]),
         ("7", ["18DB33F1", "18DA10F1", "18DA01F1"]),
@@ -234,8 +312,6 @@ public struct OBDTerminalView: View {
         ("9", ["18DB33F1", "18DA10F1"]),
     ]
 
-    /// A response counts as a hit if an ECU said anything back — including a UDS
-    /// negative response (0x7F), which still proves the protocol/header reached a live ECU.
     private func isProbeHit(_ raw: String) -> Bool {
         let upper = raw.uppercased()
         let clean = upper.replacingOccurrences(of: ">", with: "")
@@ -267,19 +343,21 @@ public struct OBDTerminalView: View {
                 _ = await sendCommandAsync("AT SP \(entry.protocol)")
                 for header in entry.headers {
                     _ = await sendCommandAsync("AT SH \(header)")
-                    _ = await sendCommandAsync("AT CRA") // clear any receive filter so replies aren't dropped
+                    _ = await sendCommandAsync("AT CRA")
 
-                    let presentRaw = await sendCommandAsync("3E00") // UDS TesterPresent — single-frame liveness probe
+                    let presentRaw = await sendCommandAsync("3E00")
                     if isProbeHit(presentRaw) {
                         await MainActor.run {
                             probeResults.append("SP\(entry.protocol) \(header) 3E00: \(presentRaw.trimmingCharacters(in: .whitespacesAndNewlines))")
+                            manualLogs.append(OBDLogEntry(timestamp: Date(), sent: "SP\(entry.protocol) \(header) 3E00", response: presentRaw))
                         }
                     }
 
-                    let vinRaw = await sendCommandAsync("22F190") // UDS ReadDataByIdentifier(VIN)
+                    let vinRaw = await sendCommandAsync("22F190")
                     if isProbeHit(vinRaw) {
                         await MainActor.run {
                             probeResults.append("SP\(entry.protocol) \(header) 22F190: \(vinRaw.trimmingCharacters(in: .whitespacesAndNewlines))")
+                            manualLogs.append(OBDLogEntry(timestamp: Date(), sent: "SP\(entry.protocol) \(header) 22F190", response: vinRaw))
                         }
                     }
 
@@ -293,8 +371,6 @@ public struct OBDTerminalView: View {
                 }
             }
 
-            // Restore the adapter to the selected profile's own init sequence — the probe
-            // left AT SP/AT SH in whatever state the last matrix entry set.
             vehicleData.selectProfile(vehicleData.selectedProfileID)
 
             await MainActor.run {
@@ -303,28 +379,107 @@ public struct OBDTerminalView: View {
             }
         }
     }
-
-    private func exportText(_ log: [OBDLogEntry]) -> String {
-        log.map { entry in
-            "\(entry.timestamp.formatted(date: .omitted, time: .standard)) → \(entry.sent)\n\(entry.response)"
-        }.joined(separator: "\n---\n")
-    }
 }
 
-private struct ContentUnavailableCompat: View {
-    let message: String
+public struct AIAnalysisSheet: View {
+    public let logs: [OBDLogEntry]
+    public let vehicleContext: String
+    public let apiKey: String
 
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "antenna.radiowaves.left.and.right.slash")
-                .font(.system(size: 40))
-                .foregroundColor(Theme.textSecondary)
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(Theme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+    @State private var analysisResult: String?
+    @State private var errorMessage: String?
+    @State private var isLoading = false
+    @Environment(\.dismiss) private var dismiss
+
+    public var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if isLoading {
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Analyzing CAN bus responses with AI...")
+                                .font(.subheadline)
+                                .foregroundColor(Theme.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                    } else if let error = errorMessage {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Analysis Failed", systemImage: "exclamationmark.triangle.fill")
+                                .font(.headline)
+                                .foregroundColor(Theme.criticalRed)
+                            Text(error)
+                                .font(.subheadline)
+                                .foregroundColor(Theme.textSecondary)
+
+                            if apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Text("Tip: Go to Settings > Developer Tools and enter a Gemini or OpenAI API Key to enable in-app AI analysis.")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.electricCyan)
+                                    .padding(.top, 4)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
+                    } else if let result = analysisResult {
+                        Text(result)
+                            .font(.system(.body, design: .rounded))
+                            .textSelection(.enabled)
+                            .padding()
+                            .glassCard()
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("AI CAN Analysis")
+            .inlineTitleDisplayMode()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+                if let result = analysisResult {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button {
+                            #if canImport(UIKit)
+                            UIPasteboard.general.string = result
+                            #endif
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                    }
+                }
+            }
+            .task {
+                await runAnalysis()
+            }
         }
+    }
+
+    private func runAnalysis() async {
+        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = "No API Key configured. Please add an API Key under Settings > Developer Tools."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        analysisResult = nil
+
+        do {
+            let result = try await AILogAnalyzer.analyze(
+                log: logs,
+                vehicleContext: vehicleContext,
+                apiKey: apiKey
+            )
+            analysisResult = result
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
     }
 }
 
