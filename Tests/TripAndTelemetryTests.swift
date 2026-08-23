@@ -33,6 +33,23 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(trip.samples[1].powerKW, 22.0)
     }
 
+    func testRouteSamplesIgnoreInvalidCoordinatesAndRepeatedLocations() {
+        let trip = TripModel()
+        let later = Date.now
+        let earlier = later.addingTimeInterval(-10)
+        trip.samples = [
+            TelemetryPointModel(timestamp: later, latitude: 55.6761, longitude: 12.5683),
+            TelemetryPointModel(timestamp: earlier, latitude: 55.6759, longitude: 12.5681),
+            TelemetryPointModel(timestamp: later.addingTimeInterval(1), latitude: 55.6761, longitude: 12.5683),
+            TelemetryPointModel(timestamp: later.addingTimeInterval(2), latitude: 0, longitude: 0),
+            TelemetryPointModel(timestamp: later.addingTimeInterval(3), latitude: 91, longitude: 12.5683)
+        ]
+
+        XCTAssertEqual(trip.routeSamples.count, 2)
+        XCTAssertEqual(trip.routeSamples.first?.timestamp, earlier)
+        XCTAssertEqual(trip.routeSamples.last?.timestamp, later)
+    }
+
     func testToggleDemoModeOffClearsTelemetry() {
         let manager = VehicleDataManager()
         XCTAssertFalse(manager.isDemoMode)

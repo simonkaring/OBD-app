@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftData
+import CoreLocation
 
 public final class TripTrackingManager: ObservableObject {
     @Published public private(set) var currentTrip: TripModel?
@@ -19,6 +20,7 @@ public final class TripTrackingManager: ObservableObject {
     }
 
     @Published public private(set) var stationarySecondsRemaining: Int? = nil
+    @Published public private(set) var locationAuthorizationStatus: CLAuthorizationStatus = .notDetermined
 
     public var modelContext: ModelContext?
 
@@ -36,6 +38,19 @@ public final class TripTrackingManager: ObservableObject {
         let savedDelay = UserDefaults.standard.integer(forKey: "autoStopDelaySeconds")
         self.isAutoTripEnabled = savedAuto
         self.autoStopDelaySeconds = savedDelay > 0 ? savedDelay : 120
+        self.locationAuthorizationStatus = locationManager.authorizationStatus
+
+        locationManager.$authorizationStatus
+            .sink { [weak self] in self?.locationAuthorizationStatus = $0 }
+            .store(in: &cancellables)
+    }
+
+    public func requestLocationAuthorization() {
+        locationManager.requestAuthorization()
+    }
+
+    public func requestBackgroundLocationAuthorization() {
+        locationManager.requestAlwaysAuthorization()
     }
 
     public func startTrip(startSoc: Double = 80.0, vehicleName: String = "Mercedes EQA 250") {

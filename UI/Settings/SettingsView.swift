@@ -1,4 +1,8 @@
 import SwiftUI
+import CoreLocation
+#if os(iOS)
+import UIKit
+#endif
 
 public struct SettingsView: View {
     @ObservedObject public var vehicleData: VehicleDataManager
@@ -101,6 +105,48 @@ public struct SettingsView: View {
                             Text("10 minutes").tag(600)
                         }
                         .pickerStyle(.menu)
+                    }
+                }
+
+                Section("GPS Route Recording") {
+                    switch tripTracker.locationAuthorizationStatus {
+                    case .notDetermined:
+                        Button("Enable GPS Route Recording", systemImage: "location") {
+                            tripTracker.requestLocationAuthorization()
+                        }
+                        Text("Allow location while using VoltLink to save routes with your trips.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+
+                    #if os(iOS)
+                    case .authorizedWhenInUse:
+                        Label("GPS recording enabled while using VoltLink", systemImage: "location.fill")
+                            .foregroundStyle(Theme.regenGreen)
+                        Button("Allow Background Route Recording", systemImage: "location.circle") {
+                            tripTracker.requestBackgroundLocationAuthorization()
+                        }
+                        Text("Background access keeps an active route recording while the app is minimized or your phone is locked.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    #endif
+
+                    case .authorizedAlways:
+                        Label("GPS route recording enabled in the background", systemImage: "location.fill")
+                            .foregroundStyle(Theme.regenGreen)
+
+                    case .denied:
+                        Text("GPS route recording is disabled.")
+                            .foregroundStyle(Theme.textSecondary)
+                        #if os(iOS)
+                        Link("Open VoltLink Settings", destination: URL(string: UIApplication.openSettingsURLString)!)
+                        #endif
+
+                    case .restricted:
+                        Text("GPS route recording is restricted on this device.")
+                            .foregroundStyle(Theme.textSecondary)
+
+                    @unknown default:
+                        EmptyView()
                     }
                 }
 

@@ -20,6 +20,12 @@ public final class TelemetryPointModel {
         self.socPct = socPct
         self.batteryTempC = batteryTempC
     }
+
+    public var hasValidCoordinate: Bool {
+        (-90...90).contains(latitude) &&
+            (-180...180).contains(longitude) &&
+            !(latitude == 0 && longitude == 0)
+    }
 }
 
 @Model
@@ -62,5 +68,21 @@ public final class TripModel {
     public var efficiencyKWhPer100Km: Double {
         guard distanceKm > 0.1 else { return 0.0 }
         return (totalKWhUsed / distanceKm) * 100.0
+    }
+
+    public var routeSamples: [TelemetryPointModel] {
+        let sortedSamples = samples
+            .filter(\.hasValidCoordinate)
+            .sorted { $0.timestamp < $1.timestamp }
+
+        var previousLatitude: Double?
+        var previousLongitude: Double?
+        return sortedSamples.filter { sample in
+            defer {
+                previousLatitude = sample.latitude
+                previousLongitude = sample.longitude
+            }
+            return sample.latitude != previousLatitude || sample.longitude != previousLongitude
+        }
     }
 }

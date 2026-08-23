@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import MapKit
 
 public struct TripDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -28,6 +29,8 @@ public struct TripDetailView: View {
     }
 
     public var body: some View {
+        let routeSamples = trip.routeSamples
+
         ZStack {
             Theme.backgroundDark.ignoresSafeArea()
 
@@ -103,6 +106,55 @@ public struct TripDetailView: View {
                     .padding()
                     .glassCard()
                     .padding(.horizontal)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("DRIVEN ROUTE")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.textSecondary)
+                            .padding(.horizontal)
+
+                        if routeSamples.isEmpty {
+                            VStack(spacing: 8) {
+                                Image(systemName: "map")
+                                    .font(.system(size: 32))
+                                    .foregroundStyle(Theme.textSecondary)
+                                Text("No GPS Route Recorded")
+                                    .font(.headline)
+                                    .foregroundStyle(Theme.textPrimary)
+                                Text("Enable GPS Route Recording in Settings before starting a trip.")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .glassCard()
+                            .padding(.horizontal)
+                        } else {
+                            Map(initialPosition: .automatic) {
+                                if routeSamples.count > 1 {
+                                    MapPolyline(coordinates: routeSamples.map {
+                                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+                                    })
+                                    .stroke(Theme.electricCyan, lineWidth: 5)
+                                }
+
+                                if let start = routeSamples.first {
+                                    Marker("Trip start", systemImage: "flag.fill", coordinate: CLLocationCoordinate2D(latitude: start.latitude, longitude: start.longitude))
+                                }
+
+                                if let end = routeSamples.last, routeSamples.count > 1 {
+                                    Marker(trip.endTime == nil ? "Latest location" : "Trip end", systemImage: "mappin.circle.fill", coordinate: CLLocationCoordinate2D(latitude: end.latitude, longitude: end.longitude))
+                                    .tint(Theme.regenGreen)
+                                }
+                            }
+                            .mapStyle(.standard(elevation: .realistic))
+                            .frame(height: 240)
+                            .clipShape(.rect(cornerRadius: 16))
+                            .accessibilityLabel("Trip route with \(routeSamples.count) GPS points")
+                            .padding(.horizontal)
+                        }
+                    }
 
                     // Secondary Performance Grid
                     VStack(alignment: .leading, spacing: 12) {

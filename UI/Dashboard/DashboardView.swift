@@ -267,7 +267,6 @@ public struct DashboardView: View {
                 if telemetryHistory.count > 50 {
                     telemetryHistory.removeFirst()
                 }
-                tripTracker.processTelemetrySnapshot(snap, vehicleName: vehicleData.vehicleName)
             }
             #if os(iOS)
             .fullScreenCover(isPresented: $showHUDMode) {
