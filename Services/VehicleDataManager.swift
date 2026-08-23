@@ -10,6 +10,10 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     @Published public private(set) var selectedVehicle = VehicleCatalog.defaultModel
     @Published public private(set) var chargingSession = ChargingSessionState()
     @Published public var isDemoMode: Bool = false
+    @Published public private(set) var isCalibrating: Bool = false
+    @Published public private(set) var calibrationProgress: Double = 0.0
+    @Published public private(set) var calibratedCommands: [String]? = nil
+    @Published public private(set) var calibrationSummary: String? = nil
 
     public var obdConnection: OBDConnectionProtocol
     public let chargingTracker = ChargingSessionTracker()
@@ -70,6 +74,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public func selectProfile(_ id: VehicleProfileID) {
         selectedProfileID = id
         selectedProfile = id.makeProfile()
+        calibratedCommands = nil
+        calibrationSummary = nil
         pollingIndex = 0
         socHistory.removeAll()
         for cmd in selectedProfile.initializationCommands {
@@ -80,6 +86,101 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public func selectVehicle(_ vehicle: VehicleModelEntry) {
         selectedVehicle = vehicle
         selectProfile(vehicle.profileID)
+    }
+
+    public func startCalibration() {
+        guard !isCalibrating else { return }
+        let wasPolling = isPolling
+        stopPolling()
+        isCalibrating = true
+        calibrationProgress = 0.0
+        calibrationSummary = nil
+
+        let commandsToTest = selectedProfile.pollingCommands
+        guard !commandsToTest.isEmpty else {
+            isCalibrating = false
+            if wasPolling { startPolling() }
+            return
+        }
+
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            var verifiedCommands: [String] = []
+            let total = commandsToTest.count
+
+            for (index, cmd) in commandsToTest.enumerated() {
+                guard self.isCalibrating else { break }
+                let raw = await self.sendOBDCommandAsync(cmd)
+
+                if self.isSupportedResponse(command: cmd, rawResponse: raw) {
+                    verifiedCommands.append(cmd)
+                    if let update = self.selectedProfile.parseResponse(command: cmd, rawResponse: raw) {
+                        self.applyUpdate(update)
+                    }
+                }
+                self.calibrationProgress = Double(index + 1) / Double(total)
+            }
+
+            if !verifiedCommands.isEmpty {
+                self.calibratedCommands = verifiedCommands
+                let validMetricCount = verifiedCommands.filter { !$0.uppercased().hasPrefix("AT") }.count
+                let totalMetricCount = commandsToTest.filter { !$0.uppercased().hasPrefix("AT") }.count
+                self.calibrationSummary = "\(validMetricCount) of \(totalMetricCount) metrics active"
+            } else {
+                self.calibratedCommands = nil
+                self.calibrationSummary = "No metrics responded"
+            }
+            self.isCalibrating = false
+            if wasPolling || self.obdConnection.state.isConnected {
+                self.startPolling()
+            }
+        }
+    }
+
+    public func resetCalibration() {
+        calibratedCommands = nil
+        calibrationSummary = nil
+    }
+
+    private func sendOBDCommandAsync(_ command: String) async -> String {
+        await withCheckedContinuation { continuation in
+            self.obdConnection.sendCommand(command) { result in
+                switch result {
+                case .success(let raw):
+                    continuation.resume(returning: raw)
+                case .failure:
+                    continuation.resume(returning: "")
+                }
+            }
+        }
+    }
+
+    private func isSupportedResponse(command: String, rawResponse: String) -> Bool {
+        let clean = ISO15765Parser().cleanELMResponse(rawResponse)
+        if clean.isEmpty { return false }
+
+        let upper = clean.uppercased()
+        let negativeMarkers = ["NO DATA", "ERROR", "UNABLE TO CONNECT", "BUS INIT", "CAN ERROR", "?", "STOPPED"]
+        if negativeMarkers.contains(where: { upper.contains($0) }) {
+            return false
+        }
+
+        if command.uppercased().hasPrefix("AT") {
+            return true
+        }
+
+        if selectedProfile.parseResponse(command: command, rawResponse: rawResponse) != nil {
+            return true
+        }
+
+        let payload = ISO15765Parser().assembleISOTPPayload(rawResponse)
+        if !payload.isEmpty && !payload.hasPrefix("7F") {
+            if payload.hasPrefix("62") || payload.hasPrefix("41") {
+                return true
+            }
+        }
+
+        return false
     }
 
     public func startPolling() {
@@ -100,7 +201,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             scheduleNextPoll(generation: generation)
             return
         }
-        let cmds = selectedProfile.pollingCommands
+        let cmds = calibratedCommands ?? selectedProfile.pollingCommands
         guard !cmds.isEmpty else {
             scheduleNextPoll(generation: generation)
             return

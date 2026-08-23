@@ -64,7 +64,9 @@ final class ABRPProfileLoaderTests: XCTestCase {
         XCTAssertTrue(brands.contains("Mercedes-Benz"))
         XCTAssertTrue(brands.contains("Hyundai"))
         XCTAssertTrue(brands.contains("Volkswagen"))
+        XCTAssertTrue(brands.contains("Zeekr"))
         XCTAssertFalse(VehicleCatalog.allModels.contains { $0.batteryCapacityKWh == 0 })
         XCTAssertEqual(VehicleCatalog.allModels.first { $0.id == "mb-eqa-250" }?.batteryCapacityKWh, 66.5)
+        XCTAssertEqual(VehicleCatalog.allModels.first { $0.id == "zeekr-7x-100" }?.batteryCapacityKWh, 100.0)
     }
 }

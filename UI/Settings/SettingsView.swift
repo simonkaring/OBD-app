@@ -120,6 +120,56 @@ public struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+
+                    if vehicleData.isCalibrating {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Calibrating profile metrics...")
+                                    .font(.subheadline)
+                                    .foregroundColor(Theme.electricCyan)
+                                Spacer()
+                                Text("\(Int(vehicleData.calibrationProgress * 100))%")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                            ProgressView(value: vehicleData.calibrationProgress, total: 1.0)
+                                .tint(Theme.electricCyan)
+                        }
+                        .padding(.vertical, 4)
+                    } else {
+                        HStack {
+                            Button {
+                                vehicleData.startCalibration()
+                            } label: {
+                                Label(vehicleData.calibratedCommands == nil ? "Calibrate Live Metrics" : "Re-calibrate Metrics", systemImage: "slider.horizontal.3")
+                                    .foregroundColor(vehicleData.connectionState.isConnected ? Theme.electricCyan : .secondary)
+                            }
+                            .disabled(!vehicleData.connectionState.isConnected)
+
+                            Spacer()
+
+                            if let summary = vehicleData.calibrationSummary {
+                                Text(summary)
+                                    .font(.caption)
+                                    .foregroundColor(Theme.regenGreen)
+
+                                Button {
+                                    vehicleData.resetCalibration()
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(Theme.textSecondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        if !vehicleData.connectionState.isConnected {
+                            Text("Connect to your OBD adapter or enable Demo Mode to run metric calibration.")
+                                .font(.caption2)
+                                .foregroundColor(Theme.textSecondary)
+                        }
+                    }
                 }
 
                 Section("Bluetooth Adapter") {

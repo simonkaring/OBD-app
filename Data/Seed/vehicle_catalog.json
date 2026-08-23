@@ -1225,6 +1225,43 @@
       ]
     },
     {
+      "id": "zeekr",
+      "name": "Zeekr",
+      "iconSymbol": "z.square.fill",
+      "models": [
+        {
+          "id": "zeekr-001-100",
+          "brandName": "Zeekr",
+          "modelName": "001 Long Range",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 100.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "zeekr-x-69",
+          "brandName": "Zeekr",
+          "modelName": "X Long Range",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 69.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        },
+        {
+          "id": "zeekr-7x-100",
+          "brandName": "Zeekr",
+          "modelName": "7X Long Range",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 100.0,
+          "profileID": "genericOBD2",
+          "telemetrySupport": "generic"
+        }
+      ]
+    },
+    {
       "id": "generic",
       "name": "Generic OBD-II & Others",
       "iconSymbol": "wrench.and.screwdriver.fill",

@@ -97,6 +97,27 @@ public struct DashboardView: View {
                         }
                         .padding(.horizontal)
 
+                        if vehicleData.isCalibrating {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                    .scaleEffect(0.85)
+                                    .tint(Theme.electricCyan)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Calibrating live telemetry metrics (\(Int(vehicleData.calibrationProgress * 100))%)")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundColor(Theme.electricCyan)
+                                    Text("Verifying supported vehicle sensors...")
+                                        .font(.caption2)
+                                        .foregroundColor(Theme.textSecondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(10)
+                            .background(Theme.cardBackground)
+                            .cornerRadius(10)
+                            .padding(.horizontal)
+                        }
+
                         if isEditMode {
                             HStack {
                                 Text("Edit Dashboard")
