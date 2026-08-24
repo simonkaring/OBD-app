@@ -89,26 +89,26 @@ struct MainTabView: View {
             .tag(0)
 
             withBannerInset {
-                DiagnosticsView(dtcService: dtcService, vehicleData: vehicleData)
-            }
-            .tabItem {
-                Label("Diagnostics", systemImage: "stethoscope")
-            }
-            .tag(1)
-
-            withBannerInset {
                 TripHistoryView(tripTracker: tripTracker)
             }
             .tabItem {
                 Label("Trips", systemImage: "road.lanes")
             }
-            .tag(2)
+            .tag(1)
 
             withBannerInset {
                 ChargingLiveView(vehicleData: vehicleData)
             }
             .tabItem {
                 Label("Charging", systemImage: "bolt.batteryblock")
+            }
+            .tag(2)
+
+            withBannerInset {
+                DiagnosticsView(dtcService: dtcService, vehicleData: vehicleData)
+            }
+            .tabItem {
+                Label("Diagnostics", systemImage: "stethoscope")
             }
             .tag(3)
 
@@ -130,4 +130,3 @@ struct MainTabView: View {
         }
     }
 }
-

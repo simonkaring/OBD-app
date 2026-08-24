@@ -40,7 +40,7 @@ public struct LiveTelemetryChartView: View {
 
             Chart {
                 ForEach(Array(seriesMetrics.enumerated()), id: \.offset) { seriesIndex, metric in
-                    ForEach(telemetryHistory.suffix(30)) { item in
+                    ForEach(telemetryHistory.suffix(30), id: \.timestamp) { item in
                         let value = metric.value(in: item)
                         let seriesColor = color(for: metric, value: value, seriesIndex: seriesIndex)
 

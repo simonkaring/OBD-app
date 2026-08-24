@@ -72,6 +72,11 @@ public struct VehicleBrand: Identifiable, Hashable, Codable, Sendable {
     public let name: String
     public let iconSymbol: String
     public let models: [VehicleModelEntry]
+
+    /// Asset image name corresponding to CarBrands in Assets.xcassets
+    public var assetImageName: String {
+        "CarBrands/\(id.replacingOccurrences(of: "_", with: "-"))"
+    }
 }
 
 private struct VehicleCatalogContainer: Codable {

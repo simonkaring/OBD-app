@@ -17,6 +17,15 @@ final class TripAndTelemetryTests: XCTestCase {
         withExtendedLifetime(cancellable) {}
     }
 
+    func testSimulationStepsAdvanceTelemetryTimestamp() {
+        let simulation = MockDrivingSimulation()
+        let initialTimestamp = simulation.telemetry.timestamp
+
+        simulation.stepSimulation()
+
+        XCTAssertGreaterThan(simulation.telemetry.timestamp, initialTimestamp)
+    }
+
     func testTripModelSampleAccumulationAndEfficiency() {
         let trip = TripModel(startTime: Date(), distanceKm: 10.0, startSocPct: 90.0, vehicleName: "Mercedes EQA 250")
         trip.endSocPct = 85.0

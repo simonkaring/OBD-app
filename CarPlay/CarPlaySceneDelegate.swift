@@ -18,6 +18,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
 
         AppEnvironment.shared.vehicleData.$latestTelemetry
             .receive(on: DispatchQueue.main)
+            .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in self?.rebuildInterface() }
             .store(in: &cancellables)
     }

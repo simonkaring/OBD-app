@@ -50,6 +50,7 @@ public final class MockDrivingSimulation: ObservableObject {
     func stepSimulation() {
         simulationStep += 0.2
         var nextTelemetry = telemetry
+        nextTelemetry.timestamp = .now
 
         switch scenario {
         case .cityDriving:

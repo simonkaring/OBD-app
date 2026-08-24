@@ -168,10 +168,24 @@ public struct VehicleProfilePickerSheet: View {
                                     }
                                 } label: {
                                     HStack(spacing: 14) {
+                                        #if canImport(UIKit)
+                                        if let uiImage = UIImage(named: brand.assetImageName) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 32, height: 32)
+                                        } else {
+                                            Image(systemName: brand.iconSymbol)
+                                                .font(.system(size: 22))
+                                                .foregroundColor(Theme.electricCyan)
+                                                .frame(width: 32, height: 32)
+                                        }
+                                        #else
                                         Image(systemName: brand.iconSymbol)
                                             .font(.system(size: 22))
                                             .foregroundColor(Theme.electricCyan)
-                                            .frame(width: 32)
+                                            .frame(width: 32, height: 32)
+                                        #endif
 
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(brand.name)
