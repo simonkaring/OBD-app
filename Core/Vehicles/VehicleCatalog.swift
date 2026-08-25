@@ -117,40 +117,44 @@ public struct VehicleCatalog {
            let data = try? Data(contentsOf: url),
            let container = try? JSONDecoder().decode(VehicleCatalogContainer.self, from: data) {
             let brands = container.brands.compactMap { brand -> VehicleBrand? in
-                let models = brand.models.filter {
-                    $0.batteryCapacityKWh > 0 &&
-                    ($0.profileID != .mercedesEQA250 || $0.id == defaultModel.id)
-                }
+                let models = brand.models
+                    .filter {
+                        $0.batteryCapacityKWh > 0 &&
+                        ($0.profileID != .mercedesEQA250 || $0.id == defaultModel.id)
+                    }
+                    .sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
                 guard !models.isEmpty else { return nil }
                 return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: models)
             }
 
             if !brands.isEmpty {
-                return brands.map { brand in
+                let mapped = brands.map { brand -> VehicleBrand in
                     guard brand.name == defaultModel.brandName,
                           !brand.models.contains(where: { $0.id == defaultModel.id }) else { return brand }
-                    return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: [defaultModel] + brand.models)
+                    let updatedModels = ([defaultModel] + brand.models).sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
+                    return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: updatedModels)
                 }
+                return mapped.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             }
         }
 
         // Fallback minimal default
         return [
             VehicleBrand(
-                id: "mercedes",
-                name: "Mercedes-Benz",
-                iconSymbol: "star.circle.fill",
-                models: [defaultModel]
-            ),
-            VehicleBrand(
                 id: "generic",
                 name: "Generic OBD-II & Others",
                 iconSymbol: "wrench.and.screwdriver.fill",
                 models: [
-                    VehicleModelEntry(id: "generic-sae-j1979", brandName: "Generic", modelName: "Standard SAE J1979 (Gas / Hybrid)", years: "1996+", powertrain: .ice, batteryCapacityKWh: 0.0, profileID: .genericOBD2),
-                    VehicleModelEntry(id: "generic-ev-can", brandName: "Generic", modelName: "Standard EV CAN Bus Profile", years: "2015+", powertrain: .ev, batteryCapacityKWh: 60.0, profileID: .genericOBD2)
+                    VehicleModelEntry(id: "generic-ev-can", brandName: "Generic", modelName: "Standard EV CAN Bus Profile", years: "2015+", powertrain: .ev, batteryCapacityKWh: 60.0, profileID: .genericOBD2),
+                    VehicleModelEntry(id: "generic-sae-j1979", brandName: "Generic", modelName: "Standard SAE J1979 (Gas / Hybrid)", years: "1996+", powertrain: .ice, batteryCapacityKWh: 0.0, profileID: .genericOBD2)
                 ]
+            ),
+            VehicleBrand(
+                id: "mercedes",
+                name: "Mercedes-Benz",
+                iconSymbol: "star.circle.fill",
+                models: [defaultModel]
             )
-        ]
+        ].sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }

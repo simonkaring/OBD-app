@@ -4,233 +4,168 @@ public struct VehicleProfilePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject public var vehicleData: VehicleDataManager
 
-    @State private var selectedBrand: VehicleBrand? = nil
     @State private var brandSearchText: String = ""
-    @State private var modelSearchText: String = ""
 
     public init(vehicleData: VehicleDataManager) {
         self.vehicleData = vehicleData
     }
 
     private var filteredBrands: [VehicleBrand] {
+        let brands = VehicleCatalog.brands.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         if brandSearchText.isEmpty {
-            return VehicleCatalog.brands
+            return brands
         } else {
-            return VehicleCatalog.brands.filter { brand in
+            return brands.filter { brand in
                 brand.name.localizedCaseInsensitiveContains(brandSearchText) ||
                 brand.models.contains { $0.modelName.localizedCaseInsensitiveContains(brandSearchText) }
             }
         }
     }
 
+    public var body: some View {
+        NavigationStack {
+            List(filteredBrands) { brand in
+                NavigationLink {
+                    VehicleModelPickerView(
+                        brand: brand,
+                        vehicleData: vehicleData,
+                        onSelect: {
+                            dismiss()
+                        }
+                    )
+                } label: {
+                    BrandRow(brand: brand)
+                }
+            }
+            .navigationTitle("Select Brand")
+            .inlineTitleDisplayMode()
+            .searchable(text: $brandSearchText, prompt: "Search brands")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct BrandRow: View {
+    let brand: VehicleBrand
+
+    var body: some View {
+        HStack(spacing: 14) {
+            #if canImport(UIKit)
+            if let uiImage = UIImage(named: brand.assetImageName) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+            } else {
+                Image(systemName: brand.iconSymbol)
+                    .font(.system(size: 22))
+                    .foregroundColor(.secondary)
+                    .frame(width: 32, height: 32)
+            }
+            #else
+            Image(systemName: brand.iconSymbol)
+                .font(.system(size: 22))
+                .foregroundColor(.secondary)
+                .frame(width: 32, height: 32)
+            #endif
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(brand.name)
+                    .font(.body)
+                    .foregroundColor(.primary)
+
+                Text("\(brand.models.count) \(brand.models.count == 1 ? "model" : "models")")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct VehicleModelPickerView: View {
+    let brand: VehicleBrand
+    @ObservedObject var vehicleData: VehicleDataManager
+    let onSelect: () -> Void
+
+    @State private var modelSearchText: String = ""
+
     private var filteredModels: [VehicleModelEntry] {
-        let list = selectedBrand?.models ?? VehicleCatalog.allModels
+        let models = brand.models.sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
         if modelSearchText.isEmpty {
-            return list
+            return models
         } else {
-            return list.filter {
+            return models.filter {
                 $0.modelName.localizedCaseInsensitiveContains(modelSearchText) ||
                 $0.brandName.localizedCaseInsensitiveContains(modelSearchText)
             }
         }
     }
 
-    public var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.backgroundDark.ignoresSafeArea()
+    var body: some View {
+        List(filteredModels) { model in
+            Button {
+                vehicleData.selectVehicle(model)
+                onSelect()
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(model.modelName)
+                                .font(.headline)
+                                .foregroundColor(.primary)
 
-                VStack(spacing: 0) {
-                    if let brand = selectedBrand {
-                        // Model Selection Screen
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Button {
-                                    withAnimation {
-                                        selectedBrand = nil
-                                        modelSearchText = ""
-                                    }
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "chevron.left")
-                                        Text("Brands")
-                                    }
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(Theme.electricCyan)
-                                }
-                                Spacer()
-                                Text(brand.name)
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                                    .foregroundColor(Theme.textPrimary)
-                            }
-                            .padding(.horizontal)
-                            .padding(.top, 12)
+                            Spacer()
 
-                            // Search bar for models
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(Theme.textSecondary)
-                                TextField("Search \(brand.name) models...", text: $modelSearchText)
-                                    .foregroundColor(Theme.textPrimary)
-                                if !modelSearchText.isEmpty {
-                                    Button {
-                                        modelSearchText = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Theme.textSecondary)
-                                    }
-                                }
-                            }
-                            .padding(10)
-                            .background(Color.white.opacity(0.08))
-                            .cornerRadius(10)
-                            .padding(.horizontal)
-
-                            List(filteredModels) { model in
-                                Button {
-                                    vehicleData.selectVehicle(model)
-                                    dismiss()
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: model.powertrain.badgeIcon)
-                                            .font(.system(size: 20))
-                                            .foregroundColor(model.powertrain == .ev ? Theme.electricCyan : (model.powertrain == .phev ? Theme.regenGreen : Theme.highPowerAmber))
-                                            .frame(width: 32)
-
-                                        VStack(alignment: .leading, spacing: 3) {
-                                            Text(model.modelName)
-                                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                                .foregroundColor(Theme.textPrimary)
-
-                                            HStack(spacing: 8) {
-                                                Text(model.years)
-                                                    .font(.caption)
-                                                    .foregroundColor(Theme.textSecondary)
-
-                                                if model.batteryCapacityKWh > 0 {
-                                                    Text("•")
-                                                        .font(.caption)
-                                                        .foregroundColor(Theme.textSecondary)
-                                                    Text(String(format: "%.1f kWh", model.batteryCapacityKWh))
-                                                        .font(.caption)
-                                                        .foregroundColor(Theme.electricCyan)
-                                                }
-                                            }
-
-                                            Text(model.telemetrySupport.displayName)
-                                                .font(.caption2)
-                                                .foregroundColor(model.telemetrySupport == .generic ? Theme.textSecondary : Theme.regenGreen)
-                                        }
-
-                                        Spacer()
-
-                                        Text(model.powertrain.rawValue)
-                                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 3)
-                                            .background(Color.white.opacity(0.1))
-                                            .foregroundColor(Theme.textSecondary)
-                                            .cornerRadius(4)
-                                    }
-                                }
-                                .listRowBackground(Theme.cardBackground)
-                            }
-                            .listStyle(.plain)
+                            Text(model.powertrain.rawValue)
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.secondary.opacity(0.12))
+                                .foregroundColor(.secondary)
+                                .clipShape(Capsule())
                         }
-                    } else {
-                        // Brand Selection Screen
-                        VStack(alignment: .leading, spacing: 12) {
-                            // Search bar for brands
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(Theme.textSecondary)
-                                TextField("Search vehicle brand or make...", text: $brandSearchText)
-                                    .foregroundColor(Theme.textPrimary)
-                                if !brandSearchText.isEmpty {
-                                    Button {
-                                        brandSearchText = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Theme.textSecondary)
-                                    }
-                                }
+
+                        HStack(spacing: 6) {
+                            Text(model.years)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            if model.batteryCapacityKWh > 0 {
+                                Text("•")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Text(String(format: "%.1f kWh", model.batteryCapacityKWh))
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
-                            .padding(10)
-                            .background(Color.white.opacity(0.08))
-                            .cornerRadius(10)
-                            .padding(.horizontal)
-                            .padding(.top, 12)
-
-                            List(filteredBrands) { brand in
-                                Button {
-                                    withAnimation {
-                                        selectedBrand = brand
-                                    }
-                                } label: {
-                                    HStack(spacing: 14) {
-                                        #if canImport(UIKit)
-                                        if let uiImage = UIImage(named: brand.assetImageName) {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 32, height: 32)
-                                        } else {
-                                            Image(systemName: brand.iconSymbol)
-                                                .font(.system(size: 22))
-                                                .foregroundColor(Theme.electricCyan)
-                                                .frame(width: 32, height: 32)
-                                        }
-                                        #else
-                                        Image(systemName: brand.iconSymbol)
-                                            .font(.system(size: 22))
-                                            .foregroundColor(Theme.electricCyan)
-                                            .frame(width: 32, height: 32)
-                                        #endif
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(brand.name)
-                                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                                .foregroundColor(Theme.textPrimary)
-
-                                            Text("\(brand.models.count) models available")
-                                                .font(.caption)
-                                                .foregroundColor(Theme.textSecondary)
-                                        }
-
-                                        Spacer()
-
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(Theme.textSecondary)
-                                    }
-                                }
-                                .listRowBackground(Theme.cardBackground)
-                            }
-                            .listStyle(.plain)
                         }
+
+                        Text(model.telemetrySupport.displayName)
+                            .font(.caption)
+                            .foregroundColor(model.telemetrySupport == .verified ? .green : .secondary)
+                    }
+
+                    if vehicleData.selectedVehicle.id == model.id {
+                        Spacer()
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.accentColor)
                     }
                 }
-            }
-            .navigationTitle(selectedBrand == nil ? "Select Brand" : "Select Model")
-            .inlineTitleDisplayMode()
-            .toolbar {
-                #if os(iOS)
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(Theme.electricCyan)
-                }
-                #else
-                ToolbarItem(placement: .automatic) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(Theme.electricCyan)
-                }
-                #endif
+                .padding(.vertical, 4)
             }
         }
+        .navigationTitle(brand.name)
+        .inlineTitleDisplayMode()
+        .searchable(text: $modelSearchText, prompt: "Search \(brand.name) models")
     }
 }
 

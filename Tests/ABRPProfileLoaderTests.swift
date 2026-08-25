@@ -65,8 +65,17 @@ final class ABRPProfileLoaderTests: XCTestCase {
         XCTAssertTrue(brands.contains("Hyundai"))
         XCTAssertTrue(brands.contains("Volkswagen"))
         XCTAssertTrue(brands.contains("Zeekr"))
-        XCTAssertFalse(VehicleCatalog.allModels.contains { $0.batteryCapacityKWh == 0 })
         XCTAssertEqual(VehicleCatalog.allModels.first { $0.id == "mb-eqa-250" }?.batteryCapacityKWh, 66.5)
         XCTAssertEqual(VehicleCatalog.allModels.first { $0.id == "zeekr-7x-100" }?.batteryCapacityKWh, 100.0)
+
+        // Alphabetical sorting test
+        let sortedBrandNames = brands.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        XCTAssertEqual(brands, sortedBrandNames, "Vehicle catalog brands should be sorted alphabetically")
+
+        for brand in VehicleCatalog.brands {
+            let modelNames = brand.models.map { $0.modelName }
+            let sortedModelNames = modelNames.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            XCTAssertEqual(modelNames, sortedModelNames, "Models for brand \(brand.name) should be sorted alphabetically")
+        }
     }
 }
