@@ -161,4 +161,66 @@ final class OBDParserTests: XCTestCase {
         let codes = scanner.parseDTCResponse(raw, serviceByte: 0x47)
         XCTAssertEqual(codes.map(\.code), ["P0A80"])
     }
+
+    // MARK: - ABRP community profiles
+
+    /// Pack current must be emitted standalone so the manager multiplies it by the
+    /// real measured pack voltage, not a hardcoded 400 V nominal.
+    func testABRPCurrentUsesMeasuredVoltageNotNominal() throws {
+        let machE = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "ford_MachE.json"))
+        // ((signed(A)*256)+B)*0.1 over FF 9C = -10.0 A
+        let update = machE.parseResponse(command: "2248F9", rawResponse: "7E8 04 62 48 F9 FF 9C\r\n>")
+        guard case .packCurrent(let amps)? = update else {
+            return XCTFail("expected .packCurrent, got \(String(describing: update))")
+        }
+        XCTAssertEqual(amps, -10.0, accuracy: 0.01)
+    }
+
+    /// `supportedMetrics` advertised SOH but `parseResponse` never emitted it.
+    func testABRPEmitsStateOfHealth() throws {
+        let machE = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "ford_MachE.json"))
+        let update = machE.parseResponse(command: "22490C", rawResponse: "7E8 03 62 49 0C C8\r\n>")
+        guard case .soh(let pct)? = update else {
+            return XCTFail("expected .soh, got \(String(describing: update))")
+        }
+        XCTAssertEqual(pct, 100.0, accuracy: 0.01)
+    }
+
+    /// `INT16(A:B)*0.1` is not valid NSExpression syntax — it must be rejected, not
+    /// handed to `NSExpression(format:)` where it raises an uncatchable ObjC exception.
+    func testABRPRejectsNonArithmeticEquationInsteadOfCrashing() throws {
+        let mini = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "Mini_MiniCooperSE.json"))
+        XCTAssertNil(mini.parseResponse(command: "22DDBC", rawResponse: "607 04 62 DD BC 02 EE\r\n>"))
+    }
+
+    /// Substring matching cross-assigned metrics between DIDs sharing a prefix.
+    func testABRPDoesNotCrossAssignMetricsBetweenSimilarDIDs() throws {
+        let machE = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "ford_MachE.json"))
+        // 2248F9 is current; 224845 is SOC. Neither response may decode as the other.
+        if case .soc? = machE.parseResponse(command: "2248F9", rawResponse: "7E8 04 62 48 F9 FF 9C\r\n>") {
+            XCTFail("current response decoded as SOC")
+        }
+        guard case .soc(let pct)? = machE.parseResponse(command: "224845", rawResponse: "7E8 03 62 48 45 64\r\n>") else {
+            return XCTFail("224845 should decode as SOC")
+        }
+        XCTAssertEqual(pct, 50.0, accuracy: 0.01)
+    }
+
+    /// Every profile the catalog points at must resolve, and the zero-capacity
+    /// sanity filter must not swallow the ICE entry.
+    func testCatalogProfilesAllResolve() {
+        let models = VehicleCatalog.allModels
+        XCTAssertFalse(models.isEmpty)
+        for model in models {
+            let profile = model.profileID.makeProfile()
+            XCTAssertFalse(profile.pollingCommands.isEmpty, "\(model.fullName) has no polling commands")
+            if model.telemetrySupport != .generic {
+                // A missing/undecodable ABRP JSON silently falls back to the generic
+                // profile, which would leave the car advertising telemetry it can't read.
+                XCTAssertNotEqual(profile.vehicleName, GenericEVProfile().vehicleName,
+                                  "\(model.fullName) claims \(model.telemetrySupport) support but fell back to the generic profile")
+            }
+        }
+        XCTAssertTrue(models.contains { $0.powertrain == .ice }, "ICE entry was filtered out by the capacity check")
+    }
 }

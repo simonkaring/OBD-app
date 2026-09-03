@@ -12,6 +12,7 @@ telemetry app. It supports the Mercedes-Benz EQA 250 (2021), Vgate iCar Pro
 swift test
 xcodebuild -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhone 17'
 open VoltLink.xcodeproj
+./scratch/repack_ipa.sh   # archive & package build/VoltLink.ipa
 ```
 
 Run `swift test` after changing PID decoders, ISO-TP parsing, or SwiftData

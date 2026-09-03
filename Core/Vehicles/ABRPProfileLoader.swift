@@ -107,7 +107,9 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
     public var supportedMetrics: Set<TelemetryMetric> {
         var set: Set<TelemetryMetric> = []
         if definition.soc != nil { set.insert(.soc) }
-        if definition.voltage != nil || definition.current != nil { set.insert(.power); set.insert(.packVoltage) }
+        if definition.voltage != nil { set.insert(.packVoltage) }
+        if definition.current != nil { set.insert(.packCurrent) }
+        if definition.voltage != nil && definition.current != nil { set.insert(.power) }
         if definition.soh != nil { set.insert(.soh) }
         if definition.battTemp != nil { set.insert(.batteryTemp) }
         if definition.speed != nil { set.insert(.speed) }
@@ -138,7 +140,16 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         // Check if command matches Current
         if let currDef = definition.current, matchesCommand(currDef.command, currentCommand: command) {
             if let a = evaluate(equation: currDef.equation, bytes: bytes) {
-                return .power(voltage: 400.0, current: a, powerKW: (400.0 * a) / 1_000.0)
+                // Emit standalone current; the manager multiplies it by the last
+                // parsed pack voltage rather than a fabricated nominal one.
+                return .packCurrent(a)
+            }
+        }
+
+        // Check if command matches State of Health
+        if let sohDef = definition.soh, matchesCommand(sohDef.command, currentCommand: command) {
+            if let v = evaluate(equation: sohDef.equation, bytes: bytes) {
+                return .soh(min(100.0, max(0.0, v)))
             }
         }
 
@@ -159,11 +170,12 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         return nil
     }
 
+    /// Exact match only — substring matching cross-assigns metrics on profiles
+    /// whose DIDs share a prefix (e.g. `2248F9` / `224845` / `22480D` on the Mach-E).
     private func matchesCommand(_ target: String?, currentCommand: String) -> Bool {
-        guard let target = target, !target.isEmpty else { return true }
-        let cleanTarget = target.replacingOccurrences(of: " ", with: "").uppercased()
-        let cleanCurrent = currentCommand.replacingOccurrences(of: " ", with: "").uppercased()
-        return cleanTarget == cleanCurrent || cleanCurrent.contains(cleanTarget) || cleanTarget.contains(cleanCurrent)
+        guard let target = target, !target.isEmpty else { return false }
+        return target.replacingOccurrences(of: " ", with: "").uppercased()
+            == currentCommand.replacingOccurrences(of: " ", with: "").uppercased()
     }
 
     private func extractBytes(from hex: String, command: String) -> [UInt8] {
@@ -210,16 +222,14 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
             }
         }
 
-        // Replace signed(X) with signed integer value
-        let signedRegex = try? NSRegularExpression(pattern: "(?i)signed\\(([a-z]+)\\)")
-        if let match = signedRegex?.firstMatch(in: expr, range: NSRange(expr.startIndex..., in: expr)) {
-            if let charRange = Range(match.range(at: 1), in: expr) {
-                let charName = String(expr[charRange])
-                let idx = byteIndex(for: charName.first ?? "A")
-                if idx < bytes.count {
-                    let signedVal = Double(Int8(bitPattern: bytes[idx]))
-                    expr = (expr as NSString).replacingCharacters(in: match.range, with: "\(signedVal)")
-                }
+        // Replace every signed(X) with its signed integer value
+        if let signedRegex = try? NSRegularExpression(pattern: "(?i)signed\\(([a-z]+)\\)") {
+            while let match = signedRegex.firstMatch(in: expr, range: NSRange(expr.startIndex..., in: expr)),
+                  let charRange = Range(match.range(at: 1), in: expr) {
+                let idx = byteIndex(for: String(expr[charRange]).first ?? "A")
+                guard idx < bytes.count else { return nil }
+                let signedVal = Double(Int8(bitPattern: bytes[idx]))
+                expr = (expr as NSString).replacingCharacters(in: match.range, with: "(\(signedVal))")
             }
         }
 
@@ -238,6 +248,14 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
 
         // Evaluate mathematical expression using NSExpression
         let cleanExpr = expr.replacingOccurrences(of: "--", with: "+")
+
+        // ponytail: NSExpression(format:) raises an *uncatchable* ObjC exception on
+        // anything that isn't a well-formed expression — e.g. Mini's "INT16(A:B)*0.1",
+        // or multi-letter byte tokens (ER, FJ, ay) the A..Z substitution above skips.
+        // Reject non-arithmetic input here rather than crash the app mid-drive.
+        // Upgrade path: a real tokenizer if the ABRP grammar grows past byte math.
+        guard cleanExpr.range(of: "^[0-9.+*/() -]+$", options: .regularExpression) != nil else { return nil }
+
         let nsExpr = NSExpression(format: cleanExpr)
         if let result = nsExpr.expressionValue(with: nil, context: nil) as? NSNumber {
             return result.doubleValue

@@ -119,7 +119,9 @@ public struct VehicleCatalog {
             let brands = container.brands.compactMap { brand -> VehicleBrand? in
                 let models = brand.models
                     .filter {
-                        $0.batteryCapacityKWh > 0 &&
+                        // A zero pack size means a bad dataset row for a BEV/PHEV, but is
+                        // correct for an ICE entry — don't let the sanity check eat those.
+                        ($0.batteryCapacityKWh > 0 || $0.powertrain == .ice) &&
                         ($0.profileID != .mercedesEQA250 || $0.id == defaultModel.id)
                     }
                     .sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }

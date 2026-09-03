@@ -12,6 +12,7 @@ VoltLink — a native Swift iOS + CarPlay app for OBD-II diagnostics and live EV
 swift test                                                                       # run unit tests (SPM target VoltLinkEngine)
 xcodebuild -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhone 17' # build the iOS app
 open VoltLink.xcodeproj                                                          # open in Xcode (Cmd+R to run; CarPlay via Simulator I/O > External Displays > CarPlay)
+./scratch/repack_ipa.sh                                                          # archive & package build/VoltLink.ipa
 ```
 
 Always run `swift test` after touching PID decoders, ISO-TP frame parsing, or SwiftData models.
