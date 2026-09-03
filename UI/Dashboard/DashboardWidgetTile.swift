@@ -6,14 +6,18 @@ public struct DashboardWidgetTile: View {
     public var config: DashboardWidgetConfig
     public var snapshot: TelemetrySnapshot
     public var profile: VehicleProfile
+    public var supportedMetrics: Set<TelemetryMetric>
+    public var liveMetrics: Set<TelemetryMetric>
     public var telemetryHistory: [TelemetrySnapshot]
     public var isConnected: Bool = true
     public var isDemoMode: Bool = false
 
-    public init(config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, telemetryHistory: [TelemetrySnapshot], isConnected: Bool = true, isDemoMode: Bool = false) {
+    public init(config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, telemetryHistory: [TelemetrySnapshot], isConnected: Bool = true, isDemoMode: Bool = false) {
         self.config = config
         self.snapshot = snapshot
         self.profile = profile
+        self.supportedMetrics = supportedMetrics
+        self.liveMetrics = liveMetrics
         self.telemetryHistory = telemetryHistory
         self.isConnected = isConnected
         self.isDemoMode = isDemoMode
@@ -24,14 +28,14 @@ public struct DashboardWidgetTile: View {
         case .metric(let metric):
             metricTile(metric)
         case .chart(let series):
-            LiveTelemetryChartView(telemetryHistory: telemetryHistory, seriesMetrics: series)
+            LiveTelemetryChartView(telemetryHistory: telemetryHistory, seriesMetrics: series, liveMetrics: liveMetrics, isDemoMode: isDemoMode)
         }
     }
 
     @ViewBuilder
     private func metricTile(_ metric: TelemetryMetric) -> some View {
-        let isSupported = isDemoMode || profile.supportedMetrics.contains(metric)
-        let isAvailable = isDemoMode || (isSupported && isConnected)
+        let isSupported = isDemoMode || supportedMetrics.contains(metric)
+        let isAvailable = isDemoMode || (isSupported && isConnected && liveMetrics.contains(metric))
         let value = metric.value(in: snapshot)
         let range = metric.defaultRange
         let dialMode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional

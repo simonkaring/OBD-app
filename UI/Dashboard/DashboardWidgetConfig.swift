@@ -119,7 +119,7 @@ extension DashboardLayout {
         DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.soc), style: .dial, size: .large),
-        DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.packVoltage), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .metric(.batteryTemp), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large)
     ])

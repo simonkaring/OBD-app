@@ -10,6 +10,16 @@ final class DashboardLayoutTests: XCTestCase {
         XCTAssertEqual(decoded, layout)
     }
 
+    func testDefaultLayoutUsesPackVoltageInsteadOfAuxiliary12V() {
+        let metrics = DashboardLayout.default.widgets.compactMap { config -> TelemetryMetric? in
+            guard case .metric(let metric) = config.kind else { return nil }
+            return metric
+        }
+
+        XCTAssertTrue(metrics.contains(.packVoltage))
+        XCTAssertFalse(metrics.contains(.aux12V))
+    }
+
     func testChartWidgetRoundTrip() {
         let fixedID = UUID()
         let layout = DashboardLayout(widgets: [

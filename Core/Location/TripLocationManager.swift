@@ -28,7 +28,8 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
 
     private let locationManager = CLLocationManager()
     private var previousLocation: CLLocation?
-    private var trackingRequested = false
+    private var tripTrackingRequested = false
+    private var speedMonitoringRequested = false
 
     private static let maximumLocationAge: TimeInterval = 15
     private static let maximumHorizontalAccuracyMeters: CLLocationAccuracy = 100
@@ -58,28 +59,29 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
         authorizationStatus = manager.authorizationStatus
         updateBackgroundLocationSettings()
 
-        if trackingRequested, isAuthorized, !isTracking {
-            isTracking = true
-            locationManager.startUpdatingLocation()
-        } else if !isAuthorized {
-            isTracking = false
-            locationManager.stopUpdatingLocation()
-        }
+        refreshLocationUpdates()
     }
 
     public func startTracking() {
         totalDistanceMeters = 0.0
         previousLocation = nil
-        trackingRequested = true
-        guard isAuthorized else { return }
-        isTracking = true
-        locationManager.startUpdatingLocation()
+        tripTrackingRequested = true
+        refreshLocationUpdates()
     }
 
     public func stopTracking() {
-        trackingRequested = false
-        isTracking = false
-        locationManager.stopUpdatingLocation()
+        tripTrackingRequested = false
+        refreshLocationUpdates()
+    }
+
+    public func startSpeedMonitoring() {
+        speedMonitoringRequested = true
+        refreshLocationUpdates()
+    }
+
+    public func stopSpeedMonitoring() {
+        speedMonitoringRequested = false
+        refreshLocationUpdates()
     }
 
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -87,7 +89,7 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
         currentLocation = location
         currentSpeedKmH = max(0, location.speed * 3.6)
 
-        if isTracking {
+        if tripTrackingRequested {
             if let prev = previousLocation {
                 let delta = location.distance(from: prev)
                 if delta < Self.maximumDistanceJumpMeters {
@@ -114,9 +116,20 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
 
     private func updateBackgroundLocationSettings() {
         #if os(iOS)
-        let hasAlways = authorizationStatus == .authorizedAlways
-        locationManager.allowsBackgroundLocationUpdates = hasAlways
-        locationManager.showsBackgroundLocationIndicator = hasAlways
+        let allowsBackground = authorizationStatus == .authorizedAlways && tripTrackingRequested
+        locationManager.allowsBackgroundLocationUpdates = allowsBackground
+        locationManager.showsBackgroundLocationIndicator = allowsBackground
         #endif
+    }
+
+    private func refreshLocationUpdates() {
+        let shouldTrack = isAuthorized && (tripTrackingRequested || speedMonitoringRequested)
+        isTracking = shouldTrack
+        updateBackgroundLocationSettings()
+        if shouldTrack {
+            locationManager.startUpdatingLocation()
+        } else {
+            locationManager.stopUpdatingLocation()
+        }
     }
 }

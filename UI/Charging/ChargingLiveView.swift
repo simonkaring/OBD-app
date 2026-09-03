@@ -16,11 +16,11 @@ public struct ChargingLiveView: View {
     }
 
     private var hasSOC: Bool {
-        vehicleData.isDemoMode || vehicleData.latestTelemetry.socUpdatedAt != nil
+        vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc)
     }
 
     private var hasChargePower: Bool {
-        vehicleData.isDemoMode || vehicleData.latestTelemetry.chargePowerUpdatedAt != nil
+        vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.power)
     }
 
     private var chargingStatusText: String {

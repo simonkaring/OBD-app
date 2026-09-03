@@ -15,7 +15,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 122.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -25,7 +25,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 79.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -35,7 +35,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 95.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -45,7 +45,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 95.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -55,7 +55,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 79.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -72,7 +72,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 82.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -92,7 +92,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -102,7 +102,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -112,7 +112,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -122,7 +122,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 110.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -132,7 +132,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 110.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -142,7 +142,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 85.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -152,7 +152,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 108.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -169,7 +169,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 81.3,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -179,7 +179,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 81.2,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -189,7 +189,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 101.7,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -199,7 +199,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 105.2,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -209,7 +209,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 64.7,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -219,7 +219,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 64.7,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -229,7 +229,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 74.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -246,7 +246,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 94.9,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -256,7 +256,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 85.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -276,7 +276,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 94.9,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -286,7 +286,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 100.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -303,7 +303,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 75.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -313,7 +313,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 75.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -323,7 +323,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 95.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -333,7 +333,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 83.7,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -427,7 +427,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 99.5,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -454,7 +454,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 72.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -464,7 +464,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 51.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -474,7 +474,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 64.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -484,7 +484,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 51.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -494,7 +494,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 75.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -504,7 +504,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 91.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -524,7 +524,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 51.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -541,7 +541,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 69.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -551,7 +551,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 66.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -561,7 +561,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 69.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -571,7 +571,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 107.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -588,7 +588,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 67.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -598,7 +598,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -608,7 +608,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -618,7 +618,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -635,7 +635,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 38.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -645,7 +645,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 38.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -655,7 +655,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 43.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -665,7 +665,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 38.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -675,7 +675,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 57.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -692,7 +692,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 87.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -702,7 +702,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 91.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -712,7 +712,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 62.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -722,7 +722,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 52.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -739,7 +739,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 73.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -749,7 +749,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 61.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -759,7 +759,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 64.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -776,7 +776,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 60.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -786,7 +786,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 38.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -796,7 +796,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 85.4,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -806,7 +806,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 26.6,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -816,7 +816,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 82.56,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -826,7 +826,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 71.8,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -836,7 +836,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 108.8,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -846,7 +846,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 60.48,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -856,7 +856,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 45.12,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -873,7 +873,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 50.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -883,7 +883,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 50.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -893,7 +893,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 96.9,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -903,7 +903,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 70.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -913,7 +913,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 96.9,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -930,7 +930,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -940,7 +940,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -950,7 +950,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 5.4,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -967,7 +967,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 77.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -977,7 +977,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 77.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1024,7 +1024,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1068,7 +1068,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 88.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1078,7 +1078,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 112.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -1095,7 +1095,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 171.5,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1105,7 +1105,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 171.5,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -1122,7 +1122,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 65.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1132,7 +1132,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 65.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1142,7 +1142,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 81.7,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -1159,7 +1159,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1189,7 +1189,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1199,7 +1199,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1209,7 +1209,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1219,7 +1219,7 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 0.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -1236,7 +1236,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 100.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1246,7 +1246,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 69.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         },
         {
@@ -1256,7 +1256,7 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 100.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]
@@ -1283,7 +1283,7 @@
           "years": "2015+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 60.0,
-          "profileID": "genericOBD2",
+          "profileID": "genericEV",
           "telemetrySupport": "generic"
         }
       ]

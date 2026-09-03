@@ -5,10 +5,14 @@ public struct LiveTelemetryChartView: View {
     public var telemetryHistory: [TelemetrySnapshot]
     /// Up to 2 metrics plotted on one shared y-axis. Defaults to today's power-only stream.
     public var seriesMetrics: [TelemetryMetric]
+    public var liveMetrics: Set<TelemetryMetric>
+    public var isDemoMode: Bool
 
-    public init(telemetryHistory: [TelemetrySnapshot], seriesMetrics: [TelemetryMetric] = [.power]) {
+    public init(telemetryHistory: [TelemetrySnapshot], seriesMetrics: [TelemetryMetric] = [.power], liveMetrics: Set<TelemetryMetric> = [], isDemoMode: Bool = false) {
         self.telemetryHistory = telemetryHistory
         self.seriesMetrics = seriesMetrics
+        self.liveMetrics = liveMetrics
+        self.isDemoMode = isDemoMode
     }
 
     private var headerTitle: String {
@@ -23,13 +27,14 @@ public struct LiveTelemetryChartView: View {
     }
 
     public var body: some View {
+        let activeMetrics = isDemoMode ? seriesMetrics : seriesMetrics.filter(liveMetrics.contains)
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Label("Live \(headerTitle) Stream", systemImage: "chart.xyaxis.line")
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
-                Text("REALTIME")
+                Text(activeMetrics.isEmpty ? "WAITING" : "REALTIME")
                     .font(.system(size: 10, weight: .bold, design: .rounded))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -39,7 +44,7 @@ public struct LiveTelemetryChartView: View {
             }
 
             Chart {
-                ForEach(Array(seriesMetrics.enumerated()), id: \.offset) { seriesIndex, metric in
+                ForEach(Array(activeMetrics.enumerated()), id: \.offset) { seriesIndex, metric in
                     ForEach(telemetryHistory.suffix(30), id: \.timestamp) { item in
                         let value = metric.value(in: item)
                         let seriesColor = color(for: metric, value: value, seriesIndex: seriesIndex)
@@ -51,7 +56,7 @@ public struct LiveTelemetryChartView: View {
                         .foregroundStyle(seriesColor)
                         .interpolationMethod(.catmullRom)
 
-                        if seriesMetrics.count == 1 {
+                        if activeMetrics.count == 1 {
                             AreaMark(
                                 x: .value("Time", item.timestamp),
                                 yStart: .value("Zero", 0.0),
@@ -77,6 +82,11 @@ public struct LiveTelemetryChartView: View {
                 }
             }
             .frame(height: 140)
+            .overlay {
+                if activeMetrics.isEmpty {
+                    ContentUnavailableView("No live telemetry", systemImage: "waveform.path.ecg")
+                }
+            }
         }
         .padding(16)
         .glassCard()

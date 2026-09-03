@@ -74,8 +74,7 @@ public struct MercedesEQA250Profile: VehicleProfile {
             if let bytes = extractBytes(from: cleanHex, header: "62010B", count: 2) {
                 let rawInt16 = Int16(Int8(bitPattern: bytes[0])) * 256 + Int16(bytes[1])
                 let current = Double(rawInt16) * 0.1
-                let voltage = 390.0
-                return .power(voltage: voltage, current: current, powerKW: (voltage * current) / 1000.0)
+                return .packCurrent(current)
             }
             return nil
 

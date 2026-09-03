@@ -40,7 +40,7 @@ public struct CarPlayTileEditorView: View {
             }
         }
         .sheet(isPresented: $showAddTile) {
-            AddCarPlayTileSheet(profile: vehicleData.selectedProfile) { newTile in
+            AddCarPlayTileSheet(supportedMetrics: vehicleData.supportedMetrics) { newTile in
                 if layout.tiles.count < CarPlayLayout.maxTiles {
                     layout.tiles.append(newTile)
                 }
@@ -64,7 +64,7 @@ public struct CarPlayTileEditorView: View {
 }
 
 private struct AddCarPlayTileSheet: View {
-    let profile: VehicleProfile
+    let supportedMetrics: Set<TelemetryMetric>
     let onAdd: (CarPlayTileKind) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -78,7 +78,7 @@ private struct AddCarPlayTileSheet: View {
                     Label("System Health", systemImage: "checkmark.shield.fill")
                 }
 
-                ForEach(TelemetryMetric.allCases.filter { profile.supportedMetrics.contains($0) }) { metric in
+                ForEach(TelemetryMetric.allCases.filter { supportedMetrics.contains($0) }) { metric in
                     Button {
                         onAdd(.metric(metric))
                         dismiss()

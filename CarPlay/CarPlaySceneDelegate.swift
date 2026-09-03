@@ -21,6 +21,11 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in self?.rebuildInterface() }
             .store(in: &cancellables)
+
+        AppEnvironment.shared.vehicleData.$liveMetrics
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.rebuildInterface() }
+            .store(in: &cancellables)
     }
 
     public func templateApplicationScene(
@@ -35,13 +40,12 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     private func rebuildInterface() {
         let vehicleData = AppEnvironment.shared.vehicleData
         let dtcService = AppEnvironment.shared.dtcService
-        let profile = vehicleData.selectedProfile
         let snapshot = vehicleData.latestTelemetry
         let layout = CarPlayLayout.load()
 
         // 1. Driving Mode Template
         let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
-            gridButton(for: tile, profile: profile, snapshot: snapshot, dtcService: dtcService, isDemoMode: vehicleData.isDemoMode)
+            gridButton(for: tile, supportedMetrics: vehicleData.supportedMetrics, liveMetrics: vehicleData.liveMetrics, snapshot: snapshot, dtcService: dtcService, isDemoMode: vehicleData.isDemoMode)
         }
         let drivingTemplate = CPGridTemplate(title: "", gridButtons: buttons)
         drivingTemplate.tabTitle = "Driving"
@@ -116,13 +120,13 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         ]
     }
 
-    private func gridButton(for tile: CarPlayTileKind, profile: VehicleProfile, snapshot: TelemetrySnapshot, dtcService: DTCScannerService, isDemoMode: Bool = false) -> CPGridButton? {
+    private func gridButton(for tile: CarPlayTileKind, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, snapshot: TelemetrySnapshot, dtcService: DTCScannerService, isDemoMode: Bool = false) -> CPGridButton? {
         switch tile {
         case .metric(let metric):
-            guard isDemoMode || profile.supportedMetrics.contains(metric) else { return nil }
+            guard isDemoMode || supportedMetrics.contains(metric) else { return nil }
             let value = metric.value(in: snapshot)
             let image = renderDialImage(for: metric, value: value)
-            let valueStr = String(format: "%.1f %@", value, metric.unitSymbol)
+            let valueStr = isDemoMode || liveMetrics.contains(metric) ? String(format: "%.1f %@", value, metric.unitSymbol) : "-- (metric.unitSymbol)"
             return CPGridButton(titleVariants: [metric.displayName.uppercased(), valueStr], image: image) { _ in }
 
         case .health:

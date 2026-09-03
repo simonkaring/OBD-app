@@ -85,6 +85,28 @@ final class OBDParserTests: XCTestCase {
         }
     }
 
+    func testMercedesEQA250PackCurrentParsing() {
+        let profile = MercedesEQA250Profile()
+        let rawResponse = "18 DA F1 59 05 62 01 0B FF 9C\r\n>"
+
+        guard case .packCurrent(let current)? = profile.parseResponse(command: "22010B", rawResponse: rawResponse) else {
+            return XCTFail("Expected pack current update")
+        }
+        XCTAssertEqual(current, -10.0, accuracy: 0.01)
+    }
+
+    func testMercedesEQA250BatteryTemperatureParsing() {
+        let profile = MercedesEQA250Profile()
+        let rawResponse = "18 DA F1 59 04 62 01 0C 41\r\n>"
+
+        guard case .batteryTemp(let min, let max, let average)? = profile.parseResponse(command: "22010C", rawResponse: rawResponse) else {
+            return XCTFail("Expected battery temperature update")
+        }
+        XCTAssertEqual(min, 25.0, accuracy: 0.01)
+        XCTAssertEqual(max, 25.0, accuracy: 0.01)
+        XCTAssertEqual(average, 25.0, accuracy: 0.01)
+    }
+
     func testHyundaiKiaEGMPParsesPublicPackPowerFormula() {
         let profile = HyundaiKiaEGMPProfile()
         // Payload bytes K/L = 0xFF9C (-10.0 A), N/O = 0x0E74 (370.0 V).

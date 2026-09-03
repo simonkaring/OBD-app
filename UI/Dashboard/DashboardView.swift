@@ -160,6 +160,8 @@ public struct DashboardView: View {
                                         isEditMode: isEditMode,
                                         snapshot: vehicleData.latestTelemetry,
                                         profile: vehicleData.selectedProfile,
+                                        supportedMetrics: vehicleData.supportedMetrics,
+                                        liveMetrics: vehicleData.liveMetrics,
                                         telemetryHistory: telemetryHistory,
                                         isConnected: vehicleData.isDemoMode || vehicleData.connectionState.isConnected,
                                         isDemoMode: vehicleData.isDemoMode,
@@ -268,6 +270,9 @@ public struct DashboardView: View {
                     telemetryHistory.removeFirst()
                 }
             }
+            .onReceive(vehicleData.$liveMetrics) { _ in
+                telemetryHistory.removeAll()
+            }
             #if os(iOS)
             .fullScreenCover(isPresented: $showHUDMode) {
                 HUDModeView(
@@ -288,7 +293,7 @@ public struct DashboardView: View {
             }
             #endif
             .sheet(isPresented: $showCustomization) {
-                DashboardCustomizationSheet(layout: $layout, profile: vehicleData.selectedProfile)
+                DashboardCustomizationSheet(layout: $layout, supportedMetrics: vehicleData.supportedMetrics)
             }
             .sheet(isPresented: $showAddWidgetSheet) {
                 AddDashboardWidgetSheet(profile: vehicleData.selectedProfile) { newWidget in
@@ -325,6 +330,8 @@ private struct WidgetTileWrapper: View {
     let isEditMode: Bool
     let snapshot: TelemetrySnapshot
     let profile: VehicleProfile
+    let supportedMetrics: Set<TelemetryMetric>
+    let liveMetrics: Set<TelemetryMetric>
     let telemetryHistory: [TelemetrySnapshot]
     let isConnected: Bool
     let isDemoMode: Bool
@@ -341,6 +348,8 @@ private struct WidgetTileWrapper: View {
                 config: widget,
                 snapshot: snapshot,
                 profile: profile,
+                supportedMetrics: supportedMetrics,
+                liveMetrics: liveMetrics,
                 telemetryHistory: telemetryHistory,
                 isConnected: isConnected,
                 isDemoMode: isDemoMode

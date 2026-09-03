@@ -114,7 +114,7 @@ public struct SettingsView: View {
                         Button("Enable GPS Route Recording", systemImage: "location") {
                             tripTracker.requestLocationAuthorization()
                         }
-                        Text("Allow location while using VoltLink to save routes with your trips.")
+                        Text("Allow location while using VoltLink to save routes and provide GPS speed for the EQA dashboard.")
                             .font(.caption)
                             .foregroundStyle(Theme.textSecondary)
 

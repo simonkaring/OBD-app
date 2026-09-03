@@ -3,13 +3,13 @@ import SwiftUI
 /// Native reorder/add/remove editor for the dashboard's widget layout.
 public struct DashboardCustomizationSheet: View {
     @Binding public var layout: DashboardLayout
-    public var profile: VehicleProfile
+    public var supportedMetrics: Set<TelemetryMetric>
     @Environment(\.dismiss) private var dismiss
     @State private var showAddWidget = false
 
-    public init(layout: Binding<DashboardLayout>, profile: VehicleProfile) {
+    public init(layout: Binding<DashboardLayout>, supportedMetrics: Set<TelemetryMetric>) {
         self._layout = layout
-        self.profile = profile
+        self.supportedMetrics = supportedMetrics
     }
 
     public var body: some View {
@@ -45,7 +45,7 @@ public struct DashboardCustomizationSheet: View {
                 }
             }
             .sheet(isPresented: $showAddWidget) {
-                AddDashboardWidgetSheet(profile: profile) { newWidget in
+                AddDashboardWidgetSheet(supportedMetrics: supportedMetrics) { newWidget in
                     layout.widgets.append(newWidget)
                 }
             }
@@ -89,7 +89,7 @@ public struct DashboardCustomizationSheet: View {
 }
 
 public struct AddDashboardWidgetSheet: View {
-    public let profile: VehicleProfile
+    public let supportedMetrics: Set<TelemetryMetric>
     public let onAdd: (DashboardWidgetConfig) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -99,12 +99,17 @@ public struct AddDashboardWidgetSheet: View {
     @State private var chartSeries: Set<TelemetryMetric> = [.power, .speed]
 
     public init(profile: VehicleProfile, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
-        self.profile = profile
+        self.supportedMetrics = profile.supportedMetrics
+        self.onAdd = onAdd
+    }
+
+    public init(supportedMetrics: Set<TelemetryMetric>, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
+        self.supportedMetrics = supportedMetrics
         self.onAdd = onAdd
     }
 
     private var filteredMetrics: [TelemetryMetric] {
-        let supported = TelemetryMetric.allCases.filter { profile.supportedMetrics.contains($0) }
+        let supported = TelemetryMetric.allCases.filter { supportedMetrics.contains($0) }
         if searchText.isEmpty {
             return supported
         }

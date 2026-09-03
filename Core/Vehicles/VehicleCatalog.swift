@@ -145,7 +145,7 @@ public struct VehicleCatalog {
                 name: "Generic OBD-II & Others",
                 iconSymbol: "wrench.and.screwdriver.fill",
                 models: [
-                    VehicleModelEntry(id: "generic-ev-can", brandName: "Generic", modelName: "Standard EV CAN Bus Profile", years: "2015+", powertrain: .ev, batteryCapacityKWh: 60.0, profileID: .genericOBD2),
+                    VehicleModelEntry(id: "generic-ev-can", brandName: "Generic", modelName: "Standard EV CAN Bus Profile", years: "2015+", powertrain: .ev, batteryCapacityKWh: 60.0, profileID: .genericEV),
                     VehicleModelEntry(id: "generic-sae-j1979", brandName: "Generic", modelName: "Standard SAE J1979 (Gas / Hybrid)", years: "1996+", powertrain: .ice, batteryCapacityKWh: 0.0, profileID: .genericOBD2)
                 ]
             ),

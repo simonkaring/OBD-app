@@ -24,6 +24,7 @@ struct ProbeCapture: Codable, Identifiable {
     let startedAt: Date
     let referenceSOC: Double
     let referencePowerKW: Double
+    let referenceAuxVoltageV: Double
     let adapterInfo: [String: String]
     let results: [ProbeResult]
 }
@@ -43,6 +44,7 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
     @Published private(set) var sessionStartSOC: Double?
     @Published var referenceSOC = 0.0
     @Published var referencePowerKW = 0.0
+    @Published var referenceAuxVoltageV = 0.0
 
     private let connection = BluetoothManager()
     private let parser = ISO15765Parser()
@@ -174,6 +176,7 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
                 startedAt: startedAt,
                 referenceSOC: referenceSOC,
                 referencePowerKW: referencePowerKW,
+                referenceAuxVoltageV: referenceAuxVoltageV,
                 adapterInfo: adapterInfo,
                 results: results
             ))

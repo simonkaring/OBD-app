@@ -29,11 +29,12 @@ public final class TripTrackingManager: ObservableObject {
     public static let mergeWindow: TimeInterval = 30 * 60
 
     private var cancellables = Set<AnyCancellable>()
-    private let locationManager = TripLocationManager()
+    public let locationManager: TripLocationManager
     private var stationaryStartDate: Date? = nil
     private var stationaryTimer: Timer? = nil
 
-    public init() {
+    public init(locationManager: TripLocationManager = TripLocationManager()) {
+        self.locationManager = locationManager
         let savedAuto = UserDefaults.standard.object(forKey: "isAutoTripEnabled") as? Bool ?? true
         let savedDelay = UserDefaults.standard.integer(forKey: "autoStopDelaySeconds")
         self.isAutoTripEnabled = savedAuto

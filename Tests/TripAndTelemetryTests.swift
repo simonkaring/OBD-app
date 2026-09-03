@@ -210,6 +210,16 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 10.0, accuracy: 0.01)
     }
 
+    func testStandalonePackCurrentUsesMeasuredVoltage() {
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.packVoltage(339.0))
+        manager.applyUpdate(.packCurrent(-10.0))
+
+        XCTAssertEqual(manager.latestTelemetry.voltageV, 339.0, accuracy: 0.01)
+        XCTAssertEqual(manager.latestTelemetry.currentA, -10.0, accuracy: 0.01)
+        XCTAssertEqual(manager.latestTelemetry.powerKW, -3.39, accuracy: 0.01)
+    }
+
     func testDemoModeFlagControllingDemoTrips() {
         let manager = VehicleDataManager()
         XCTAssertFalse(manager.isDemoMode)

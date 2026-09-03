@@ -68,6 +68,8 @@ struct ProbeView: View {
                     .frame(width: 150)
                 TextField("Mercedes charge kW", value: $probe.referencePowerKW, format: .number.precision(.fractionLength(1)))
                     .frame(width: 170)
+                TextField("Measured 12V", value: $probe.referenceAuxVoltageV, format: .number.precision(.fractionLength(2)))
+                    .frame(width: 140)
                 Button("Full Discovery") { probe.startDiscovery() }
                     .disabled(!probe.connectionState.isConnected || probe.isRunning)
                 Button("Repeat Positive DIDs") { probe.repeatPositiveDIDs() }
