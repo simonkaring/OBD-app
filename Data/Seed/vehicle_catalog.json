@@ -236,8 +236,8 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 60.48,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "byd_atto3",
+          "telemetrySupport": "community"
         },
         {
           "id": "byd-yuan_up-45",
@@ -360,8 +360,8 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 56.0,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
         },
         {
           "id": "cupra-tavascan-0",
@@ -424,8 +424,8 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 72.0,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
         },
         {
           "id": "ford-e_tourneo_courier-51",
@@ -464,8 +464,8 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 75.0,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
         },
         {
           "id": "ford-f_150_lightning-91",
@@ -605,8 +605,8 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 99.5,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "hkmc_Ioniq5",
+          "telemetrySupport": "community"
         },
         {
           "id": "hyundai-kona_electric-58",
@@ -810,8 +810,8 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 66.5,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "mercedesEQA250",
+          "telemetrySupport": "community"
         },
         {
           "id": "mercedes_benz-eqe-0",
@@ -924,8 +924,8 @@
           "years": "2024+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 62.0,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "nissan_leaf",
+          "telemetrySupport": "community"
         },
         {
           "id": "nissan-micra_ev-52",
@@ -1424,8 +1424,8 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 77.0,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
         },
         {
           "id": "skoda-elroq_rs-77",
@@ -1434,8 +1434,8 @@
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 77.0,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "profileID": "volkswagen_MEB",
+          "telemetrySupport": "community"
         },
         {
           "id": "skoda-enyaq_coupe_iv-0",

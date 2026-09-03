@@ -206,6 +206,44 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(pct, 50.0, accuracy: 0.01)
     }
 
+    // MARK: - Nissan Leaf ZE1 (OVMS-derived, request/response PIDs only)
+
+    func testNissanLeafZE1SOCParsing() {
+        let profile = NissanLeafZE1Profile()
+        // Group 0x01 reply: byte31/32/33 = 0B 35 24 -> raw 734500 / 10000 = 73.45%
+        let rawResponse = "61 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0B 35 24\r\n>"
+        guard case .soc(let pct)? = profile.parseResponse(command: "2101", rawResponse: rawResponse) else {
+            return XCTFail("Expected SOC update")
+        }
+        XCTAssertEqual(pct, 73.45, accuracy: 0.01)
+    }
+
+    func testNissanLeafZE1SOHParsing() {
+        let profile = NissanLeafZE1Profile()
+        // Group 0x61 reply: byte2/3 = 26 7A -> raw 9850 / 100 = 98.5%
+        let rawResponse = "61 61 00 00 26 7A\r\n>"
+        guard case .soh(let pct)? = profile.parseResponse(command: "2161", rawResponse: rawResponse) else {
+            return XCTFail("Expected SOH update")
+        }
+        XCTAssertEqual(pct, 98.5, accuracy: 0.01)
+    }
+
+    // MARK: - BYD Atto 3 (OVMS-derived, ABRP JSON)
+
+    func testBYDAtto3SOCAndVoltageParsing() throws {
+        let bydAtto3 = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "byd_atto3.json"))
+        guard case .soc(let pct)? = bydAtto3.parseResponse(command: "220005", rawResponse: "7EF 03 62 00 05 46\r\n>") else {
+            return XCTFail("Expected SOC update")
+        }
+        XCTAssertEqual(pct, 70.0, accuracy: 0.01)
+
+        // Bytes 0F A0 = 4000 -> /10 = 400.0V
+        guard case .packVoltage(let volts)? = bydAtto3.parseResponse(command: "220008", rawResponse: "7EF 04 62 00 08 0F A0\r\n>") else {
+            return XCTFail("Expected packVoltage update")
+        }
+        XCTAssertEqual(volts, 400.0, accuracy: 0.01)
+    }
+
     /// Every profile the catalog points at must resolve, and the zero-capacity
     /// sanity filter must not swallow the ICE entry.
     func testCatalogProfilesAllResolve() {
