@@ -17,6 +17,10 @@ public struct TripHistoryView: View {
     @State private var sampleTrips: [TripModel] = []
     @State private var sampleCharges: [ChargingSessionModel] = []
 
+    @State private var showClearAllConfirmation = false
+    @State private var tripToDelete: TripModel?
+    @State private var chargeToDelete: ChargingSessionModel?
+
     @Query(filter: #Predicate<TripModel> { $0.endTime != nil }, sort: \TripModel.startTime, order: .reverse)
     private var persistedTrips: [TripModel]
 
@@ -67,13 +71,7 @@ public struct TripHistoryView: View {
                     #if os(iOS)
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(role: .destructive) {
-                            if selectedLogType == .trips {
-                                sampleTrips.removeAll()
-                                tripTracker.clearAllTrips()
-                            } else {
-                                sampleCharges.removeAll()
-                                chargingTracker.clearAllSessions()
-                            }
+                            showClearAllConfirmation = true
                         } label: {
                             Image(systemName: "trash")
                                 .foregroundColor(.red)
@@ -82,19 +80,73 @@ public struct TripHistoryView: View {
                     #else
                     ToolbarItem(placement: .automatic) {
                         Button(role: .destructive) {
-                            if selectedLogType == .trips {
-                                sampleTrips.removeAll()
-                                tripTracker.clearAllTrips()
-                            } else {
-                                sampleCharges.removeAll()
-                                chargingTracker.clearAllSessions()
-                            }
+                            showClearAllConfirmation = true
                         } label: {
                             Image(systemName: "trash")
                         }
                     }
                     #endif
                 }
+            }
+            .confirmationDialog(
+                selectedLogType == .trips ? "Clear All Trips" : "Clear All Charging Sessions",
+                isPresented: $showClearAllConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(selectedLogType == .trips ? "Clear All Trips" : "Clear All Sessions", role: .destructive) {
+                    if selectedLogType == .trips {
+                        sampleTrips.removeAll()
+                        tripTracker.clearAllTrips()
+                    } else {
+                        sampleCharges.removeAll()
+                        chargingTracker.clearAllSessions()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(selectedLogType == .trips
+                    ? "Are you sure you want to clear all trip history? This action cannot be undone."
+                    : "Are you sure you want to clear all charging history? This action cannot be undone.")
+            }
+            .confirmationDialog(
+                "Delete Trip",
+                isPresented: Binding(
+                    get: { tripToDelete != nil },
+                    set: { if !$0 { tripToDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete Trip", role: .destructive) {
+                    if let trip = tripToDelete {
+                        performDeleteTrip(trip)
+                    }
+                    tripToDelete = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    tripToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete this trip record?")
+            }
+            .confirmationDialog(
+                "Delete Charging Session",
+                isPresented: Binding(
+                    get: { chargeToDelete != nil },
+                    set: { if !$0 { chargeToDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete Session", role: .destructive) {
+                    if let session = chargeToDelete {
+                        performDeleteCharge(session)
+                    }
+                    chargeToDelete = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    chargeToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete this charging session record?")
             }
             .onAppear {
                 updateSampleHistory()
@@ -326,22 +378,28 @@ public struct TripHistoryView: View {
     }
 
     private func deleteTrips(at offsets: IndexSet) {
-        for index in offsets {
-            let trip = displayedTrips[index]
-            tripTracker.deleteTrip(trip)
-        }
-        if vehicleData.isDemoMode {
-            sampleTrips.remove(atOffsets: offsets)
+        if let index = offsets.first, index < displayedTrips.count {
+            tripToDelete = displayedTrips[index]
         }
     }
 
     private func deleteCharges(at offsets: IndexSet) {
-        for index in offsets {
-            let session = displayedCharges[index]
-            chargingTracker.deleteSession(session)
+        if let index = offsets.first, index < displayedCharges.count {
+            chargeToDelete = displayedCharges[index]
         }
+    }
+
+    private func performDeleteTrip(_ trip: TripModel) {
+        tripTracker.deleteTrip(trip)
         if vehicleData.isDemoMode {
-            sampleCharges.remove(atOffsets: offsets)
+            sampleTrips.removeAll { $0.id == trip.id }
+        }
+    }
+
+    private func performDeleteCharge(_ session: ChargingSessionModel) {
+        chargingTracker.deleteSession(session)
+        if vehicleData.isDemoMode {
+            sampleCharges.removeAll { $0.id == session.id }
         }
     }
 
