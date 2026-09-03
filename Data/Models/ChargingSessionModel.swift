@@ -12,12 +12,16 @@ public final class ChargingSessionModel {
     public var peakPowerKW: Double
     public var averagePowerKW: Double
     public var locationName: String
+    public var latitude: Double?
+    public var longitude: Double?
 
     public init(
         id: UUID = UUID(),
         startTime: Date = Date(),
         startSocPct: Double = 0.0,
-        locationName: String = "Fast Charger"
+        locationName: String = "Fast Charger",
+        latitude: Double? = nil,
+        longitude: Double? = nil
     ) {
         self.id = id
         self.startTime = startTime
@@ -27,6 +31,8 @@ public final class ChargingSessionModel {
         self.peakPowerKW = 0.0
         self.averagePowerKW = 0.0
         self.locationName = locationName
+        self.latitude = latitude
+        self.longitude = longitude
     }
 }
 

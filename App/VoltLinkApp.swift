@@ -35,6 +35,7 @@ struct VoltLinkApp: App {
             MainTabView()
                 .environmentObject(env.vehicleData)
                 .environmentObject(env.tripTracker)
+                .environmentObject(env.chargingTracker)
                 .environmentObject(env.dtcService)
                 .preferredColorScheme(.dark)
         }
@@ -46,6 +47,7 @@ struct VoltLinkApp: App {
 struct MainTabView: View {
     @EnvironmentObject private var vehicleData: VehicleDataManager
     @EnvironmentObject private var tripTracker: TripTrackingManager
+    @EnvironmentObject private var chargingTracker: ChargingTrackingManager
     @EnvironmentObject private var dtcService: DTCScannerService
     @Environment(\.modelContext) private var modelContext
     @State private var selectedTab: Int = 0
@@ -92,7 +94,7 @@ struct MainTabView: View {
                 TripHistoryView(tripTracker: tripTracker)
             }
             .tabItem {
-                Label("Trips", systemImage: "road.lanes")
+                Label("Log", systemImage: "clock.arrow.circlepath")
             }
             .tag(1)
 
@@ -127,6 +129,7 @@ struct MainTabView: View {
         }
         .onAppear {
             tripTracker.modelContext = modelContext
+            chargingTracker.modelContext = modelContext
         }
     }
 }

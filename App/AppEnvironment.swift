@@ -6,6 +6,7 @@ public final class AppEnvironment: ObservableObject {
 
     @Published public var vehicleData: VehicleDataManager
     @Published public var tripTracker: TripTrackingManager
+    @Published public var chargingTracker: ChargingTrackingManager
     @Published public var dtcService: DTCScannerService
     private var cancellables = Set<AnyCancellable>()
 
@@ -13,15 +14,18 @@ public final class AppEnvironment: ObservableObject {
         let vData = VehicleDataManager()
         let locationManager = TripLocationManager()
         let tTracker = TripTrackingManager(locationManager: locationManager)
+        let cTracker = ChargingTrackingManager(locationManager: locationManager)
         let dtc = DTCScannerService()
 
         self.vehicleData = vData
         self.tripTracker = tTracker
+        self.chargingTracker = cTracker
         self.dtcService = dtc
 
         vData.$latestTelemetry
-            .sink { [weak tTracker, weak vData] snapshot in
+            .sink { [weak tTracker, weak cTracker, weak vData] snapshot in
                 tTracker?.processTelemetrySnapshot(snapshot, vehicleName: vData?.vehicleName ?? "Mercedes EQA 250")
+                cTracker?.processTelemetrySnapshot(snapshot)
             }
             .store(in: &cancellables)
 

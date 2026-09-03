@@ -230,4 +230,37 @@ final class TripAndTelemetryTests: XCTestCase {
         manager.toggleDemoMode(false)
         XCTAssertFalse(manager.isDemoMode)
     }
+
+    func testChargingTrackingManagerSessionLifecycle() {
+        let tracker = ChargingTrackingManager()
+        XCTAssertFalse(tracker.isRecordingSession)
+        XCTAssertNil(tracker.currentSession)
+
+        var snap = TelemetrySnapshot()
+        snap.speedKmH = 0.0
+        snap.isCharging = true
+        snap.chargePowerKW = 50.0
+        snap.stateOfChargePct = 20.0
+
+        // Step 1: Start charging session
+        tracker.processTelemetrySnapshot(snap)
+        XCTAssertTrue(tracker.isRecordingSession)
+        XCTAssertNotNil(tracker.currentSession)
+        XCTAssertEqual(tracker.currentSession?.startSocPct, 20.0)
+        XCTAssertEqual(tracker.currentSession?.peakPowerKW, 50.0)
+
+        // Step 2: Intermediate charging update
+        snap.chargePowerKW = 75.0
+        snap.stateOfChargePct = 25.0
+        tracker.processTelemetrySnapshot(snap)
+        XCTAssertEqual(tracker.currentSession?.peakPowerKW, 75.0)
+        XCTAssertEqual(tracker.currentSession?.endSocPct, 25.0)
+
+        // Step 3: Stop charging
+        snap.isCharging = false
+        snap.chargePowerKW = 0.0
+        tracker.processTelemetrySnapshot(snap)
+        XCTAssertFalse(tracker.isRecordingSession)
+        XCTAssertNil(tracker.currentSession)
+    }
 }
