@@ -187,7 +187,7 @@ public struct ChargingLiveView: View {
                                     .padding()
                                     .frame(maxWidth: .infinity)
                                     .background(Theme.regenGreen)
-                                    .foregroundColor(.black)
+                                    .foregroundColor(Theme.onAccent)
                                     .cornerRadius(12)
                             }
                             .padding(.horizontal)

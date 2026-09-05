@@ -74,7 +74,7 @@ public struct TripHistoryView: View {
                             showClearAllConfirmation = true
                         } label: {
                             Image(systemName: "trash")
-                                .foregroundColor(.red)
+                                .foregroundColor(Theme.criticalRed)
                         }
                     }
                     #else

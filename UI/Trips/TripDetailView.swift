@@ -69,7 +69,7 @@ public struct TripDetailView: View {
                             }
                         }
 
-                        Divider().background(Color.white.opacity(0.15))
+                        Divider().background(Theme.divider)
 
                         // Primary Stats Row
                         HStack(spacing: 16) {
@@ -357,7 +357,7 @@ public struct TripDetailView: View {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
-                        .foregroundColor(.red)
+                        .foregroundColor(Theme.criticalRed)
                 }
             }
             #else
@@ -366,7 +366,7 @@ public struct TripDetailView: View {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
-                        .foregroundColor(.red)
+                        .foregroundColor(Theme.criticalRed)
                 }
             }
             #endif

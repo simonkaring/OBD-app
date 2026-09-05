@@ -11,6 +11,15 @@ public enum Theme {
     public static let textPrimary = Color.white
     public static let textSecondary = Color.white.opacity(0.7)
 
+    /// Hairline separators over the dark background (glassmorphism dividers).
+    public static let divider = Color.white.opacity(0.15)
+    /// Legible text/icon color drawn on top of an accent-colored fill (e.g. a cyan button).
+    public static let onAccent = Color.black
+    /// Unfilled track color behind dial/bar gauges.
+    public static let trackBackground = Color.white.opacity(0.1)
+
+    private static let brightBlue = Color(red: 0.0, green: 0.45, blue: 1.0)
+
     public static let powerGradient = LinearGradient(
         colors: [electricCyan, highPowerAmber, criticalRed],
         startPoint: .leading,
@@ -18,13 +27,13 @@ public enum Theme {
     )
 
     public static let regenGradient = LinearGradient(
-        colors: [Color.blue, regenGreen],
+        colors: [brightBlue, regenGreen],
         startPoint: .leading,
         endPoint: .trailing
     )
 
     public static let speedGradient = LinearGradient(
-        colors: [electricCyan, Color(red: 0.0, green: 0.45, blue: 1.0)],
+        colors: [electricCyan, brightBlue],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )

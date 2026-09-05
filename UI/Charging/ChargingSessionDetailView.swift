@@ -70,7 +70,7 @@ public struct ChargingSessionDetailView: View {
                             }
                         }
 
-                        Divider().background(Color.white.opacity(0.15))
+                        Divider().background(Theme.divider)
 
                         // Primary Stats Row
                         HStack(spacing: 16) {
@@ -197,7 +197,7 @@ public struct ChargingSessionDetailView: View {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
-                        .foregroundColor(.red)
+                        .foregroundColor(Theme.criticalRed)
                 }
             }
             #else
@@ -206,6 +206,7 @@ public struct ChargingSessionDetailView: View {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
+                        .foregroundColor(Theme.criticalRed)
                 }
             }
             #endif

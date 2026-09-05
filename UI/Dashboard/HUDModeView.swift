@@ -8,7 +8,7 @@ public struct HUDModeView: View {
 
     public var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Theme.backgroundDark.ignoresSafeArea()
 
             VStack(spacing: 30) {
                 HStack {
@@ -17,13 +17,13 @@ public struct HUDModeView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title)
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(Theme.textSecondary)
                     }
                     Spacer()
                     Text("HEAD-UP DISPLAY MODE")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundColor(.cyan)
+                        .foregroundColor(Theme.electricCyan)
                 }
                 .padding()
 
@@ -32,31 +32,31 @@ public struct HUDModeView: View {
                 VStack(spacing: 10) {
                     Text(String(format: "%.0f", speedKmH))
                         .font(.system(size: 110, weight: .black, design: .rounded))
-                        .foregroundColor(.green)
+                        .foregroundColor(Theme.regenGreen)
 
                     Text("KM/H")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.textPrimary)
                 }
 
                 HStack(spacing: 40) {
                     VStack {
                         Text("\(Int(socPct))%")
                             .font(.system(size: 40, weight: .bold, design: .rounded))
-                            .foregroundColor(.cyan)
+                            .foregroundColor(Theme.electricCyan)
                         Text("BATTERY")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(Theme.textSecondary)
                     }
 
                     VStack {
                         Text(String(format: "%.1f kW", powerKW))
                             .font(.system(size: 40, weight: .bold, design: .rounded))
-                            .foregroundColor(powerKW < 0 ? .green : .orange)
+                            .foregroundColor(powerKW < 0 ? Theme.regenGreen : Theme.highPowerAmber)
                         Text("POWER")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(Theme.textSecondary)
                     }
                 }
 
@@ -64,7 +64,7 @@ public struct HUDModeView: View {
 
                 Text("Reflect off windshield at night")
                     .font(.footnote)
-                    .foregroundColor(.gray)
+                    .foregroundColor(Theme.textSecondary)
                     .padding(.bottom, 20)
             }
             .scaleEffect(x: -1, y: 1) // Mirror display horizontally for windshield reflection

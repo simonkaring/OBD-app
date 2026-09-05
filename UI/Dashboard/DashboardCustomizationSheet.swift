@@ -236,7 +236,7 @@ public struct AddDashboardWidgetSheet: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(Theme.electricCyan)
-                    .foregroundColor(.black)
+                    .foregroundColor(Theme.onAccent)
                     .cornerRadius(20)
                 }
             }
@@ -310,7 +310,7 @@ public struct AddDashboardWidgetSheet: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(Theme.highPowerAmber)
-                    .foregroundColor(.black)
+                    .foregroundColor(Theme.onAccent)
                     .cornerRadius(20)
                 }
                 .disabled(chartSeries.isEmpty)
