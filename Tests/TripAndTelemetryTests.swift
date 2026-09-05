@@ -106,6 +106,35 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertNil(tracker.currentTrip)
     }
 
+    /// Locks in the fix for the hardcoded-0.5s trip energy bug: the first recorded sample has
+    /// no prior timestamp to measure an interval against and must not accumulate any energy,
+    /// and a subsequent sample must integrate over the real (small) elapsed gap rather than an
+    /// assumed fixed 0.5s — which would have produced a much larger, gap-independent total.
+    func testTripEnergyAccumulatesUsingMeasuredIntervalNotFixed05s() {
+        let tracker = TripTrackingManager()
+        tracker.startTrip(startSoc: 90.0)
+
+        var telemetry = TelemetrySnapshot()
+        telemetry.powerKW = 36.0 // chosen so 1 second of draw = 0.01 kWh, easy to sanity-check
+        telemetry.speedKmH = 50.0
+
+        tracker.recordSnapshot(telemetry)
+        XCTAssertEqual(tracker.currentTrip?.totalKWhUsed, 0.0,
+                        "first sample must not assume a fixed 0.5s interval")
+
+        Thread.sleep(forTimeInterval: 0.2)
+        tracker.recordSnapshot(telemetry)
+        guard let accumulated = tracker.currentTrip?.totalKWhUsed else {
+            return XCTFail("Expected an active trip with a recorded sample")
+        }
+
+        XCTAssertGreaterThan(accumulated, 0.0)
+        // Expected ~36kW * ~0.2s/3600h ≈ 0.002 kWh. The old fixed-0.5s bug would have added
+        // ~0.005 kWh on *every* call (including the first) regardless of real elapsed time;
+        // bound this well below that to catch a regression back to the fixed interval.
+        XCTAssertLessThan(accumulated, 0.01)
+    }
+
     func testMergeWithinWindowCombinesTrips() {
         let tracker = TripTrackingManager()
         let older = TripModel(startTime: Date().addingTimeInterval(-3600), distanceKm: 10.0, startSocPct: 90.0)
@@ -322,6 +351,45 @@ final class TripAndTelemetryTests: XCTestCase {
         manager.applyUpdate(.soc(42.0))
         manager.applyUpdate(.soc(3_200.0))
         XCTAssertEqual(manager.latestTelemetry.stateOfChargePct, 42.0, accuracy: 0.01)
+    }
+
+    func testIsPlausibleClampsAdditionalMetricRanges() {
+        XCTAssertFalse(VehicleDataManager.isPlausible(.speed(500.0)))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.speed(120.0)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.aux12V(40.0)))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.aux12V(12.6)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.motorStats(rpm: 50_000, torque: 0)))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.motorStats(rpm: 3_000, torque: 100)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.coolantTemp(300.0)))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.coolantTemp(90.0)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.chargingStats(kwRate: 1_000.0, acOrDc: "DC")))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.chargingStats(kwRate: nil, acOrDc: "AC")))
+    }
+
+    /// Locks in the fix for the fixed-dt kWh integration bug: the very first `update` call
+    /// establishes the baseline timestamp only and must not assume any elapsed interval, and
+    /// a longer real gap between calls must integrate proportionally more energy than a
+    /// shorter one — which a hardcoded interval could never reproduce.
+    func testChargingSessionTrackerIntegratesRealMeasuredInterval() {
+        let tracker = ChargingSessionTracker()
+
+        let started = tracker.update(soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
+                                      vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        XCTAssertEqual(started.totalEnergyKWh, 0.0, "first sample must not assume a fixed interval")
+
+        Thread.sleep(forTimeInterval: 0.1)
+        let afterShortGap = tracker.update(soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
+                                            vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        XCTAssertGreaterThan(afterShortGap.totalEnergyKWh, 0.0)
+
+        Thread.sleep(forTimeInterval: 0.3)
+        let afterLongGap = tracker.update(soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
+                                           vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        let longGapIncrement = afterLongGap.totalEnergyKWh - afterShortGap.totalEnergyKWh
+
+        // The ~0.3s gap should integrate meaningfully more energy than the ~0.1s gap did;
+        // a fixed-interval implementation would instead add the same amount every call.
+        XCTAssertGreaterThan(longGapIncrement, afterShortGap.totalEnergyKWh * 2)
     }
 
     /// A genuine 0 A pack current is data, not a "no reading" sentinel.

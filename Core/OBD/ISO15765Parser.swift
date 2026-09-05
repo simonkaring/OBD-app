@@ -5,7 +5,7 @@ public final class ISO15765Parser: Sendable {
 
     /// Cleans raw response from ELM327 adapter (removes headers, spaces, linefeeds, prompt >)
     public func cleanELMResponse(_ raw: String) -> String {
-        var text = raw.replacingOccurrences(of: ">", with: "")
+        let text = raw.replacingOccurrences(of: ">", with: "")
                       .replacingOccurrences(of: "\r", with: "\n")
                       .replacingOccurrences(of: "SEARCHING...", with: "")
                       .replacingOccurrences(of: "BUS INIT...", with: "")

@@ -54,6 +54,37 @@ final class ABRPProfileLoaderTests: XCTestCase {
         XCTAssertEqual(voltVal, 370.0, accuracy: 0.1)
     }
 
+    /// Regression test for the fix that routes ABRP responses through
+    /// `ISO15765Parser.assembleISOTPPayload` first: a genuinely multi-frame reply (First
+    /// Frame + Consecutive Frame) must decode to the same value as the equivalent single-frame
+    /// reply, instead of reading garbage bytes from the interleaved CAN ID / PCI bytes.
+    func testABRPDecodesMultiFrameReplyIdenticallyToSingleFrame() throws {
+        let machE = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "ford_MachE.json"))
+
+        // First Frame (10 0A = total 10 data bytes: 62 48 F9 FF 9C 00 00 00 00 00),
+        // Consecutive Frame (21) carries the tail, including trailing pad past the declared
+        // length. The current DID formula only reads bytes A/B (= FF 9C), matching the
+        // single-frame fixture used in `testABRPCurrentUsesMeasuredVoltageNotNominal`.
+        let raw = "7E8 10 0A 62 48 F9 FF\r\n7E8 21 9C 00 00 00 00 00\r\n>"
+        guard case .packCurrent(let amps)? = machE.parseResponse(command: "2248F9", rawResponse: raw) else {
+            return XCTFail("Expected .packCurrent from multi-frame reply")
+        }
+        XCTAssertEqual(amps, -10.0, accuracy: 0.01)
+    }
+
+    /// `signed()` must work when embedded inside a larger arithmetic expression, not just as
+    /// a bare wrapper — matches the E-GMP `current` formula, which nests it two levels deep.
+    func testABRPSignedFunctionInsideLargerExpression() throws {
+        let ioniq5 = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "hkmc_Ioniq5.json"))
+        // Equation: ((Signed(K)*256)+L)/10. K = byte index 10, L = byte index 11.
+        // K = 0xFF (-1 signed), L = 0x9C (156) -> ((-1*256)+156)/10 = -10.0
+        let raw = "62 01 01 00 00 00 00 00 00 00 00 00 00 FF 9C\r\n>"
+        guard case .packCurrent(let amps)? = ioniq5.parseResponse(command: "220101", rawResponse: raw) else {
+            return XCTFail("Expected .packCurrent update")
+        }
+        XCTAssertEqual(amps, -10.0, accuracy: 0.01)
+    }
+
     func testVehicleCatalogDataDrivenLoading() {
         XCTAssertFalse(VehicleCatalog.brands.isEmpty, "Catalog brands should not be empty")
         XCTAssertGreaterThan(VehicleCatalog.allModels.count, 20, "Should load many vehicles from dataset")

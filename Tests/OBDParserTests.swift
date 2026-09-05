@@ -79,6 +79,37 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(payload, "6201000000FF0002FFFFAA")
     }
 
+    /// `assembleISOTPPayload` has no CAN-ID demux — it dispatches purely on the ISO-TP PCI
+    /// nibble and concatenates every line's data bytes into one buffer regardless of which
+    /// ECU sent it. Documents the current (naive) behavior for a broadcast reply where two
+    /// ECUs (7E8, 7E9) each answer with their own single frame: the two payloads are flattened
+    /// back-to-back rather than kept separate. (A caller like `DTCScannerService` that scans
+    /// for a service byte from the front would only ever see the first ECU's reply.)
+    func testISO15765ParserConcatenatesMultiECUBroadcastRepliesInArrivalOrder() {
+        let parser = ISO15765Parser()
+        // 7E8 replies "43 00" (service 0x43, count 0 = no stored codes).
+        // 7E9 replies "43 01 0A 80" (service 0x43, count 1, DTC 0A80).
+        let raw = "7E8 02 43 00\r\n7E9 04 43 01 0A 80\r\n>"
+        let payload = parser.assembleISOTPPayload(raw)
+        XCTAssertEqual(payload, "430043010A80")
+    }
+
+    /// `assembleISOTPPayload` never validates the Consecutive Frame sequence nibble (0x21,
+    /// 0x22, ...) — frames are appended in arrival order with no reordering or rejection.
+    /// Documents that a CF arriving out of order silently corrupts the assembled payload
+    /// instead of being detected.
+    func testISO15765ParserDoesNotReorderOutOfSequenceConsecutiveFrames() {
+        let parser = ISO15765Parser()
+        // First Frame declares 10 total bytes. The real CF (seq 1, "E8 00...") is preceded
+        // by a bogus CF claiming to be seq 2 ("FF FF...") — out of order on the wire.
+        let raw = "7E8 10 0A 62 01 05 0E 74 03\r\n7E8 22 FF FF FF FF FF FF\r\n7E8 21 E8 00 00 00 00 00 00\r\n>"
+        let payload = parser.assembleISOTPPayload(raw)
+        // The bogus "seq 2" frame's bytes land in the message ahead of the real "seq 1" data,
+        // and the declared-length truncation trims relative to arrival position, not sequence
+        // number — the correct trailing bytes (E800...) never make it into the payload.
+        XCTAssertEqual(payload, "6201050E7403FFFFFFFF")
+    }
+
     func testMercedesEQA250ForcesCANProtocolInsteadOfAutoDetect() {
         let profile = MercedesEQA250Profile()
         // Confirmed via direct BLE probing against a real EQA (scratch/bus_probe.swift):
@@ -158,6 +189,20 @@ final class OBDParserTests: XCTestCase {
         } else {
             XCTFail("Expected public Hyundai/Kia pack-power update")
         }
+    }
+
+    /// `220105`'s SOC branch (`ag/2` in the ABRP source) was previously untested — only the
+    /// `220101` power branch had coverage.
+    func testHyundaiKiaEGMPParsesSOCFrom220105() {
+        let profile = HyundaiKiaEGMPProfile()
+        var bytes = [String](repeating: "00", count: 40)
+        bytes[32] = "64" // 100 -> /2 = 50.0%
+        let raw = "62 01 05 " + bytes.joined(separator: " ") + "\r\n>"
+
+        guard case .soc(let pct)? = profile.parseResponse(command: "220105", rawResponse: raw) else {
+            return XCTFail("Expected SOC update from 220105")
+        }
+        XCTAssertEqual(pct, 50.0, accuracy: 0.01)
     }
 
     func testDTCLookup() {
