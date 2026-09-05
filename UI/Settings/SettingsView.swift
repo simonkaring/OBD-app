@@ -170,6 +170,10 @@ public struct SettingsView: View {
                         }
                     }
 
+                    NavigationLink("Profile Metric Status") {
+                        ProfileMetricStatusView(vehicleData: vehicleData)
+                    }
+
                     if vehicleData.isCalibrating {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
