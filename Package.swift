@@ -53,8 +53,7 @@ let package = Package(
                 "Data/Models",
                 "Data/Repositories",
                 "Services",
-                "UI",
-                "Widgets"
+                "UI"
             ],
             resources: [
                 .process("Data/Seed/dtc_definitions.json"),
