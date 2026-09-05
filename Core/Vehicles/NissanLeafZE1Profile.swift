@@ -37,27 +37,18 @@ public struct NissanLeafZE1Profile: VehicleProfile {
         switch command {
         case "2101":
             // Group 0x01 reply: SOC = (byte31<<16 | byte32<<8 | byte33) / 10000, in percent.
-            guard let payload = bytes(after: "6101", in: hex), payload.count > 33 else { return nil }
+            guard let payload = hex.hexBytes(after: "6101"), payload.count > 33 else { return nil }
             let raw = (UInt32(payload[31]) << 16) | (UInt32(payload[32]) << 8) | UInt32(payload[33])
             return .soc(Double(raw) / 10_000.0)
 
         case "2161":
             // Group 0x61 reply: SOH = (byte2<<8 | byte3) / 100, in percent.
-            guard let payload = bytes(after: "6161", in: hex), payload.count > 3 else { return nil }
+            guard let payload = hex.hexBytes(after: "6161"), payload.count > 3 else { return nil }
             let raw = (UInt16(payload[2]) << 8) | UInt16(payload[3])
             return .soh(Double(raw) / 100.0)
 
         default:
             return nil
-        }
-    }
-
-    private func bytes(after marker: String, in hex: String) -> [UInt8]? {
-        guard let range = hex.range(of: marker) else { return nil }
-        let suffix = String(hex[range.upperBound...])
-        guard suffix.count.isMultiple(of: 2) else { return nil }
-        return stride(from: 0, to: suffix.count, by: 2).compactMap {
-            UInt8(String(suffix.dropFirst($0).prefix(2)), radix: 16)
         }
     }
 }

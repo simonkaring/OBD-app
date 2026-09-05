@@ -56,7 +56,7 @@ public struct VolkswagenMEBProfile: VehicleProfile {
         switch command {
         case "03221E3D55555555":
             // Current DID 0x1E3D: response contains 62 1E 3D [A B C D]
-            guard let payload = extractPayload(after: "621E3D", in: hex), payload.count >= 4 else { return nil }
+            guard let payload = hex.hexBytes(after: "621E3D", count: 4) else { return nil }
             let a = Double(payload[0])
             let b = Double(payload[1])
             let c = Double(payload[2])
@@ -70,7 +70,7 @@ public struct VolkswagenMEBProfile: VehicleProfile {
 
         case "03221E3B55555555":
             // Voltage DID 0x1E3B: response contains 62 1E 3B [A B]
-            guard let payload = extractPayload(after: "621E3B", in: hex), payload.count >= 2 else { return nil }
+            guard let payload = hex.hexBytes(after: "621E3B", count: 2) else { return nil }
             let a = Double(payload[0])
             let b = Double(payload[1])
             let voltageV = ((a * 256.0) + b) / 4.0
@@ -78,7 +78,7 @@ public struct VolkswagenMEBProfile: VehicleProfile {
 
         case "0322028C55555555":
             // Display SOC DID 0x028C: response contains 62 02 8C [A]
-            guard let payload = extractPayload(after: "62028C", in: hex), payload.count >= 1 else { return nil }
+            guard let payload = hex.hexBytes(after: "62028C", count: 1) else { return nil }
             let a = Double(payload[0])
             let soc = (1.12 * a / 2.5) - 7.16
             let clampedSOC = min(100.0, max(0.0, soc))
@@ -86,7 +86,7 @@ public struct VolkswagenMEBProfile: VehicleProfile {
 
         case "0322744855555555":
             // Charging status DID 0x7448: bit 2 of byte A indicates charging
-            guard let payload = extractPayload(after: "627448", in: hex), payload.count >= 1 else { return nil }
+            guard let payload = hex.hexBytes(after: "627448", count: 1) else { return nil }
             let isCharging = (payload[0] & 0x04) != 0
             let isDCFC = (payload[0] & 0x02) != 0 && isCharging
             // The DID is a status bitfield, not a power reading — report an unknown rate
@@ -96,21 +96,5 @@ public struct VolkswagenMEBProfile: VehicleProfile {
         default:
             return nil
         }
-    }
-
-    private func extractPayload(after marker: String, in hex: String) -> [UInt8]? {
-        guard let range = hex.range(of: marker) else { return nil }
-        let suffix = String(hex[range.upperBound...])
-        guard suffix.count >= 2 else { return nil }
-        var bytes: [UInt8] = []
-        var index = suffix.startIndex
-        while suffix.distance(from: index, to: suffix.endIndex) >= 2 {
-            let next = suffix.index(index, offsetBy: 2)
-            if let byte = UInt8(suffix[index..<next], radix: 16) {
-                bytes.append(byte)
-            }
-            index = next
-        }
-        return bytes
     }
 }

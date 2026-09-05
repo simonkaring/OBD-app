@@ -31,7 +31,7 @@ public struct HyundaiKiaEGMPProfile: VehicleProfile {
 
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {
         let hex = isoParser.assembleISOTPPayload(rawResponse)
-        guard let payload = bytes(after: command == "220101" ? "620101" : "620105", in: hex) else { return nil }
+        guard let payload = hex.hexBytes(after: command == "220101" ? "620101" : "620105") else { return nil }
 
         switch command {
         case "220101":
@@ -50,15 +50,6 @@ public struct HyundaiKiaEGMPProfile: VehicleProfile {
 
         default:
             return nil
-        }
-    }
-
-    private func bytes(after header: String, in hex: String) -> [UInt8]? {
-        guard let range = hex.range(of: header) else { return nil }
-        let suffix = String(hex[range.upperBound...])
-        guard suffix.count.isMultiple(of: 2) else { return nil }
-        return stride(from: 0, to: suffix.count, by: 2).compactMap {
-            UInt8(String(suffix.dropFirst($0).prefix(2)), radix: 16)
         }
     }
 }

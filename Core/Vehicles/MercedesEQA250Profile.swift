@@ -49,7 +49,7 @@ public struct MercedesEQA250Profile: VehicleProfile {
         
         switch command {
         case "22010A", "22 01 0A": // BMS pack voltage (ECU 0x59)
-            if let bytes = extractBytes(from: cleanHex, header: "62010A", count: 2) {
+            if let bytes = cleanHex.hexBytes(after: "62010A", count: 2) {
                 let voltage = (Double(bytes[0]) * 256.0 + Double(bytes[1])) * 0.1
                 return .packVoltage(voltage)
             }
@@ -58,11 +58,11 @@ public struct MercedesEQA250Profile: VehicleProfile {
         case "220210", "22 02 10": // BMS customer SOC (ECU 0x59)
             // Live capture: 62 02 10 04 00 00 39 90 ... => 0x3990 / 250 = 58.944% gross cell SoC
             // Maps gross chemical SoC (with top & bottom reserve buffers) to usable customer display SoC (0–100%)
-            if let bytes = extractBytes(from: cleanHex, header: "620210", count: 5), bytes[0] == 0x04 {
+            if let bytes = cleanHex.hexBytes(after: "620210", count: 5), bytes[0] == 0x04 {
                 let raw = UInt32(bytes[1]) << 24 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 8 | UInt32(bytes[4])
                 let grossSoC = Double(raw) / 250.0
                 guard (0...100).contains(grossSoC) else { return nil }
-                
+
                 let minGross = 29.8
                 let maxGross = 96.0
                 let usableSoC = min(100.0, max(0.0, ((grossSoC - minGross) / (maxGross - minGross)) * 100.0))
@@ -71,7 +71,7 @@ public struct MercedesEQA250Profile: VehicleProfile {
             return nil
 
         case "22010B", "22 01 0B": // BMS pack current (ECU 0x59)
-            if let bytes = extractBytes(from: cleanHex, header: "62010B", count: 2) {
+            if let bytes = cleanHex.hexBytes(after: "62010B", count: 2) {
                 let rawInt16 = Int16(Int8(bitPattern: bytes[0])) * 256 + Int16(bytes[1])
                 let current = Double(rawInt16) * 0.1
                 return .packCurrent(current)
@@ -79,7 +79,7 @@ public struct MercedesEQA250Profile: VehicleProfile {
             return nil
 
         case "22010C", "22 01 0C": // BMS pack temperature
-            if let bytes = extractBytes(from: cleanHex, header: "62010C", count: 1) {
+            if let bytes = cleanHex.hexBytes(after: "62010C", count: 1) {
                 let temp = Double(Int(bytes[0]) - 40)
                 return .batteryTemp(min: temp, max: temp, avg: temp)
             }
@@ -88,21 +88,5 @@ public struct MercedesEQA250Profile: VehicleProfile {
         default:
             return nil
         }
-    }
-
-    private func extractBytes(from hex: String, header: String, count: Int) -> [UInt8]? {
-        guard let range = hex.range(of: header) else { return nil }
-        let afterHeader = String(hex[range.upperBound...])
-        guard afterHeader.count >= count * 2 else { return nil }
-        var bytes: [UInt8] = []
-        for i in 0..<count {
-            let start = afterHeader.index(afterHeader.startIndex, offsetBy: i * 2)
-            let end = afterHeader.index(start, offsetBy: 2)
-            let byteStr = String(afterHeader[start..<end])
-            if let b = UInt8(byteStr, radix: 16) {
-                bytes.append(b)
-            }
-        }
-        return bytes.count == count ? bytes : nil
     }
 }

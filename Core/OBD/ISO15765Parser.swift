@@ -92,3 +92,30 @@ public final class ISO15765Parser: Sendable {
         return payloadHex
     }
 }
+
+extension String {
+    /// Locates `marker` in this (already ISO-TP-assembled) hex string and returns every
+    /// whole byte after it. A trailing odd hex digit (shouldn't normally occur) is dropped
+    /// rather than treated as an error. Shared by every `VehicleProfile`'s decoder so byte
+    /// extraction isn't reimplemented per profile.
+    func hexBytes(after marker: String) -> [UInt8]? {
+        guard let range = range(of: marker) else { return nil }
+        let suffix = self[range.upperBound...]
+        let evenCount = suffix.count - suffix.count % 2
+        guard evenCount > 0 else { return [] }
+        return stride(from: 0, to: evenCount, by: 2).compactMap {
+            UInt8(suffix.dropFirst($0).prefix(2), radix: 16)
+        }
+    }
+
+    /// Same as `hexBytes(after:)`, but requires (and returns) at least `count` bytes.
+    func hexBytes(after marker: String, count: Int) -> [UInt8]? {
+        guard let bytes = hexBytes(after: marker), bytes.count >= count else { return nil }
+        return Array(bytes.prefix(count))
+    }
+
+    /// Single-byte convenience for `hexBytes(after:count:)`.
+    func hexByte(after marker: String) -> UInt8? {
+        hexBytes(after: marker, count: 1)?.first
+    }
+}
