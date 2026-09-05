@@ -113,6 +113,9 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         if definition.soh != nil { set.insert(.soh) }
         if definition.battTemp != nil { set.insert(.batteryTemp) }
         if definition.speed != nil { set.insert(.speed) }
+        if definition.extTemp != nil { set.insert(.ambientAirTemp) }
+        // `is_charging` feeds `snapshot.isCharging` via `.chargingStats` only — it has no
+        // dashboard tile of its own, so it is not advertised as a supported metric.
         return set
     }
 
@@ -173,6 +176,86 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         return nil
     }
 
+    /// Unlike `parseResponse` (first-matching-metric priority, kept for existing callers),
+    /// this evaluates EVERY metric definition whose `command` matches the current response —
+    /// e.g. one E-GMP `220101` reply carries current, voltage, and the charging-status bit.
+    public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
+        let buckets = isoParser.assembleISOTPPayloads(rawResponse)
+        guard !buckets.isEmpty else { return [] }
+        let concatenatedHex = buckets.map(\.payload).joined()
+
+        // ECU-aware bucket selection: prefer the bucket whose key matches (or is suffixed
+        // by) the metric definition's ECU; fall back to the concatenated hex otherwise.
+        func bytes(for def: ABRPMetricDefinition) -> [UInt8] {
+            var hex = concatenatedHex
+            if let ecu = def.ecu?.uppercased(), !ecu.isEmpty,
+               let match = buckets.first(where: { $0.ecu.uppercased() == ecu || $0.ecu.uppercased().hasSuffix(ecu) }) {
+                hex = match.payload
+            }
+            return extractBytes(from: hex, command: command)
+        }
+
+        var updates: [TelemetryUpdate] = []
+
+        if let def = definition.soc, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b) {
+                updates.append(.soc(min(100.0, max(0.0, v))))
+            }
+        }
+
+        if let def = definition.voltage, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b) {
+                updates.append(.packVoltage(v))
+            }
+        }
+
+        if let def = definition.current, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b) {
+                updates.append(.packCurrent(v))
+            }
+        }
+
+        if let def = definition.soh, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b) {
+                updates.append(.soh(min(100.0, max(0.0, v))))
+            }
+        }
+
+        if let def = definition.battTemp, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b) {
+                updates.append(.batteryTemp(min: v, max: v, avg: v))
+            }
+        }
+
+        if let def = definition.speed, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b) {
+                updates.append(.speed(max(0.0, v)))
+            }
+        }
+
+        if let def = definition.extTemp, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b) {
+                updates.append(.ambientAirTemp(v))
+            }
+        }
+
+        if let def = definition.isCharging, matchesCommand(def.command, currentCommand: command) {
+            let b = bytes(for: def)
+            if !b.isEmpty, let v = evaluate(equation: def.equation, bytes: b), v > 0.5 {
+                updates.append(.chargingStats(kwRate: nil, acOrDc: ""))
+            }
+        }
+
+        return updates
+    }
+
     /// Exact match only — substring matching cross-assigns metrics on profiles
     /// whose DIDs share a prefix (e.g. `2248F9` / `224845` / `22480D` on the Mach-E).
     private func matchesCommand(_ target: String?, currentCommand: String) -> Bool {
@@ -205,43 +288,64 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         return result
     }
 
-    /// Evaluates ABRP byte math expressions like `((Signed(K)*256)+L)/10`, `((A<<8)+B)*0.01`, `1.12*A/2.5-7.16`.
+    /// Evaluates ABRP byte math expressions like `((Signed(K)*256)+L)/10`, `((A<<8)+B)*0.01`,
+    /// `1.12*A/2.5-7.16`, `INT16(A:B)*0.1`, `{j:1}`, and two-letter spreadsheet-column tokens
+    /// (`ag`, `aa`, `ae`, ...) that address bytes 26 and beyond.
     private func evaluate(equation: String, bytes: [UInt8]) -> Double? {
         var expr = equation.trimmingCharacters(in: .whitespacesAndNewlines)
         if expr.isEmpty { return nil }
 
-        // Fast path for simple known patterns
-        // 1. Bit access: {A:2} or ({A:1}&&{A:2})
-        if expr.contains("{") && bytes.count > 0 {
-            if let bitRange = expr.range(of: "\\{[A-Za-z]:[0-9]+\\}", options: .regularExpression) {
-                let token = String(expr[bitRange])
-                let char = token.dropFirst(1).first ?? "A"
-                let bitIdx = Int(String(token.dropFirst(3).dropLast(1))) ?? 0
-                let byteIdx = byteIndex(for: char)
-                if byteIdx < bytes.count {
-                    let isSet = (bytes[byteIdx] & (1 << bitIdx)) != 0
-                    return isSet ? 1.0 : 0.0
-                }
-            }
+        // 1. INT16 pre-pass: INT16(hi:lo) -> ((Signed(hi)*256)+lo)
+        if let int16Regex = try? NSRegularExpression(pattern: "(?i)INT16\\(([A-Za-z]{1,2}):([A-Za-z]{1,2})\\)") {
+            expr = int16Regex.stringByReplacingMatches(
+                in: expr, range: NSRange(expr.startIndex..., in: expr),
+                withTemplate: "((Signed($1)*256)+$2)")
         }
 
-        // Replace every signed(X) with its signed integer value
-        if let signedRegex = try? NSRegularExpression(pattern: "(?i)signed\\(([a-z]+)\\)") {
+        // 2. Bit tokens: {token:bit} -> 1 or 0, via byteIndex(forToken:).
+        while let bitRange = expr.range(of: "\\{([A-Za-z]{1,2}):([0-9]+)\\}", options: .regularExpression) {
+            let token = String(expr[bitRange])
+            let inner = token.dropFirst().dropLast() // "token:bit"
+            let parts = inner.split(separator: ":")
+            guard parts.count == 2,
+                  let byteIdx = Self.byteIndex(forToken: String(parts[0])),
+                  let bitIdx = Int(parts[1]),
+                  byteIdx < bytes.count else { return nil }
+            let isSet = (bytes[byteIdx] & (1 << bitIdx)) != 0
+            expr.replaceSubrange(bitRange, with: isSet ? "1" : "0")
+        }
+
+        // 3. Boolean folding: !1/!0, then && -> *, || -> +.
+        var previous = ""
+        while previous != expr {
+            previous = expr
+            expr = expr.replacingOccurrences(of: "!1", with: "0")
+            expr = expr.replacingOccurrences(of: "!0", with: "1")
+        }
+        expr = expr.replacingOccurrences(of: "&&", with: "*")
+        expr = expr.replacingOccurrences(of: "||", with: "+")
+
+        // 4. Signed(token) -> signed integer value, via byteIndex(forToken:).
+        if let signedRegex = try? NSRegularExpression(pattern: "(?i)signed\\(([a-z]{1,2})\\)") {
             while let match = signedRegex.firstMatch(in: expr, range: NSRange(expr.startIndex..., in: expr)),
                   let charRange = Range(match.range(at: 1), in: expr) {
-                let idx = byteIndex(for: String(expr[charRange]).first ?? "A")
-                guard idx < bytes.count else { return nil }
+                guard let idx = Self.byteIndex(forToken: String(expr[charRange])), idx < bytes.count else { return nil }
                 let signedVal = Double(Int8(bitPattern: bytes[idx]))
                 expr = (expr as NSString).replacingCharacters(in: match.range, with: "(\(signedVal))")
             }
         }
 
-        // Replace byte letters (A..Z, AA..AZ) with their UInt8 value
-        for i in 0..<min(bytes.count, 26) {
-            let letter = Character(UnicodeScalar(65 + i)!)
-            let regex = try? NSRegularExpression(pattern: "\\b\(letter)\\b")
-            let numStr = "\(Double(bytes[i]))"
-            expr = regex?.stringByReplacingMatches(in: expr, range: NSRange(expr.startIndex..., in: expr), withTemplate: numStr) ?? expr
+        // 5. Byte-letter substitution: single/two-letter tokens -> their UInt8 value.
+        // Loop with firstMatch since replacement offsets shift; the parenthesized numeric
+        // replacement never re-matches `\b[A-Za-z]{1,2}\b`, so this always terminates.
+        if let tokenRegex = try? NSRegularExpression(pattern: "\\b[A-Za-z]{1,2}\\b") {
+            while let match = tokenRegex.firstMatch(in: expr, range: NSRange(expr.startIndex..., in: expr)),
+                  let tokenRange = Range(match.range, in: expr) {
+                let token = String(expr[tokenRange])
+                guard let idx = Self.byteIndex(forToken: token), idx < bytes.count else { return nil }
+                let numStr = "(\(Double(bytes[idx])))"
+                expr = (expr as NSString).replacingCharacters(in: match.range, with: numStr)
+            }
         }
 
         // Replace bitshifts `<<` with power-of-2 multiplications
@@ -253,9 +357,8 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         let cleanExpr = expr.replacingOccurrences(of: "--", with: "+")
 
         // ponytail: NSExpression(format:) raises an *uncatchable* ObjC exception on
-        // anything that isn't a well-formed expression — e.g. Mini's "INT16(A:B)*0.1",
-        // or multi-letter byte tokens (ER, FJ, ay) the A..Z substitution above skips.
-        // Reject non-arithmetic input here rather than crash the app mid-drive.
+        // anything that isn't a well-formed expression. Reject non-arithmetic input here
+        // rather than crash the app mid-drive.
         // Upgrade path: a real tokenizer if the ABRP grammar grows past byte math.
         guard cleanExpr.range(of: "^[0-9.+*/() -]+$", options: .regularExpression) != nil else { return nil }
 
@@ -267,10 +370,15 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         return nil
     }
 
-    private func byteIndex(for char: Character) -> Int {
-        let upper = String(char).uppercased().first ?? "A"
-        let val = Int(upper.asciiValue ?? 65)
-        return max(0, val - 65)
+    /// A..Z (case-insensitive) = 0..25, aa..az = 26..51, ba.. = 52.. (spreadsheet columns).
+    static func byteIndex(forToken token: String) -> Int? {
+        let chars = token.uppercased().compactMap { $0.asciiValue }.map { Int($0) - 65 }
+        guard chars.allSatisfy({ (0..<26).contains($0) }) else { return nil }
+        switch chars.count {
+        case 1: return chars[0]
+        case 2: return (chars[0] + 1) * 26 + chars[1]
+        default: return nil
+        }
     }
 }
 

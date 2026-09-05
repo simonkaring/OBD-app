@@ -245,6 +245,49 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(pct, 50.0, accuracy: 0.01)
     }
 
+    /// `parseResponses` emits SOH alongside SOC (from 220105) and 12V aux alongside pack
+    /// power (from 220101) — both live in the same payload as the primary metric.
+    func testEGMPEmitsSOHAndAux12VAlongsidePrimaryMetrics() {
+        let profile = HyundaiKiaEGMPProfile()
+
+        var payload101 = [String](repeating: "00", count: 31)
+        payload101[10] = "FF"; payload101[11] = "9C" // current -10.0 A
+        payload101[13] = "0E"; payload101[14] = "74" // voltage 370.0 V
+        payload101[30] = "8A" // aux12V -> 138 * 0.1 = 13.8 V
+        let raw101 = "62 01 01 " + payload101.joined(separator: " ") + "\r\n>"
+        let updates101 = profile.parseResponses(command: "220101", rawResponse: raw101)
+
+        XCTAssertEqual(updates101.count, 2)
+        guard case .power(let voltage, let current, let powerKW)? = updates101.first(where: {
+            if case .power = $0 { return true } else { return false }
+        }) else { return XCTFail("Expected power update, got \(updates101)") }
+        XCTAssertEqual(voltage, 370.0, accuracy: 0.01)
+        XCTAssertEqual(current, -10.0, accuracy: 0.01)
+        XCTAssertEqual(powerKW, -3.7, accuracy: 0.01)
+        guard case .aux12V(let aux)? = updates101.first(where: {
+            if case .aux12V = $0 { return true } else { return false }
+        }) else { return XCTFail("Expected aux12V update, got \(updates101)") }
+        XCTAssertEqual(aux, 13.8, accuracy: 0.01)
+
+        var payload105 = [String](repeating: "00", count: 33)
+        payload105[26] = "03"; payload105[27] = "DE" // soh 990/10 = 99.0
+        payload105[32] = "64" // soc 100/2 = 50.0
+        let raw105 = "62 01 05 " + payload105.joined(separator: " ") + "\r\n>"
+        let updates105 = profile.parseResponses(command: "220105", rawResponse: raw105)
+
+        XCTAssertEqual(updates105.count, 2)
+        guard case .soc(let soc)? = updates105.first(where: {
+            if case .soc = $0 { return true } else { return false }
+        }) else { return XCTFail("Expected soc update, got \(updates105)") }
+        XCTAssertEqual(soc, 50.0, accuracy: 0.01)
+        guard case .soh(let soh)? = updates105.first(where: {
+            if case .soh = $0 { return true } else { return false }
+        }) else { return XCTFail("Expected soh update, got \(updates105)") }
+        XCTAssertEqual(soh, 99.0, accuracy: 0.01)
+
+        XCTAssertTrue(profile.supportedMetrics.isSuperset(of: [.soh, .aux12V]))
+    }
+
     func testDTCLookup() {
         let db = DTCLocalDatabase.shared
         let code = db.lookup(code: "P0A80")
@@ -341,11 +384,46 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(pct, 100.0, accuracy: 0.01)
     }
 
-    /// `INT16(A:B)*0.1` is not valid NSExpression syntax — it must be rejected, not
-    /// handed to `NSExpression(format:)` where it raises an uncatchable ObjC exception.
-    func testABRPRejectsNonArithmeticEquationInsteadOfCrashing() throws {
+    /// `INT16(hi:lo)` is pre-processed into `((Signed(hi)*256)+lo)` before evaluation, so the
+    /// Mini's SOC equation now evaluates instead of being rejected as non-arithmetic.
+    func testABRPEvaluatesINT16Equation() throws {
         let mini = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "Mini_MiniCooperSE.json"))
-        XCTAssertNil(mini.parseResponse(command: "22DDBC", rawResponse: "607 05 62 DD BC 02 EE\r\n>"))
+        guard case .soc(let pct)? = mini.parseResponse(command: "22DDBC", rawResponse: "607 05 62 DD BC 02 EE\r\n>") else {
+            return XCTFail("Expected SOC update")
+        }
+        XCTAssertEqual(pct, 75.0, accuracy: 0.01)
+    }
+
+    /// Genuinely malformed equations must still be rejected, not handed to
+    /// `NSExpression(format:)` where they raise an uncatchable ObjC exception.
+    func testABRPStillRejectsMalformedEquations() throws {
+        let json = """
+        {
+            "init_commands": {"command": ["ATZ"]},
+            "data_commands": {"command": ["22DDBC"]},
+            "obd_protocol": "6",
+            "soc": {"equation": "GARBAGE(A;B", "minValue": "0", "maxValue": "100", "type": "Number", "command": "22DDBC"}
+        }
+        """
+        let def = try JSONDecoder().decode(ABRPProfileDefinition.self, from: try XCTUnwrap(json.data(using: .utf8)))
+        let profile = ABRPGenericVehicleProfile(name: "Malformed", capacityKWh: 50.0, definition: def)
+        XCTAssertNil(profile.parseResponse(command: "22DDBC", rawResponse: "607 05 62 DD BC 02 EE\r\n>"))
+    }
+
+    /// Lowercase two-letter tokens (spreadsheet-column addressing past byte 25) previously
+    /// never matched the single-letter A-Z fast path, so `hkmc_hkmc2019.json`'s `af/2` SOC
+    /// equation silently never evaluated.
+    func testABRPEvaluatesLowercaseTwoLetterTokens() throws {
+        let hkmc = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "hkmc_hkmc2019.json"))
+        var payload = [String](repeating: "00", count: 32)
+        payload[31] = "A0" // af -> byte 31; 0xA0 = 160 -> /2 = 80.0
+        let raw = "62 01 05 " + payload.joined(separator: " ") + "\r\n>"
+        let updates = hkmc.parseResponses(command: "220105", rawResponse: raw)
+
+        guard case .soc(let pct)? = updates.first(where: { if case .soc = $0 { return true } else { return false } }) else {
+            return XCTFail("Expected SOC update, got \(updates)")
+        }
+        XCTAssertEqual(pct, 80.0, accuracy: 0.01)
     }
 
     /// Substring matching cross-assigned metrics between DIDs sharing a prefix.
@@ -359,6 +437,33 @@ final class OBDParserTests: XCTestCase {
             return XCTFail("224845 should decode as SOC")
         }
         XCTAssertEqual(pct, 50.0, accuracy: 0.01)
+    }
+
+    /// One `220101` reply on the IONIQ 5 / EV6 profile carries current, voltage, and the
+    /// charging-status bit all at once — `parseResponses` must emit all three.
+    func testABRPParseResponsesEmitsAllMetricsForOneCommand() throws {
+        let ioniq5 = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "hkmc_Ioniq5.json"))
+        var payload = [String](repeating: "00", count: 15)
+        payload[9] = "02"  // {j:1} charging bit set
+        payload[10] = "FF"; payload[11] = "9C" // current -10.0 A
+        payload[13] = "0E"; payload[14] = "74" // voltage 370.0 V
+        let raw = "62 01 01 " + payload.joined(separator: " ") + "\r\n>"
+        let updates = ioniq5.parseResponses(command: "220101", rawResponse: raw)
+
+        guard case .packCurrent(let amps)? = updates.first(where: {
+            if case .packCurrent = $0 { return true } else { return false }
+        }) else { return XCTFail("Expected packCurrent update, got \(updates)") }
+        XCTAssertEqual(amps, -10.0, accuracy: 0.01)
+
+        guard case .packVoltage(let volts)? = updates.first(where: {
+            if case .packVoltage = $0 { return true } else { return false }
+        }) else { return XCTFail("Expected packVoltage update, got \(updates)") }
+        XCTAssertEqual(volts, 370.0, accuracy: 0.01)
+
+        guard case .chargingStats(let kwRate, _)? = updates.first(where: {
+            if case .chargingStats = $0 { return true } else { return false }
+        }) else { return XCTFail("Expected chargingStats update, got \(updates)") }
+        XCTAssertNil(kwRate)
     }
 
     // MARK: - Nissan Leaf ZE1 (OVMS-derived, request/response PIDs only)

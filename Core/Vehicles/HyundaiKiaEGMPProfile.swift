@@ -22,11 +22,12 @@ public struct HyundaiKiaEGMPProfile: VehicleProfile {
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        // `parseResponse` emits exactly one update per reply: pack power (V/A/kW) from
-        // 220101 and SOC from 220105. SOH, pack temperature and the 12 V aux reading live
-        // in the same payloads but can't be emitted alongside, so they are not advertised —
-        // claiming them made the dashboard show permanently blank "supported" tiles.
-        [.power, .packVoltage, .packCurrent, .soc]
+        // `parseResponses` emits multiple updates per reply: pack power (V/A/kW) plus the
+        // 12 V aux reading from 220101, and SOC plus SOH from 220105. Pack temperature is
+        // deliberately not emitted — the only source entries in hkmc_Ioniq5.json for it are
+        // underscore-disabled (`_Bat_Min_Temp`/`_Bat_Max_Temp`) and collide with the
+        // pack-voltage bytes used here, so it can't be cross-checked against a bundled JSON.
+        [.power, .packVoltage, .packCurrent, .soc, .soh, .aux12V]
     }
 
     public init() {}
@@ -52,6 +53,31 @@ public struct HyundaiKiaEGMPProfile: VehicleProfile {
 
         default:
             return nil
+        }
+    }
+
+    /// Emits the primary metric from `parseResponse` plus any secondary metric decodable
+    /// from the same payload: 12 V aux voltage alongside pack power, and SOH alongside SOC.
+    public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
+        guard let base = parseResponse(command: command, rawResponse: rawResponse) else { return [] }
+        guard let payload = isoParser.assembleISOTPPayload(rawResponse)
+            .hexBytes(after: command == "220101" ? "620101" : "620105") else { return [base] }
+
+        switch command {
+        case "220101":
+            // ABRP: _Aux_Bat_Voltage = ae*0.1 (byte 30).
+            guard payload.count > 30 else { return [base] }
+            return [base, .aux12V(Double(payload[30]) * 0.1)]
+
+        case "220105":
+            // ABRP: SOH = ((aa<<8)+ab)/10 (bytes 26/27).
+            guard payload.count > 32 else { return [base] }
+            let soh = Double(UInt16(payload[26]) << 8 | UInt16(payload[27])) / 10
+            guard (0...100).contains(soh) else { return [base] }
+            return [base, .soh(soh)]
+
+        default:
+            return [base]
         }
     }
 }
