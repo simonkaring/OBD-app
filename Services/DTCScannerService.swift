@@ -115,8 +115,21 @@ public final class DTCScannerService: ObservableObject {
     }
 
     /// `internal` (not `private`) so unit tests can exercise the decoder directly.
+    /// Merges DTCs from every responding ECU's ISO-TP bucket (deduped by `.code`, preserving
+    /// arrival order) so a broadcast scan where one module reports "no codes" doesn't hide
+    /// another module's codes.
     func parseDTCResponse(_ hex: String, serviceByte: UInt8) -> [DTCCode] {
-        let payload = isoParser.assembleISOTPPayload(hex)
+        var results: [DTCCode] = []
+        for (_, payload) in isoParser.assembleISOTPPayloads(hex) {
+            for code in decodeDTCs(fromPayload: payload, serviceByte: serviceByte)
+            where !results.contains(where: { $0.code == code.code }) {
+                results.append(code)
+            }
+        }
+        return results
+    }
+
+    private func decodeDTCs(fromPayload payload: String, serviceByte: UInt8) -> [DTCCode] {
         let bytes = Self.hexStringToBytes(payload)
 
         guard let serviceIndex = bytes.firstIndex(of: serviceByte), serviceIndex + 1 < bytes.count else { return [] }

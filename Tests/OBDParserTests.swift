@@ -85,29 +85,53 @@ final class OBDParserTests: XCTestCase {
     /// ECUs (7E8, 7E9) each answer with their own single frame: the two payloads are flattened
     /// back-to-back rather than kept separate. (A caller like `DTCScannerService` that scans
     /// for a service byte from the front would only ever see the first ECU's reply.)
-    func testISO15765ParserConcatenatesMultiECUBroadcastRepliesInArrivalOrder() {
+    /// Two ECUs replying to the same broadcast are demuxed into separate per-ECU payloads
+    /// instead of being flattened into one buffer.
+    func testISO15765ParserDemuxesMultiECUBroadcastReplies() {
         let parser = ISO15765Parser()
         // 7E8 replies "43 00" (service 0x43, count 0 = no stored codes).
         // 7E9 replies "43 01 0A 80" (service 0x43, count 1, DTC 0A80).
         let raw = "7E8 02 43 00\r\n7E9 04 43 01 0A 80\r\n>"
-        let payload = parser.assembleISOTPPayload(raw)
-        XCTAssertEqual(payload, "430043010A80")
+        let results = parser.assembleISOTPPayloads(raw)
+        XCTAssertEqual(results.map(\.ecu), ["7E8", "7E9"])
+        XCTAssertEqual(results.map(\.payload), ["4300", "43010A80"])
     }
 
-    /// `assembleISOTPPayload` never validates the Consecutive Frame sequence nibble (0x21,
-    /// 0x22, ...) — frames are appended in arrival order with no reordering or rejection.
-    /// Documents that a CF arriving out of order silently corrupts the assembled payload
-    /// instead of being detected.
-    func testISO15765ParserDoesNotReorderOutOfSequenceConsecutiveFrames() {
+    func testDTCScannerMergesCodesFromAllRespondingECUs() {
+        let scanner = DTCScannerService()
+        // 7E8 replies "no codes"; 7E9 reports DTC 0A80 — the merge must not let 7E8's
+        // empty reply hide 7E9's code.
+        let raw = "7E8 02 43 00\r\n7E9 04 43 01 0A 80\r\n>"
+        let codes = scanner.parseDTCResponse(raw, serviceByte: 0x43)
+        XCTAssertEqual(codes.map(\.code), ["P0A80"])
+    }
+
+    /// A Consecutive Frame arriving with the wrong sequence nibble now invalidates that
+    /// ECU's bucket entirely, rather than silently corrupting the assembled payload.
+    func testISO15765ParserDropsMessageWithOutOfOrderConsecutiveFrame() {
         let parser = ISO15765Parser()
         // First Frame declares 10 total bytes. The real CF (seq 1, "E8 00...") is preceded
         // by a bogus CF claiming to be seq 2 ("FF FF...") — out of order on the wire.
         let raw = "7E8 10 0A 62 01 05 0E 74 03\r\n7E8 22 FF FF FF FF FF FF\r\n7E8 21 E8 00 00 00 00 00 00\r\n>"
-        let payload = parser.assembleISOTPPayload(raw)
-        // The bogus "seq 2" frame's bytes land in the message ahead of the real "seq 1" data,
-        // and the declared-length truncation trims relative to arrival position, not sequence
-        // number — the correct trailing bytes (E800...) never make it into the payload.
-        XCTAssertEqual(payload, "6201050E7403FFFFFFFF")
+        XCTAssertEqual(parser.assembleISOTPPayload(raw), "")
+        XCTAssertEqual(parser.assembleISOTPPayloads(raw).count, 0)
+    }
+
+    /// Two ECUs interleaving First Frame + Consecutive Frame sequences must not clobber
+    /// each other's multi-frame reassembly context.
+    func testISO15765ParserKeepsSeparateMultiFrameContextsPerECU() {
+        let parser = ISO15765Parser()
+        let raw = """
+        7E8 10 0A 62 01 05 0E 74 03\r
+        7E9 10 09 62 01 0A 0D 3E 00\r
+        7E8 21 E8 00 00 00 00 00 00\r
+        7E9 21 11 22 33\r
+        >
+        """
+        let results = parser.assembleISOTPPayloads(raw)
+        let byECU = Dictionary(uniqueKeysWithValues: results.map { ($0.ecu, $0.payload) })
+        XCTAssertEqual(byECU["7E8"], "6201050E7403E8000000")
+        XCTAssertEqual(byECU["7E9"], "62010A0D3E00112233")
     }
 
     func testMercedesEQA250ForcesCANProtocolInsteadOfAutoDetect() {
