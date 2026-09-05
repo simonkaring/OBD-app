@@ -9,11 +9,21 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     private var cancellables = Set<AnyCancellable>()
     private var tabBarTemplate: CPTabBarTemplate?
 
+    /// `CarPlayLayout.load()` decodes JSON out of `UserDefaults` — cache it and only reload
+    /// when the tile selection actually changes (edited on the phone side), not on every
+    /// telemetry tick (rebuildInterface can run up to 5x/sec).
+    private var cachedLayout = CarPlayLayout.load()
+    /// Last rendered dial image per metric, keyed with the value it was rendered at, so a
+    /// telemetry tick that doesn't meaningfully change a metric skips the (expensive)
+    /// `ImageRenderer` pass for that tile.
+    private var dialImageCache: [TelemetryMetric: (value: Double, image: UIImage)] = [:]
+
     public func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
         didConnect interfaceController: CPInterfaceController
     ) {
         self.interfaceController = interfaceController
+        cachedLayout = CarPlayLayout.load()
         rebuildInterface()
 
         AppEnvironment.shared.vehicleData.$latestTelemetry
@@ -26,6 +36,19 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.rebuildInterface() }
             .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                let reloaded = CarPlayLayout.load()
+                if reloaded != self.cachedLayout {
+                    self.cachedLayout = reloaded
+                    self.dialImageCache.removeAll()
+                    self.rebuildInterface()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     public func templateApplicationScene(
@@ -35,13 +58,14 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         cancellables.removeAll()
         self.interfaceController = nil
         self.tabBarTemplate = nil
+        self.dialImageCache.removeAll()
     }
 
     private func rebuildInterface() {
         let vehicleData = AppEnvironment.shared.vehicleData
         let dtcService = AppEnvironment.shared.dtcService
         let snapshot = vehicleData.latestTelemetry
-        let layout = CarPlayLayout.load()
+        let layout = cachedLayout
 
         // 1. Driving Mode Template
         let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
@@ -125,7 +149,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         case .metric(let metric):
             guard isDemoMode || supportedMetrics.contains(metric) else { return nil }
             let value = metric.value(in: snapshot)
-            let image = renderDialImage(for: metric, value: value)
+            let image = cachedDialImage(for: metric, value: value)
             let valueStr = isDemoMode || liveMetrics.contains(metric) ? String(format: "%.1f %@", value, metric.unitSymbol) : "-- \(metric.unitSymbol)"
             return CPGridButton(titleVariants: [metric.displayName.uppercased(), valueStr], image: image) { _ in }
 
@@ -143,20 +167,24 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         }
     }
 
+    /// Reuses the previous render when `value` hasn't moved meaningfully — `ImageRenderer`
+    /// is expensive and `rebuildInterface()` can run up to 5x/sec while driving.
+    @MainActor
+    private func cachedDialImage(for metric: TelemetryMetric, value: Double) -> UIImage {
+        if let cached = dialImageCache[metric], abs(cached.value - value) < 0.5 {
+            return cached.image
+        }
+        let image = renderDialImage(for: metric, value: value)
+        dialImageCache[metric] = (value, image)
+        return image
+    }
+
     @MainActor
     private func renderDialImage(for metric: TelemetryMetric, value: Double) -> UIImage {
-        let dialView: MetricDialView
-        switch metric {
-        case .speed:
-            dialView = MetricDialView(value: value, range: 0...200, mode: .unidirectional, unit: metric.unitSymbol, label: metric.displayName)
-        case .power:
-            dialView = MetricDialView(value: value, range: -50...150, mode: .bidirectional(negativeMax: -50), unit: metric.unitSymbol, label: metric.displayName)
-        case .soc:
-            dialView = MetricDialView(value: value, range: 0...100, mode: .unidirectional, unit: metric.unitSymbol, label: metric.displayName)
-        default:
-            dialView = MetricDialView(value: value, range: 0...100, mode: .unidirectional, unit: metric.unitSymbol, label: metric.displayName)
-        }
-        
+        let range = metric.defaultRange
+        let mode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional
+        let dialView = MetricDialView(value: value, range: range, mode: mode, unit: metric.unitSymbol, label: metric.displayName)
+
         let container = dialView
             .padding(4)
             .frame(width: 320, height: 320)
