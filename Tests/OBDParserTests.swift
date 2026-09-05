@@ -1,6 +1,26 @@
 import XCTest
 @testable import VoltLinkEngine
 
+/// Records every command written and replies with one canned response.
+private final class ScriptedConnection: OBDConnectionProtocol {
+    var state: BLEConnectionState = .ready(deviceName: "Scripted")
+    weak var delegate: OBDConnectionDelegate?
+    private(set) var sentCommands: [String] = []
+    private let response: Result<String, Error>
+
+    init(response: Result<String, Error>) {
+        self.response = response
+    }
+
+    func connect(peripheralName: String?) {}
+    func disconnect() {}
+
+    func sendCommand(_ command: String, completion: ((Result<String, Error>) -> Void)?) {
+        sentCommands.append(command)
+        completion?(response)
+    }
+}
+
 final class OBDParserTests: XCTestCase {
     
     func testISO15765ParserSingleFrame() {
@@ -12,10 +32,28 @@ final class OBDParserTests: XCTestCase {
 
     func testISO15765ParserMultiFrame() {
         let parser = ISO15765Parser()
-        // First Frame (10 0A = length 10) + Consecutive Frame (21 = sequence 1), spaces on (AT S1)
+        // First Frame (10 0A = 10 total data bytes) + Consecutive Frame (21 = sequence 1),
+        // spaces on (AT S1). The CF's trailing 00 padding is beyond the declared length
+        // and must be dropped, otherwise byte offsets past the message read as zeros.
         let raw = "7E8 10 0A 62 01 05 0E 74 03\r\n7E8 21 E8 00 00 00 00 00 00\r\n>"
         let payload = parser.assembleISOTPPayload(raw)
-        XCTAssertEqual(payload, "6201050E7403E8000000000000")
+        XCTAssertEqual(payload, "6201050E7403E8000000")
+    }
+
+    func testISO15765ParserDiscardsFlowControlFrames() {
+        let parser = ISO15765Parser()
+        // The adapter echoes back the flow-control frame it sent (30 00 00) between
+        // the first and consecutive frames; it carries no payload.
+        let raw = "7E8 10 0A 62 01 05 0E 74 03\r\n7E0 30 00 00 00 00 00 00 00\r\n7E8 21 E8 00 00 00 00 00 00\r\n>"
+        let payload = parser.assembleISOTPPayload(raw)
+        XCTAssertEqual(payload, "6201050E7403E8000000")
+    }
+
+    func testISO15765ParserSkipsNonHexAdapterChatter() {
+        let parser = ISO15765Parser()
+        let raw = "NO DATA\r\n7E8 03 41 0D 32\r\nCAN ERROR\r\n>"
+        let payload = parser.assembleISOTPPayload(raw)
+        XCTAssertEqual(payload, "410D32")
     }
 
     func testISO15765ParserSingleFrameZeroLengthDoesNotCrash() {
@@ -155,6 +193,38 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(codes.map(\.code), ["P0143", "P0133", "P0247", "P0301"])
     }
 
+    /// The raw Mode 04 reply carries the `>` prompt and CAN header, so the odd-length hex
+    /// string decoded to zero bytes and success was never detected.
+    func testClearDTCsDetectsPositiveResponseInRawAdapterText() {
+        let scanner = DTCScannerService()
+        let connection = ScriptedConnection(response: .success("7E8 01 44\r\n>"))
+        var result: Bool?
+        scanner.clearDTCs(connection: connection) { result = $0 }
+        XCTAssertEqual(result, true)
+        XCTAssertEqual(connection.sentCommands, ["04"])
+    }
+
+    func testClearDTCsReportsFailureOnNegativeResponse() {
+        let scanner = DTCScannerService()
+        var result: Bool?
+        scanner.clearDTCs(connection: ScriptedConnection(response: .success("7F 04 12\r\n>"))) { result = $0 }
+        XCTAssertEqual(result, false)
+
+        scanner.clearDTCs(connection: ScriptedConnection(response: .success("NO DATA\r\n>"))) { result = $0 }
+        XCTAssertEqual(result, false)
+    }
+
+    /// Mode 03/07 need broadcast addressing, so the profile's receive filter must be
+    /// cleared first and its addressing restored afterwards.
+    func testScanClearsReceiveFilterAndRestoresProfileAddressing() {
+        let scanner = DTCScannerService()
+        let connection = ScriptedConnection(response: .success("43 00 00 00 00 00\r\n>"))
+        scanner.scanDTCs(connection: connection, isDemo: false, restoreCommands: ["ATCRA 18DAF159", "AT SH 18DA59F1"])
+
+        XCTAssertEqual(connection.sentCommands.prefix(3).map { $0 }, ["AT CRA", "AT SH 7DF", "03"])
+        XCTAssertEqual(connection.sentCommands.suffix(2).map { $0 }, ["ATCRA 18DAF159", "AT SH 18DA59F1"])
+    }
+
     func testDTCScannerModePendingCodes() {
         let scanner = DTCScannerService()
         let raw = "47 01 0A 80\r\n>"
@@ -169,7 +239,7 @@ final class OBDParserTests: XCTestCase {
     func testABRPCurrentUsesMeasuredVoltageNotNominal() throws {
         let machE = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "ford_MachE.json"))
         // ((signed(A)*256)+B)*0.1 over FF 9C = -10.0 A
-        let update = machE.parseResponse(command: "2248F9", rawResponse: "7E8 04 62 48 F9 FF 9C\r\n>")
+        let update = machE.parseResponse(command: "2248F9", rawResponse: "7E8 05 62 48 F9 FF 9C\r\n>")
         guard case .packCurrent(let amps)? = update else {
             return XCTFail("expected .packCurrent, got \(String(describing: update))")
         }
@@ -179,7 +249,7 @@ final class OBDParserTests: XCTestCase {
     /// `supportedMetrics` advertised SOH but `parseResponse` never emitted it.
     func testABRPEmitsStateOfHealth() throws {
         let machE = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "ford_MachE.json"))
-        let update = machE.parseResponse(command: "22490C", rawResponse: "7E8 03 62 49 0C C8\r\n>")
+        let update = machE.parseResponse(command: "22490C", rawResponse: "7E8 04 62 49 0C C8\r\n>")
         guard case .soh(let pct)? = update else {
             return XCTFail("expected .soh, got \(String(describing: update))")
         }
@@ -190,17 +260,17 @@ final class OBDParserTests: XCTestCase {
     /// handed to `NSExpression(format:)` where it raises an uncatchable ObjC exception.
     func testABRPRejectsNonArithmeticEquationInsteadOfCrashing() throws {
         let mini = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "Mini_MiniCooperSE.json"))
-        XCTAssertNil(mini.parseResponse(command: "22DDBC", rawResponse: "607 04 62 DD BC 02 EE\r\n>"))
+        XCTAssertNil(mini.parseResponse(command: "22DDBC", rawResponse: "607 05 62 DD BC 02 EE\r\n>"))
     }
 
     /// Substring matching cross-assigned metrics between DIDs sharing a prefix.
     func testABRPDoesNotCrossAssignMetricsBetweenSimilarDIDs() throws {
         let machE = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "ford_MachE.json"))
         // 2248F9 is current; 224845 is SOC. Neither response may decode as the other.
-        if case .soc? = machE.parseResponse(command: "2248F9", rawResponse: "7E8 04 62 48 F9 FF 9C\r\n>") {
+        if case .soc? = machE.parseResponse(command: "2248F9", rawResponse: "7E8 05 62 48 F9 FF 9C\r\n>") {
             XCTFail("current response decoded as SOC")
         }
-        guard case .soc(let pct)? = machE.parseResponse(command: "224845", rawResponse: "7E8 03 62 48 45 64\r\n>") else {
+        guard case .soc(let pct)? = machE.parseResponse(command: "224845", rawResponse: "7E8 04 62 48 45 64\r\n>") else {
             return XCTFail("224845 should decode as SOC")
         }
         XCTAssertEqual(pct, 50.0, accuracy: 0.01)
@@ -232,13 +302,13 @@ final class OBDParserTests: XCTestCase {
 
     func testBYDAtto3SOCAndVoltageParsing() throws {
         let bydAtto3 = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "byd_atto3.json"))
-        guard case .soc(let pct)? = bydAtto3.parseResponse(command: "220005", rawResponse: "7EF 03 62 00 05 46\r\n>") else {
+        guard case .soc(let pct)? = bydAtto3.parseResponse(command: "220005", rawResponse: "7EF 04 62 00 05 46\r\n>") else {
             return XCTFail("Expected SOC update")
         }
         XCTAssertEqual(pct, 70.0, accuracy: 0.01)
 
         // Bytes 0F A0 = 4000 -> /10 = 400.0V
-        guard case .packVoltage(let volts)? = bydAtto3.parseResponse(command: "220008", rawResponse: "7EF 04 62 00 08 0F A0\r\n>") else {
+        guard case .packVoltage(let volts)? = bydAtto3.parseResponse(command: "220008", rawResponse: "7EF 05 62 00 08 0F A0\r\n>") else {
             return XCTFail("Expected packVoltage update")
         }
         XCTAssertEqual(volts, 400.0, accuracy: 0.01)

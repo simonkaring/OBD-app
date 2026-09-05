@@ -262,7 +262,49 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         liveMetrics.remove(.speed)
     }
 
+    /// Physically plausible bounds per decoded quantity. Several vehicle profiles carry
+    /// unverified community scaling factors; rejecting out-of-range values here means a
+    /// wrong decode shows up as *missing* data on the dashboard rather than as garbage,
+    /// and protects every profile at once instead of clamping in each decoder.
+    static func isPlausible(_ update: TelemetryUpdate) -> Bool {
+        func ok(_ value: Double, _ range: ClosedRange<Double>) -> Bool {
+            value.isFinite && range.contains(value)
+        }
+
+        switch update {
+        case .speed(let v):                     return ok(v, 0...400)
+        case .power(let volts, let amps, let kw):
+            return ok(volts, 0...1_000) && ok(amps, -1_500...1_500) && ok(kw, -1_000...1_000)
+        case .packVoltage(let v):               return ok(v, 0...1_000)
+        case .packCurrent(let v):               return ok(v, -1_500...1_500)
+        case .soc(let v):                       return ok(v, 0...100)
+        case .soh(let v):                       return ok(v, 0...100)
+        case .batteryTemp(let lo, let hi, let avg):
+            return ok(lo, -50...100) && ok(hi, -50...100) && ok(avg, -50...100)
+        case .aux12V(let v):                    return ok(v, 0...36)
+        case .motorStats(let rpm, let torque):  return ok(rpm, -30_000...30_000) && ok(torque, -5_000...5_000)
+        case .hvacPower(let v):                 return ok(v, -50...50)
+        case .chargingStats(let kw, _):         return kw.map { ok($0, 0...600) } ?? true
+        case .fuelLevel(let v):                 return ok(v, 0...100)
+        case .throttlePosition(let v):          return ok(v, 0...100)
+        case .engineLoad(let v):                return ok(v, 0...100)
+        case .coolantTemp(let v):               return ok(v, -50...250)
+        case .intakeAirTemp(let v):             return ok(v, -50...200)
+        case .ambientAirTemp(let v):            return ok(v, -60...80)
+        case .maf(let v):                       return ok(v, 0...700)
+        case .manifoldPressure(let v):          return ok(v, 0...500)
+        case .oilTemp(let v):                   return ok(v, -50...250)
+        case .timingAdvance(let v):             return ok(v, -70...70)
+        case .barometricPressure(let v):        return ok(v, 0...300)
+        case .genericPid:                       return true
+        }
+    }
+
     private func applyUpdate(_ update: TelemetryUpdate, timestamp: Date, sourceCommand: String?) {
+        guard Self.isPlausible(update) else {
+            if let sourceCommand { recordMiss(for: sourceCommand) }
+            return
+        }
         var snap = latestTelemetry
         snap.timestamp = timestamp
         var updatedMetrics = metrics(for: update)
@@ -315,9 +357,15 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             snap.motorTorqueNm = torque
         case .hvacPower(let kw): snap.hvacPowerKW = kw
         case .chargingStats(let kw, _):
-            snap.isCharging = kw > 0.5
-            snap.chargePowerKW = kw
-            snap.chargePowerUpdatedAt = snap.timestamp
+            if let kw {
+                snap.isCharging = kw > 0.5
+                snap.chargePowerKW = kw
+                snap.chargePowerUpdatedAt = snap.timestamp
+            } else {
+                // Status bit says "charging" but the profile can't measure the rate. Flag
+                // it and let the SoC-slope estimator or a pack-power PID fill in the kW.
+                snap.isCharging = true
+            }
         case .fuelLevel(let pct): snap.fuelLevelPct = pct
         case .throttlePosition(let pct): snap.throttlePositionPct = pct
         case .engineLoad(let pct): snap.engineLoadPct = pct
@@ -344,7 +392,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         self.chargingSession = chargingTracker.update(
             soc: snap.stateOfChargePct,
             packVoltage: snap.voltageV,
-            packCurrent: snap.currentA != 0.0 ? snap.currentA : nil,
+            // A genuine 0 A reading (idle pack) is data, not "no data" — key off whether
+            // pack current has ever decoded rather than off a 0.0 sentinel.
+            packCurrent: liveMetrics.contains(.packCurrent) ? snap.currentA : nil,
             powerKW: currentPower,
             vehicleBatteryCapacityKWh: usableBatteryCapacityKWh,
             isStationary: isStationary

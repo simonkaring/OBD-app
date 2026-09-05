@@ -41,14 +41,18 @@ public struct VolkswagenMEBProfile: VehicleProfile {
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.power, .soc, .packVoltage, .batteryTemp]
+        // No DID in `pollingCommands` reports pack temperature, so `.batteryTemp` is
+        // deliberately not advertised.
+        [.power, .soc, .packVoltage, .packCurrent]
     }
 
     public init() {}
 
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {
-        let hex = isoParser.cleanELMResponse(rawResponse).replacingOccurrences(of: " ", with: "")
-        
+        // Byte offsets are positional, so multi-frame replies must be reassembled first —
+        // raw text keeps CAN IDs and ISO-TP PCI bytes interleaved with the data.
+        let hex = isoParser.assembleISOTPPayload(rawResponse)
+
         switch command {
         case "03221E3D55555555":
             // Current DID 0x1E3D: response contains 62 1E 3D [A B C D]
@@ -59,8 +63,10 @@ public struct VolkswagenMEBProfile: VehicleProfile {
             let d = Double(payload[3])
             let rawVal = (a * 16_777_216.0) + (b * 65_536.0) + (c * 256.0) + d
             let currentA = ((rawVal - 150_000.0) / 100.0) * -1.0
-            // Return current update (standalone or zero voltage fallback)
-            return .power(voltage: 400.0, current: currentA, powerKW: (400.0 * currentA) / 1_000.0)
+            // Emit standalone current so the manager pairs it with the pack voltage read
+            // from DID 0x1E3B, rather than a fabricated 400 V nominal that would also
+            // overwrite the real measured voltage in the snapshot.
+            return .packCurrent(currentA)
 
         case "03221E3B55555555":
             // Voltage DID 0x1E3B: response contains 62 1E 3B [A B]
@@ -83,7 +89,9 @@ public struct VolkswagenMEBProfile: VehicleProfile {
             guard let payload = extractPayload(after: "627448", in: hex), payload.count >= 1 else { return nil }
             let isCharging = (payload[0] & 0x04) != 0
             let isDCFC = (payload[0] & 0x02) != 0 && isCharging
-            return .chargingStats(kwRate: isCharging ? 50.0 : 0.0, acOrDc: isDCFC ? "DC" : "AC")
+            // The DID is a status bitfield, not a power reading — report an unknown rate
+            // while charging instead of a fabricated 50 kW.
+            return .chargingStats(kwRate: isCharging ? nil : 0.0, acOrDc: isDCFC ? "DC" : "AC")
 
         default:
             return nil

@@ -39,7 +39,11 @@ public struct DiagnosticsView: View {
 
                             Button {
                                 vehicleData.stopPolling()
-                                dtcService.scanDTCs(connection: vehicleData.obdConnection, isDemo: vehicleData.isDemoMode)
+                                dtcService.scanDTCs(
+                                    connection: vehicleData.obdConnection,
+                                    isDemo: vehicleData.isDemoMode,
+                                    restoreCommands: vehicleData.selectedProfile.initializationCommands
+                                )
                             } label: {
                                 HStack(spacing: 6) {
                                     if dtcService.isScanning {

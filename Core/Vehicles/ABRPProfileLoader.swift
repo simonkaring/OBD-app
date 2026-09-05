@@ -117,7 +117,10 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
     }
 
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {
-        let hex = isoParser.cleanELMResponse(rawResponse).replacingOccurrences(of: " ", with: "")
+        // ABRP equations address bytes positionally (A = byte 0 after the DID echo), so the
+        // response must be reassembled first: on a multi-frame reply the raw text still
+        // carries CAN IDs and ISO-TP PCI bytes interleaved between the data bytes.
+        let hex = isoParser.assembleISOTPPayload(rawResponse)
         guard !hex.isEmpty else { return nil }
 
         let bytes = extractBytes(from: hex, command: command)

@@ -20,7 +20,11 @@ public struct HyundaiKiaEGMPProfile: VehicleProfile {
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.power, .soc, .soh, .batteryTemp, .aux12V]
+        // `parseResponse` emits exactly one update per reply: pack power (V/A/kW) from
+        // 220101 and SOC from 220105. SOH, pack temperature and the 12 V aux reading live
+        // in the same payloads but can't be emitted alongside, so they are not advertised —
+        // claiming them made the dashboard show permanently blank "supported" tiles.
+        [.power, .packVoltage, .packCurrent, .soc]
     }
 
     public init() {}

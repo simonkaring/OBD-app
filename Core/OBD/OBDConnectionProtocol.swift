@@ -11,7 +11,9 @@ public enum TelemetryUpdate: Sendable {
     case aux12V(Double)                 // Volts
     case motorStats(rpm: Double, torque: Double) // RPM, Nm
     case hvacPower(Double)              // kW
-    case chargingStats(kwRate: Double, acOrDc: String)
+    /// `kwRate` is nil when the profile only knows *that* the car is charging (e.g. a
+    /// status bit) but not at what rate — inventing a rate corrupts session kWh totals.
+    case chargingStats(kwRate: Double?, acOrDc: String)
     case genericPid(mode: String, pid: String, rawValue: String)
     case fuelLevel(Double)              // %
     case throttlePosition(Double)       // %
