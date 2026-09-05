@@ -11,8 +11,9 @@ public struct DashboardWidgetTile: View {
     public var telemetryHistory: [TelemetrySnapshot]
     public var isConnected: Bool = true
     public var isDemoMode: Bool = false
+    public var estimatedFullRangeKm: Double? = nil
 
-    public init(config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, telemetryHistory: [TelemetrySnapshot], isConnected: Bool = true, isDemoMode: Bool = false) {
+    public init(config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, telemetryHistory: [TelemetrySnapshot], isConnected: Bool = true, isDemoMode: Bool = false, estimatedFullRangeKm: Double? = nil) {
         self.config = config
         self.snapshot = snapshot
         self.profile = profile
@@ -21,6 +22,7 @@ public struct DashboardWidgetTile: View {
         self.telemetryHistory = telemetryHistory
         self.isConnected = isConnected
         self.isDemoMode = isDemoMode
+        self.estimatedFullRangeKm = estimatedFullRangeKm
     }
 
     public var body: some View {
@@ -45,7 +47,7 @@ public struct DashboardWidgetTile: View {
             case .numeric:
                 MetricNumericTileView(value: value, unit: metric.unitSymbol, label: metric.displayName, decimalPlaces: metric.decimalPlaces, isUnavailable: !isAvailable)
             case .dial:
-                MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable, estimatedFullRangeKm: profile.estimatedFullRangeKm)
+                MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable, estimatedFullRangeKm: estimatedFullRangeKm ?? profile.estimatedFullRangeKm)
             case .bar:
                 MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
             }

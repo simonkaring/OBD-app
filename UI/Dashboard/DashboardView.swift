@@ -199,6 +199,7 @@ public struct DashboardView: View {
                                         telemetryHistory: widget.kind.isChart ? telemetryHistory : [],
                                         isConnected: vehicleData.isDemoMode || vehicleData.connectionState.isConnected,
                                         isDemoMode: vehicleData.isDemoMode,
+                                        estimatedFullRangeKm: vehicleData.estimatedFullRangeKm,
                                         onDelete: {
                                             withAnimation {
                                                 layout.widgets.removeAll { $0.id == widget.id }
@@ -369,6 +370,7 @@ private struct WidgetTileWrapper: View {
     let telemetryHistory: [TelemetrySnapshot]
     let isConnected: Bool
     let isDemoMode: Bool
+    let estimatedFullRangeKm: Double?
     let onDelete: () -> Void
     let onDecreaseSize: () -> Void
     let onIncreaseSize: () -> Void
@@ -389,7 +391,8 @@ private struct WidgetTileWrapper: View {
                 liveMetrics: liveMetrics,
                 telemetryHistory: telemetryHistory,
                 isConnected: isConnected,
-                isDemoMode: isDemoMode
+                isDemoMode: isDemoMode,
+                estimatedFullRangeKm: estimatedFullRangeKm
             )
             .rotationEffect(.degrees(isEditMode && isWiggling ? wiggleAngle : 0))
             .animation(

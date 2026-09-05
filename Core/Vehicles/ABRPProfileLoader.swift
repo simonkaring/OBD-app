@@ -427,7 +427,9 @@ public final class ABRPProfileLoader {
             ("Chevrolet Bolt EV (2017)", "gmc_bolt17.json", 60.0),
             ("Honda e:Ny1", "honda_eny1.json", 68.8),
             ("Aiways U5", "aiways_u5.json", 63.0),
-            ("BYD Atto 3 / Yuan Plus", "byd_atto3.json", 60.5)
+            ("BYD Atto 3 / Yuan Plus", "byd_atto3.json", 60.5),
+            ("BMW i3", "bmw_i3.json", 37.9),
+            ("Deepal S05", "deepal_s05.json", 56.1)
         ]
 
         for item in knownFiles {

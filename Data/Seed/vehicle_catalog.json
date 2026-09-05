@@ -151,6 +151,39 @@
           "batteryCapacityKWh": 74.0,
           "profileID": "genericEV",
           "telemetrySupport": "generic"
+        },
+        {
+          "id": "bmw-i3-60ah",
+          "brandName": "BMW",
+          "modelName": "i3 60Ah",
+          "years": "2013-2016",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 18.8,
+          "profileID": "bmw_i3",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 160
+        },
+        {
+          "id": "bmw-i3-94ah",
+          "brandName": "BMW",
+          "modelName": "i3 94Ah",
+          "years": "2016-2018",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 27.2,
+          "profileID": "bmw_i3",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 235
+        },
+        {
+          "id": "bmw-i3-120ah",
+          "brandName": "BMW",
+          "modelName": "i3 120Ah",
+          "years": "2018-2022",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 37.9,
+          "profileID": "bmw_i3",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 285
         }
       ]
     },
@@ -376,6 +409,25 @@
       ]
     },
     {
+      "id": "deepal",
+      "name": "Deepal",
+      "iconSymbol": "d.square.fill",
+      "models": [
+        {
+          "id": "deepal-s05-56",
+          "brandName": "Deepal",
+          "modelName": "S05",
+          "years": "2024+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 56.1,
+          "profileID": "deepal_s05",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 430,
+          "notes": "Community-sourced PIDs; validate readings before relying on them."
+        }
+      ]
+    },
+    {
       "id": "fiat",
       "name": "Fiat",
       "iconSymbol": "circle.bottomhalf.filled",
@@ -586,7 +638,8 @@
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 78.0,
           "profileID": "hkmc_Ioniq5",
-          "telemetrySupport": "community"
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 460
         },
         {
           "id": "hyundai-ioniq_6-72",
@@ -616,7 +669,8 @@
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 58.0,
           "profileID": "hkmc_hkmc2019",
-          "telemetrySupport": "community"
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 484
         },
         {
           "id": "hyundai-ioniq_electric-28",
@@ -627,6 +681,28 @@
           "batteryCapacityKWh": 28.0,
           "profileID": "hkmc_hkmc2017",
           "telemetrySupport": "community"
+        },
+        {
+          "id": "hyundai-kona_electric-39",
+          "brandName": "Hyundai",
+          "modelName": "Kona Electric",
+          "years": "2019-2023",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 39.2,
+          "profileID": "hkmc_hkmc2019",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 305
+        },
+        {
+          "id": "hyundai-ioniq_5-58",
+          "brandName": "Hyundai",
+          "modelName": "Ioniq 5",
+          "years": "2021-2024",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 58.0,
+          "profileID": "hkmc_Ioniq5",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 384
         }
       ]
     },
@@ -670,7 +746,8 @@
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 64.0,
           "profileID": "hkmc_hkmc2019",
-          "telemetrySupport": "community"
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 455
         },
         {
           "id": "kia-soul_ev-64",
@@ -680,7 +757,8 @@
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 64.0,
           "profileID": "hkmc_hkmc2019",
-          "telemetrySupport": "community"
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 452
         },
         {
           "id": "kia-ev6-77",
@@ -690,7 +768,8 @@
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 77.4,
           "profileID": "hkmc_Ioniq5",
-          "telemetrySupport": "community"
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 528
         },
         {
           "id": "kia-ev9-99",
@@ -700,7 +779,30 @@
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 99.8,
           "profileID": "hkmc_Ioniq5",
-          "telemetrySupport": "community"
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 505
+        },
+        {
+          "id": "kia-e_niro-39",
+          "brandName": "Kia",
+          "modelName": "e-Niro / Niro EV",
+          "years": "2019-2022",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 39.2,
+          "profileID": "hkmc_hkmc2019",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 289
+        },
+        {
+          "id": "kia-soul_ev-39",
+          "brandName": "Kia",
+          "modelName": "Soul EV",
+          "years": "2020-2023",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 39.2,
+          "profileID": "hkmc_hkmc2019",
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 276
         }
       ]
     },
@@ -888,7 +990,8 @@
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 28.9,
           "profileID": "Mini_MiniCooperSE",
-          "telemetrySupport": "community"
+          "telemetrySupport": "community",
+          "estimatedRangeKm": 203
         }
       ]
     },
@@ -1210,16 +1313,6 @@
           "telemetrySupport": "generic"
         },
         {
-          "id": "tesla-model_3-79",
-          "brandName": "Tesla",
-          "modelName": "Model 3 Performance",
-          "years": "2025+",
-          "powertrain": "Electric (BEV)",
-          "batteryCapacityKWh": 79.0,
-          "profileID": "genericEV",
-          "telemetrySupport": "generic"
-        },
-        {
           "id": "tesla-model_s-95",
           "brandName": "Tesla",
           "modelName": "Model S Plaid",
@@ -1240,14 +1333,64 @@
           "telemetrySupport": "generic"
         },
         {
-          "id": "tesla-model_y-79",
+          "id": "tesla-model_3-58-rwd",
           "brandName": "Tesla",
-          "modelName": "Model Y Performance",
+          "modelName": "Model 3 RWD Standard Range",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 57.5,
+          "profileID": "genericEV",
+          "telemetrySupport": "generic",
+          "estimatedRangeKm": 513,
+          "notes": "Tesla has no OBD-II port; live data requires a third-party OBD harness adapter behind the center console."
+        },
+        {
+          "id": "tesla-model_3-75-lr",
+          "brandName": "Tesla",
+          "modelName": "Model 3 Long Range",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 75.0,
+          "profileID": "genericEV",
+          "telemetrySupport": "generic",
+          "estimatedRangeKm": 629,
+          "notes": "Tesla has no OBD-II port; live data requires a third-party OBD harness adapter behind the center console."
+        },
+        {
+          "id": "tesla-model_3-79-perf",
+          "brandName": "Tesla",
+          "modelName": "Model 3 Performance",
           "years": "2025+",
           "powertrain": "Electric (BEV)",
           "batteryCapacityKWh": 79.0,
           "profileID": "genericEV",
-          "telemetrySupport": "generic"
+          "telemetrySupport": "generic",
+          "estimatedRangeKm": 528,
+          "notes": "Tesla has no OBD-II port; live data requires a third-party OBD harness adapter behind the center console."
+        },
+        {
+          "id": "tesla-model_y-58-rwd",
+          "brandName": "Tesla",
+          "modelName": "Model Y RWD Standard Range",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 57.5,
+          "profileID": "genericEV",
+          "telemetrySupport": "generic",
+          "estimatedRangeKm": 455,
+          "notes": "Tesla has no OBD-II port; live data requires a third-party OBD harness adapter behind the center console."
+        },
+        {
+          "id": "tesla-model_y-75-lr",
+          "brandName": "Tesla",
+          "modelName": "Model Y Long Range",
+          "years": "2025+",
+          "powertrain": "Electric (BEV)",
+          "batteryCapacityKWh": 75.0,
+          "profileID": "genericEV",
+          "telemetrySupport": "generic",
+          "estimatedRangeKm": 533,
+          "notes": "Tesla has no OBD-II port; live data requires a third-party OBD harness adapter behind the center console."
         }
       ]
     },

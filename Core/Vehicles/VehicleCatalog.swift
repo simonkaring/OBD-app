@@ -41,6 +41,8 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
     public let batteryCapacityKWh: Double
     public let profileID: VehicleProfileID
     public let telemetrySupport: LiveTelemetrySupport
+    public let estimatedRangeKm: Double?
+    public let notes: String?
 
     public init(
         id: String,
@@ -50,7 +52,9 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
         powertrain: PowertrainType,
         batteryCapacityKWh: Double,
         profileID: VehicleProfileID,
-        telemetrySupport: LiveTelemetrySupport = .generic
+        telemetrySupport: LiveTelemetrySupport = .generic,
+        estimatedRangeKm: Double? = nil,
+        notes: String? = nil
     ) {
         self.id = id
         self.brandName = brandName
@@ -60,6 +64,8 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
         self.batteryCapacityKWh = batteryCapacityKWh
         self.profileID = profileID
         self.telemetrySupport = telemetrySupport
+        self.estimatedRangeKm = estimatedRangeKm
+        self.notes = notes
     }
 
     public var fullName: String {

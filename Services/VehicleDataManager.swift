@@ -23,6 +23,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public var usableBatteryCapacityKWh: Double {
         selectedVehicle.batteryCapacityKWh > 0 ? selectedVehicle.batteryCapacityKWh : selectedProfile.batteryUsableCapacityKWh
     }
+    public var estimatedFullRangeKm: Double {
+        selectedVehicle.estimatedRangeKm ?? selectedProfile.estimatedFullRangeKm
+    }
 
     private var isPolling = false
     private var pollingIndex = 0

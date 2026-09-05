@@ -27,6 +27,8 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
     case aiwaysU5 = "aiways_u5"
     case nissanLeafZE1 = "nissan_leaf"
     case bydAtto3 = "byd_atto3"
+    case bmwI3 = "bmw_i3"
+    case deepalS05 = "deepal_s05"
 
     public var id: String { rawValue }
 
@@ -54,6 +56,8 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
         case .aiwaysU5: return "Aiways U5 (ABRP)"
         case .nissanLeafZE1: return "Nissan Leaf 62 kWh (OVMS)"
         case .bydAtto3: return "BYD Atto 3 / Yuan Plus (OVMS)"
+        case .bmwI3: return "BMW i3 (community)"
+        case .deepalS05: return "Deepal S05 (community)"
         }
     }
 
@@ -97,6 +101,10 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
         case .nissanLeafZE1: return NissanLeafZE1Profile()
         case .bydAtto3:
             return ABRPProfileLoader.loadProfile(filename: "byd_atto3.json", name: "BYD Atto 3 / Yuan Plus", capacityKWh: 60.5) ?? GenericEVProfile()
+        case .bmwI3:
+            return ABRPProfileLoader.loadProfile(filename: "bmw_i3.json", name: "BMW i3", capacityKWh: 37.9) ?? GenericEVProfile()
+        case .deepalS05:
+            return ABRPProfileLoader.loadProfile(filename: "deepal_s05.json", name: "Deepal S05", capacityKWh: 56.1) ?? GenericEVProfile()
         }
     }
 }

@@ -151,6 +151,12 @@ private struct VehicleModelPickerView: View {
                         Text(model.telemetrySupport.displayName)
                             .font(.caption)
                             .foregroundColor(model.telemetrySupport == .verified ? .green : .secondary)
+
+                        if let notes = model.notes {
+                            Text(notes)
+                                .font(.caption2)
+                                .foregroundColor(Theme.highPowerAmber)
+                        }
                     }
 
                     if vehicleData.selectedVehicle.id == model.id {

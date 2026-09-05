@@ -85,6 +85,25 @@ final class ABRPProfileLoaderTests: XCTestCase {
         XCTAssertEqual(amps, -10.0, accuracy: 0.01)
     }
 
+    /// Verifies the new BMW i3 (copied from the Mini profile's BMW SME battery module family,
+    /// with only the voltage range widened) and Deepal S05 (candidate PIDs normalized into the
+    /// ABRP definition format) profiles both load and decode correctly.
+    func testBMWi3AndDeepalProfilesLoadAndDecode() throws {
+        let i3 = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "bmw_i3.json"))
+        let i3Raw = "607 05 62 DD BC 02 EE\r\n>"
+        guard case .soc(let i3Soc)? = i3.parseResponse(command: "22DDBC", rawResponse: i3Raw) else {
+            return XCTFail("Expected .soc update from BMW i3 profile")
+        }
+        XCTAssertEqual(i3Soc, 75.0, accuracy: 0.01)
+
+        let deepal = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "deepal_s05.json"))
+        let deepalRaw = "7A9 05 62 F2 28 0F A0\r\n>"
+        guard case .packVoltage(let deepalVoltage)? = deepal.parseResponse(command: "22F228", rawResponse: deepalRaw) else {
+            return XCTFail("Expected .packVoltage update from Deepal S05 profile")
+        }
+        XCTAssertEqual(deepalVoltage, 400.0, accuracy: 0.01)
+    }
+
     func testVehicleCatalogDataDrivenLoading() {
         XCTAssertFalse(VehicleCatalog.brands.isEmpty, "Catalog brands should not be empty")
         XCTAssertGreaterThan(VehicleCatalog.allModels.count, 20, "Should load many vehicles from dataset")
