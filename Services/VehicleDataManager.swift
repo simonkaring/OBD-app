@@ -45,9 +45,6 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.obdConnection = BluetoothManager()
         }
         self.obdConnection.delegate = self
-        if isDemoMode {
-            startPolling()
-        }
     }
 
     public func toggleDemoMode(_ enabled: Bool) {
@@ -58,7 +55,6 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.obdConnection = mock
             self.obdConnection.delegate = self
             connectionState = .demoMode
-            startPolling()
         } else {
             let ble = BluetoothManager()
             self.obdConnection = ble

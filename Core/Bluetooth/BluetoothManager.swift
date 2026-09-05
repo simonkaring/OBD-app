@@ -21,7 +21,6 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     private var boundService: CBService?
     private var writeCharacteristic: CBCharacteristic?
     private var notifyCharacteristic: CBCharacteristic?
-    private var notifyConfirmed = false
     private var didRetryServiceDiscovery = false
 
     private var buffer = ""
@@ -95,7 +94,6 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         boundService = nil
         writeCharacteristic = nil
         notifyCharacteristic = nil
-        notifyConfirmed = false
         didRetryServiceDiscovery = false
         buffer = ""
         commandTimer?.invalidate()
@@ -317,7 +315,6 @@ extension BluetoothManager: CBPeripheralDelegate {
             }
             return
         }
-        notifyConfirmed = true
         cancelConnectionTimeout()
         let devName = peripheral.name ?? "OBD Adapter"
         state = .ready(deviceName: devName)

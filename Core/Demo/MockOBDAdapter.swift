@@ -78,19 +78,26 @@ public final class MockOBDAdapter: ObservableObject, OBDConnectionProtocol {
                 bytes[32] = UInt8(max(0, min(200, rawSoc)))
                 let hexStr = bytes.map { String(format: "%02X", $0) }.joined(separator: " ")
                 mockHex = "62 01 05 \(hexStr)\r\n>"
-            case "22028C": // VW MEB SOC
-                let rawSoc = Int(self.simulationEngine.telemetry.stateOfChargePct * 2.0)
-                mockHex = String(format: "62 02 8C %02X\r\n>", rawSoc)
-            case "221E3B": // VW MEB Voltage
+            case "03221E3D55555555": // VW MEB HV current (DID 0x1E3D)
+                let current = self.simulationEngine.telemetry.currentA
+                let rawVal = Int(max(0, 150_000.0 - current * 100.0))
+                let bA = (rawVal >> 24) & 0xFF
+                let bB = (rawVal >> 16) & 0xFF
+                let bC = (rawVal >> 8) & 0xFF
+                let bD = rawVal & 0xFF
+                mockHex = String(format: "62 1E 3D %02X %02X %02X %02X\r\n>", bA, bB, bC, bD)
+            case "03221E3B55555555": // VW MEB HV voltage (DID 0x1E3B)
                 let rawV = Int((self.simulationEngine.telemetry.voltageV > 0 ? self.simulationEngine.telemetry.voltageV : 398.0) * 4.0)
                 let bA = (rawV >> 8) & 0xFF
                 let bB = rawV & 0xFF
                 mockHex = String(format: "62 1E 3B %02X %02X\r\n>", bA, bB)
-            case "221E3C": // VW MEB Current
-                let rawA = Int((self.simulationEngine.telemetry.currentA + 500.0) * 10.0)
-                let bA = (rawA >> 8) & 0xFF
-                let bB = rawA & 0xFF
-                mockHex = String(format: "62 1E 3C %02X %02X\r\n>", bA, bB)
+            case "0322028C55555555": // VW MEB display SOC (DID 0x028C)
+                let soc = self.simulationEngine.telemetry.stateOfChargePct
+                let rawSoc = Int(((soc + 7.16) * 2.5 / 1.12).rounded())
+                mockHex = String(format: "62 02 8C %02X\r\n>", max(0, min(255, rawSoc)))
+            case "0322744855555555": // VW MEB charging status (DID 0x7448)
+                let statusByte: UInt8 = self.simulationEngine.telemetry.isCharging ? 0x04 : 0x00
+                mockHex = String(format: "62 74 48 %02X\r\n>", statusByte)
             case "0104", "01 04": // Engine Load
                 let raw = Int(self.simulationEngine.telemetry.engineLoadPct * 255.0 / 100.0)
                 mockHex = String(format: "41 04 %02X\r\n>", raw)

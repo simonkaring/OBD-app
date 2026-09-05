@@ -5,10 +5,10 @@ import SwiftData
 public final class AppEnvironment: ObservableObject {
     public static let shared = AppEnvironment()
 
-    @Published public var vehicleData: VehicleDataManager
-    @Published public var tripTracker: TripTrackingManager
-    @Published public var chargingTracker: ChargingTrackingManager
-    @Published public var dtcService: DTCScannerService
+    public let vehicleData: VehicleDataManager
+    public let tripTracker: TripTrackingManager
+    public let chargingTracker: ChargingTrackingManager
+    public let dtcService: DTCScannerService
 
     /// Owned here rather than created by the `WindowGroup` so that a CarPlay-only launch
     /// (no window scene, so `MainTabView.onAppear` never runs) still persists auto-recorded
