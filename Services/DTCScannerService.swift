@@ -11,7 +11,11 @@ public final class DTCScannerService: ObservableObject {
     private let db = DTCLocalDatabase.shared
     private let isoParser = ISO15765Parser()
 
-    public init() {}
+    public init() {
+        // Surface a bad/missing DTC definitions bundle immediately rather than only on next
+        // scan attempt, and without failing the scan itself (generic fallback lookups still work).
+        scanErrorMessage = db.loadError
+    }
 
     /// - Parameter restoreCommands: the active vehicle profile's initialization commands.
     ///   Mode 03/07 need broadcast addressing, which means clobbering whatever header and

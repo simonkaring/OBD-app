@@ -5,6 +5,11 @@ public final class DTCLocalDatabase {
 
     private var database: [String: DTCCode] = [:]
 
+    /// Set when the bundled `dtc_definitions.json` is missing or fails to decode. Non-nil means
+    /// `lookup(code:)` is only returning generic category fallbacks, not real DTC descriptions —
+    /// callers (e.g. `DTCScannerService`) surface this to the user instead of failing silently.
+    public private(set) var loadError: String?
+
     private init() {
         loadBundleDatabase()
     }
@@ -43,7 +48,11 @@ public final class DTCLocalDatabase {
         #else
         let bundle = Bundle.main
         #endif
-        guard let url = bundle.url(forResource: "dtc_definitions", withExtension: "json") else { return }
+        guard let url = bundle.url(forResource: "dtc_definitions", withExtension: "json") else {
+            loadError = "DTC definitions file not found in app bundle — fault codes will show generic descriptions only."
+            print("DTC definitions file not found in app bundle.")
+            return
+        }
         do {
             let data = try Data(contentsOf: url)
             let items = try JSONDecoder().decode([DTCCode].self, from: data)
@@ -51,6 +60,7 @@ public final class DTCLocalDatabase {
                 database[item.code.uppercased()] = item
             }
         } catch {
+            loadError = "Failed to load DTC definitions — fault codes will show generic descriptions only."
             print("Failed to decode DTC definitions JSON: \(error)")
         }
     }
