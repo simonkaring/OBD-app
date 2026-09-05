@@ -122,8 +122,10 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
                 if self.isSupportedResponse(command: cmd, rawResponse: raw) {
                     verifiedCommands.append(cmd)
-                    if let update = self.selectedProfile.parseResponse(command: cmd, rawResponse: raw) {
-                        self.applyUpdate(update, timestamp: .now, sourceCommand: cmd)
+                    let updates = self.selectedProfile.parseResponses(command: cmd, rawResponse: raw)
+                    let applied = updates.reduce(false) { self.applyUpdate($1, timestamp: .now, sourceCommand: cmd) || $0 }
+                    if !applied {
+                        self.recordMiss(for: cmd)
                     }
                 }
                 self.calibrationProgress = Double(index + 1) / Double(total)
@@ -177,7 +179,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             return true
         }
 
-        if selectedProfile.parseResponse(command: command, rawResponse: rawResponse) != nil {
+        if !selectedProfile.parseResponses(command: command, rawResponse: rawResponse).isEmpty {
             return true
         }
 
@@ -220,9 +222,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         obdConnection.sendCommand(cmd) { [weak self] result in
             guard let self = self else { return }
             if case .success(let raw) = result {
-                if let update = self.selectedProfile.parseResponse(command: cmd, rawResponse: raw) {
-                    self.applyUpdate(update, timestamp: .now, sourceCommand: cmd)
-                } else {
+                let updates = self.selectedProfile.parseResponses(command: cmd, rawResponse: raw)
+                let applied = updates.reduce(false) { self.applyUpdate($1, timestamp: .now, sourceCommand: cmd) || $0 }
+                if !applied {
                     self.recordMiss(for: cmd)
                 }
             } else {
@@ -296,10 +298,10 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         }
     }
 
-    private func applyUpdate(_ update: TelemetryUpdate, timestamp: Date, sourceCommand: String?) {
+    @discardableResult
+    private func applyUpdate(_ update: TelemetryUpdate, timestamp: Date, sourceCommand: String?) -> Bool {
         guard Self.isPlausible(update) else {
-            if let sourceCommand { recordMiss(for: sourceCommand) }
-            return
+            return false
         }
         var snap = latestTelemetry
         snap.timestamp = timestamp
@@ -377,7 +379,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         }
         liveMetrics.formUnion(updatedMetrics)
         if let sourceCommand {
-            commandMetrics[sourceCommand] = updatedMetrics
+            commandMetrics[sourceCommand, default: []].formUnion(updatedMetrics)
             commandMisses[sourceCommand] = 0
         }
         latestTelemetry = snap
@@ -395,6 +397,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             vehicleBatteryCapacityKWh: usableBatteryCapacityKWh,
             isStationary: isStationary
         )
+        return true
     }
 
     private func updatePackPower(snapshot: inout TelemetrySnapshot, updatedMetrics: inout Set<TelemetryMetric>) {

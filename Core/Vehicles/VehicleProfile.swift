@@ -14,6 +14,13 @@ public protocol VehicleProfile: Sendable {
     var estimatedFullRangeKm: Double { get }
 
     func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate?
+
+    /// Like `parseResponse`, but allows emitting more than one `TelemetryUpdate` from a
+    /// single OBD response — e.g. a payload that carries both SOC and SOH, or pack current
+    /// and a 12V auxiliary voltage. Defaults to wrapping `parseResponse`'s single result, so
+    /// conformers only need to override this when a response genuinely decodes to multiple
+    /// metrics.
+    func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate]
 }
 
 extension VehicleProfile {
@@ -22,4 +29,8 @@ extension VehicleProfile {
     public static var defaultEstimatedFullRangeKm: Double { 400.0 }
 
     public var estimatedFullRangeKm: Double { Self.defaultEstimatedFullRangeKm }
+
+    public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
+        parseResponse(command: command, rawResponse: rawResponse).map { [$0] } ?? []
+    }
 }

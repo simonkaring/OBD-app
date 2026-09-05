@@ -178,6 +178,22 @@ final class OBDParserTests: XCTestCase {
         }
     }
 
+    /// `parseResponses` has no override for `MercedesEQA250Profile`, so it must fall back to
+    /// the protocol extension's default: wrap `parseResponse`'s single result in a one-element
+    /// array (or an empty array on nil).
+    func testParseResponsesDefaultWrapsSingleUpdate() {
+        let profile = MercedesEQA250Profile()
+        let rawResponse = "18 DA F1 59 05 62 01 0A 0D 3E\r\n>"
+        let updates = profile.parseResponses(command: "22010A", rawResponse: rawResponse)
+
+        XCTAssertEqual(updates.count, 1)
+        if case .packVoltage(let voltage) = updates.first {
+            XCTAssertEqual(voltage, 339.0, accuracy: 0.1)
+        } else {
+            XCTFail("Expected a single packVoltage update")
+        }
+    }
+
     func testMercedesEQA250PackCurrentParsing() {
         let profile = MercedesEQA250Profile()
         let rawResponse = "18 DA F1 59 05 62 01 0B FF 9C\r\n>"
