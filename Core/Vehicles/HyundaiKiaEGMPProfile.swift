@@ -8,6 +8,8 @@ public struct HyundaiKiaEGMPProfile: VehicleProfile {
     public let vehicleName = "Hyundai/Kia E-GMP"
     public let isElectricVehicle = true
     public let batteryUsableCapacityKWh: Double = 77.4
+    /// Conservative WLTP range across IONIQ 5 / EV6 trims.
+    public let estimatedFullRangeKm: Double = 460.0
 
     private let isoParser = ISO15765Parser()
 

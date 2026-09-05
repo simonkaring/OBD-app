@@ -5,6 +5,8 @@ public struct MercedesEQA250Profile: VehicleProfile {
     public let isElectricVehicle = true
     public let batteryUsableCapacityKWh: Double = 66.5
     public let grossCapacityKWh: Double = 69.7
+    /// WLTP-rated full-charge range, conservative rounding.
+    public let estimatedFullRangeKm: Double = 426.0
 
     private let isoParser = ISO15765Parser()
 

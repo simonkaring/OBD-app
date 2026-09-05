@@ -14,6 +14,8 @@ public struct NissanLeafZE1Profile: VehicleProfile {
     public let vehicleName = "Nissan Leaf (62 kWh, ZE1)"
     public let isElectricVehicle = true
     public let batteryUsableCapacityKWh: Double = 56.0
+    /// WLTP-rated full-charge range for the 62 kWh pack, conservative rounding.
+    public let estimatedFullRangeKm: Double = 385.0
 
     private let isoParser = ISO15765Parser()
 

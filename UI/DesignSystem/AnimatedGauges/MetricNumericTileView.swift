@@ -40,5 +40,8 @@ public struct MetricNumericTileView: View {
         .padding(.horizontal, 28)
         .glassCard()
         .opacity(isUnavailable ? 0.4 : 1.0)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(isUnavailable ? "Unavailable" : "\(String(format: "%.\(decimalPlaces)f", value)) \(unit)")
     }
 }

@@ -17,10 +17,14 @@ public struct MetricDialView: View {
     public var label: String
     public var metric: TelemetryMetric?
     public var isUnavailable: Bool = false
+    /// Full-charge range used to derive the SoC dial's "estimated range" toggle. Should come
+    /// from the active `VehicleProfile.estimatedFullRangeKm`; defaults to a generic EV figure
+    /// when no profile is available (e.g. rendered standalone).
+    public var estimatedFullRangeKm: Double = 400.0
 
     @State private var showEstimatedRange: Bool = false
 
-    public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil, isUnavailable: Bool = false) {
+    public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil, isUnavailable: Bool = false, estimatedFullRangeKm: Double = 400.0) {
         self.value = value
         self.range = range
         self.mode = mode
@@ -28,6 +32,7 @@ public struct MetricDialView: View {
         self.label = label
         self.metric = metric
         self.isUnavailable = isUnavailable
+        self.estimatedFullRangeKm = estimatedFullRangeKm
     }
 
     private var isNegativeArc: Bool {
@@ -78,7 +83,7 @@ public struct MetricDialView: View {
 
     private var displayValueAndUnit: (displayVal: String, displayUnit: String) {
         if metric == .soc && showEstimatedRange {
-            let estimatedKm = (value / 100.0) * 400.0
+            let estimatedKm = (value / 100.0) * estimatedFullRangeKm
             return (String(format: "%.0f", estimatedKm), "km")
         }
         let decimals = metric?.decimalPlaces ?? (value >= 100 ? 0 : 1)
@@ -99,7 +104,7 @@ public struct MetricDialView: View {
             ZStack {
                 Circle()
                     .trim(from: 0.15, to: 0.85)
-                    .stroke(Color.white.opacity(0.1), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                    .stroke(Theme.trackBackground, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                     .rotationEffect(.degrees(90))
                     .frame(width: dialDiameter, height: dialDiameter)
 
@@ -176,5 +181,17 @@ public struct MetricDialView: View {
             }
         }
         .opacity(isUnavailable ? 0.4 : 1.0)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(isUnavailable ? "Unavailable" : "\(displayValueAndUnit.displayVal) \(displayValueAndUnit.displayUnit)")
+        .accessibilityActions {
+            if metric == .soc {
+                Button(showEstimatedRange ? "Show percentage" : "Show estimated range") {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        showEstimatedRange.toggle()
+                    }
+                }
+            }
+        }
     }
 }

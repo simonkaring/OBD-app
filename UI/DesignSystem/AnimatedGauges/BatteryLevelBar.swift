@@ -46,7 +46,7 @@ public struct BatteryLevelBar: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.white.opacity(0.1))
+                            .fill(Theme.trackBackground)
                             .frame(height: 20)
 
                         RoundedRectangle(cornerRadius: 10)
@@ -71,5 +71,8 @@ public struct BatteryLevelBar: View {
         }
         .padding(16)
         .glassCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("High Voltage Battery")
+        .accessibilityValue(socPct.map { String(format: "%.0f percent, %.1f degrees Celsius%@", $0, batteryTempC, isCharging ? ", charging" : "") } ?? "Unavailable")
     }
 }

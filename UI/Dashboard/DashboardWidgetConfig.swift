@@ -37,6 +37,13 @@ public enum DashboardWidgetKind: Hashable, Sendable {
     case metric(TelemetryMetric)
     /// Up to 2 metrics plotted on a shared axis for readability.
     case chart(series: [TelemetryMetric])
+
+    /// Only chart widgets need the rolling telemetry history array; metric tiles read the
+    /// latest snapshot directly and shouldn't be handed (and re-diffed against) 50 stale points.
+    public var isChart: Bool {
+        if case .chart = self { return true }
+        return false
+    }
 }
 
 extension DashboardWidgetKind: Codable {

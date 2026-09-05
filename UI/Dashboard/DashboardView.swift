@@ -129,7 +129,7 @@ public struct DashboardView: View {
                                 } label: {
                                     Label("Add Widget", systemImage: "plus.circle.fill")
                                         .font(.system(size: 12, weight: .bold, design: .rounded))
-                                        .foregroundColor(.black)
+                                        .foregroundColor(Theme.onAccent)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 5)
                                         .background(Theme.electricCyan)
@@ -152,7 +152,41 @@ public struct DashboardView: View {
                         }
 
                         // Customizable widget grid with drag-to-reorder and wiggle mode
-                        ForEach(Array(packDashboardWidgetsIntoRows(layout.widgets).enumerated()), id: \.offset) { _, row in
+                        if layout.widgets.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "square.grid.2x2")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(Theme.textSecondary)
+                                Text("No Widgets Yet")
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundColor(Theme.textPrimary)
+                                Text("Tap Edit, then Add Widget to build your dashboard.")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Theme.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                Button {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                        isEditMode = true
+                                    }
+                                    showAddWidgetSheet = true
+                                } label: {
+                                    Label("Add Widget", systemImage: "plus.circle.fill")
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .foregroundColor(Theme.onAccent)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(Theme.electricCyan)
+                                        .cornerRadius(10)
+                                }
+                                .padding(.top, 4)
+                            }
+                            .padding(30)
+                            .frame(maxWidth: .infinity)
+                            .glassCard()
+                            .padding(.horizontal)
+                        }
+
+                        ForEach(packDashboardWidgetsIntoRows(layout.widgets), id: \.first!.id) { row in
                             HStack(spacing: 12) {
                                 ForEach(row) { widget in
                                     WidgetTileWrapper(
@@ -162,7 +196,7 @@ public struct DashboardView: View {
                                         profile: vehicleData.selectedProfile,
                                         supportedMetrics: vehicleData.supportedMetrics,
                                         liveMetrics: vehicleData.liveMetrics,
-                                        telemetryHistory: telemetryHistory,
+                                        telemetryHistory: widget.kind.isChart ? telemetryHistory : [],
                                         isConnected: vehicleData.isDemoMode || vehicleData.connectionState.isConnected,
                                         isDemoMode: vehicleData.isDemoMode,
                                         onDelete: {
@@ -253,7 +287,7 @@ public struct DashboardView: View {
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 10)
                                     .background(tripTracker.isRecordingTrip ? Theme.criticalRed : Theme.electricCyan)
-                                    .foregroundColor(.black)
+                                    .foregroundColor(Theme.onAccent)
                                     .cornerRadius(10)
                             }
                         }
@@ -341,6 +375,9 @@ private struct WidgetTileWrapper: View {
     let onLongPress: () -> Void
 
     @State private var isWiggling = false
+    // Picked once per edit-mode entry (not recomputed every body evaluation) so the wiggle
+    // animation has a stable target angle instead of jittering on every telemetry tick.
+    @State private var wiggleAngle = Double.random(in: -1.2...1.2)
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -354,15 +391,21 @@ private struct WidgetTileWrapper: View {
                 isConnected: isConnected,
                 isDemoMode: isDemoMode
             )
-            .rotationEffect(.degrees(isEditMode && isWiggling ? Double.random(in: -1.2...1.2) : 0))
+            .rotationEffect(.degrees(isEditMode && isWiggling ? wiggleAngle : 0))
             .animation(
                 isEditMode ? Animation.easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .default,
                 value: isWiggling
             )
             .onAppear {
-                if isEditMode { isWiggling = true }
+                if isEditMode {
+                    wiggleAngle = Double.random(in: -1.2...1.2)
+                    isWiggling = true
+                }
             }
             .onChange(of: isEditMode) { _, newValue in
+                if newValue {
+                    wiggleAngle = Double.random(in: -1.2...1.2)
+                }
                 isWiggling = newValue
             }
             .onLongPressGesture {
@@ -374,10 +417,11 @@ private struct WidgetTileWrapper: View {
                 Button(action: onDelete) {
                     Image(systemName: "minus.circle.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(.red)
-                        .background(Circle().fill(Color.white))
+                        .foregroundColor(Theme.criticalRed)
+                        .background(Circle().fill(Theme.textPrimary))
                 }
                 .offset(x: -8, y: -8)
+                .accessibilityLabel("Delete widget")
 
                 // Quick Controls overlay (Bottom Bar in edit mode - Arrows adjust size small <-> medium <-> large)
                 VStack {
@@ -389,6 +433,7 @@ private struct WidgetTileWrapper: View {
                                 .foregroundColor(widget.size == .medium ? Theme.textSecondary.opacity(0.4) : Theme.electricCyan)
                         }
                         .disabled(widget.size == .medium)
+                        .accessibilityLabel("Decrease widget size")
 
                         Text(widget.size == .medium ? "HALF (MED)" : "FULL (LRG)")
                             .font(.system(size: 9, weight: .bold, design: .rounded))
@@ -404,6 +449,7 @@ private struct WidgetTileWrapper: View {
                                 .foregroundColor(widget.size == .large ? Theme.textSecondary.opacity(0.4) : Theme.electricCyan)
                         }
                         .disabled(widget.size == .large)
+                        .accessibilityLabel("Increase widget size")
                     }
                     .padding(4)
                     .background(Color.black.opacity(0.85))

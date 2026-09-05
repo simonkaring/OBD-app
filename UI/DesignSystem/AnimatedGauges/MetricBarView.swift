@@ -41,7 +41,7 @@ public struct MetricBarView: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.white.opacity(0.1))
+                            .fill(Theme.trackBackground)
                             .frame(height: 20)
 
                         RoundedRectangle(cornerRadius: 10)
@@ -66,5 +66,8 @@ public struct MetricBarView: View {
         .padding(16)
         .glassCard()
         .opacity(isUnavailable ? 0.4 : 1.0)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(isUnavailable ? "Unavailable" : String(format: "%.0f %@", value, unit))
     }
 }
