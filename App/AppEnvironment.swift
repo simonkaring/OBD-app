@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import SwiftData
 
 public final class AppEnvironment: ObservableObject {
     public static let shared = AppEnvironment()
@@ -8,9 +9,25 @@ public final class AppEnvironment: ObservableObject {
     @Published public var tripTracker: TripTrackingManager
     @Published public var chargingTracker: ChargingTrackingManager
     @Published public var dtcService: DTCScannerService
+
+    /// Owned here rather than created by the `WindowGroup` so that a CarPlay-only launch
+    /// (no window scene, so `MainTabView.onAppear` never runs) still persists auto-recorded
+    /// trips and charging sessions.
+    public let modelContainer: ModelContainer
+
     private var cancellables = Set<AnyCancellable>()
 
+    private static func makeModelContainer() -> ModelContainer {
+        let schema = Schema([TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, SavedDTCModel.self])
+        if let container = try? ModelContainer(for: schema) {
+            return container
+        }
+        // Last resort: run unpersisted rather than crashing on a corrupt/unwritable store.
+        return try! ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true))
+    }
+
     public init() {
+        self.modelContainer = Self.makeModelContainer()
         let vData = VehicleDataManager()
         let locationManager = TripLocationManager()
         let tTracker = TripTrackingManager(locationManager: locationManager)
@@ -21,6 +38,14 @@ public final class AppEnvironment: ObservableObject {
         self.tripTracker = tTracker
         self.chargingTracker = cTracker
         self.dtcService = dtc
+
+        // `mainContext` is the same context SwiftUI's `@Query` reads from, so recorded
+        // trips/sessions show up in the UI without a second context to reconcile.
+        let container = self.modelContainer
+        DispatchQueue.main.async {
+            tTracker.modelContext = container.mainContext
+            cTracker.modelContext = container.mainContext
+        }
 
         vData.$latestTelemetry
             .sink { [weak tTracker, weak cTracker, weak vData] snapshot in

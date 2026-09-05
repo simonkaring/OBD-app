@@ -39,7 +39,8 @@ struct VoltLinkApp: App {
                 .environmentObject(env.dtcService)
                 .preferredColorScheme(.dark)
         }
-        .modelContainer(for: [TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, SavedDTCModel.self])
+        // Container is owned by AppEnvironment so CarPlay-only launches persist too.
+        .modelContainer(env.modelContainer)
     }
 }
 #endif
@@ -49,7 +50,6 @@ struct MainTabView: View {
     @EnvironmentObject private var tripTracker: TripTrackingManager
     @EnvironmentObject private var chargingTracker: ChargingTrackingManager
     @EnvironmentObject private var dtcService: DTCScannerService
-    @Environment(\.modelContext) private var modelContext
     @State private var selectedTab: Int = 0
     @State private var isBannerDismissedManually: Bool = false
 
@@ -127,9 +127,7 @@ struct MainTabView: View {
         .onChange(of: vehicleData.isDemoMode) { _, _ in
             isBannerDismissedManually = false
         }
-        .onAppear {
-            tripTracker.modelContext = modelContext
-            chargingTracker.modelContext = modelContext
-        }
+        // The trip/charging model contexts are wired in `AppEnvironment.init`, not here:
+        // a CarPlay-only launch never presents this view.
     }
 }

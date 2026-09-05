@@ -126,7 +126,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             guard isDemoMode || supportedMetrics.contains(metric) else { return nil }
             let value = metric.value(in: snapshot)
             let image = renderDialImage(for: metric, value: value)
-            let valueStr = isDemoMode || liveMetrics.contains(metric) ? String(format: "%.1f %@", value, metric.unitSymbol) : "-- (metric.unitSymbol)"
+            let valueStr = isDemoMode || liveMetrics.contains(metric) ? String(format: "%.1f %@", value, metric.unitSymbol) : "-- \(metric.unitSymbol)"
             return CPGridButton(titleVariants: [metric.displayName.uppercased(), valueStr], image: image) { _ in }
 
         case .health:
