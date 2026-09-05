@@ -51,7 +51,9 @@ public struct DashboardWidgetTile: View {
             }
         }
         .overlay(alignment: .topTrailing) {
-            if !isSupported && !isDemoMode {
+            // `isSupported` already ORs in `isDemoMode` (line above), so a separate
+            // `!isDemoMode` here is redundant.
+            if isConnected && !isSupported {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundColor(Theme.highPowerAmber)

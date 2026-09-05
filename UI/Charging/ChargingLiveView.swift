@@ -48,21 +48,21 @@ public struct ChargingLiveView: View {
         usableCapacityKWh * ((100.0 - vehicleData.latestTelemetry.stateOfChargePct) / 100.0)
     }
 
-    private var timeTo80Min: Int {
+    private func minutesToTarget(_ targetPct: Double) -> Int {
         guard isConnected && hasSOC && isCharging else { return 0 }
-        let remainingPct = max(0, 80.0 - vehicleData.latestTelemetry.stateOfChargePct)
-        guard remainingPct > 0 else { return 0 }
+        let remainingPct = max(0, targetPct - vehicleData.latestTelemetry.stateOfChargePct)
+        // `isCharging` can be true from a status bit while the reported rate is still 0 kW
+        // (profile reports charging without a power reading, or the charger is handshaking).
+        // Dividing by it traps on `Int(inf)`, so require a real rate first.
+        let powerKW = vehicleData.latestTelemetry.chargePowerKW
+        guard remainingPct > 0, powerKW > 0 else { return 0 }
         let neededKWh = (remainingPct / 100.0) * usableCapacityKWh
-        return Int((neededKWh / vehicleData.latestTelemetry.chargePowerKW) * 60.0)
+        return Int((neededKWh / powerKW) * 60.0)
     }
 
-    private var timeTo100Min: Int {
-        guard isConnected && hasSOC && isCharging else { return 0 }
-        let remainingPct = max(0, 100.0 - vehicleData.latestTelemetry.stateOfChargePct)
-        guard remainingPct > 0 else { return 0 }
-        let neededKWh = (remainingPct / 100.0) * usableCapacityKWh
-        return Int((neededKWh / vehicleData.latestTelemetry.chargePowerKW) * 60.0)
-    }
+    private var timeTo80Min: Int { minutesToTarget(80.0) }
+
+    private var timeTo100Min: Int { minutesToTarget(100.0) }
 
     public var body: some View {
         NavigationStack {
