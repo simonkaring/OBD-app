@@ -41,6 +41,9 @@ public struct ChargingSessionState: Sendable {
 }
 
 public final class ChargingSessionTracker: @unchecked Sendable {
+    /// Upper bound on retained charge-curve points (~2.8 h at the 2 s sampling resolution).
+    static let maxHistoryPoints = 5_000
+
     public private(set) var state = ChargingSessionState()
     private var lastUpdateTimestamp: Date?
 
@@ -71,8 +74,20 @@ public final class ChargingSessionTracker: @unchecked Sendable {
             livePowerKW = 0.0
         }
 
-        // Active charging criteria: Vehicle is stationary and receiving power (> 0.5 kW)
-        let isActivelyCharging = isStationary && (livePowerKW > 0.5 || (packCurrent != nil && (packCurrent! < -0.5 || (packCurrent! > 0.5 && isStationary))))
+        // Active charging criteria: the vehicle is stationary AND current is flowing *into*
+        // the pack. Every profile in this app signs pack current negative while charging and
+        // positive while discharging (matching `VehicleDataManager`'s `a < -1.0` check), so
+        // the previous `packCurrent > 0.5` branch counted parked HVAC/accessory *draw* as a
+        // charging session. `powerKW`, when supplied, is already a charge-power magnitude.
+        let isChargeDirection: Bool
+        if let current = packCurrent {
+            isChargeDirection = current < -0.5
+        } else if let power = powerKW {
+            isChargeDirection = power > 0.5
+        } else {
+            isChargeDirection = false
+        }
+        let isActivelyCharging = isStationary && isChargeDirection && livePowerKW > 0.5
 
         if isActivelyCharging {
             if !state.isCharging {
@@ -115,11 +130,18 @@ public final class ChargingSessionTracker: @unchecked Sendable {
                     packCurrent: packCurrent ?? 0.0
                 )
                 state.history.append(point)
+                // Bound the curve buffer: at ~2 s resolution this covers ~2.8 h of charging,
+                // long enough for any real session and small enough not to grow unbounded.
+                if state.history.count > Self.maxHistoryPoints {
+                    state.history.removeFirst(state.history.count - Self.maxHistoryPoints)
+                }
             }
         } else {
             if state.isCharging {
-                // Session Ended
+                // Session ended — clear the start timestamp so `sessionDuration` stops
+                // counting up while the car sits parked and unplugged.
                 state.isCharging = false
+                state.startTime = nil
             }
             state.currentPowerKW = 0.0
         }

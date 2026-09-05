@@ -32,6 +32,12 @@ public final class TripTrackingManager: ObservableObject {
     public let locationManager: TripLocationManager
     private var stationaryStartDate: Date? = nil
     private var stationaryTimer: Timer? = nil
+    /// Timestamp of the previous recorded sample, used to integrate energy over the real
+    /// elapsed interval instead of an assumed fixed polling period.
+    private var lastSampleTime: Date? = nil
+    /// Most recent SoC seen by `processTelemetrySnapshot`, so the auto-stop timer can read
+    /// the value at fire time rather than the one captured when the countdown started.
+    private var latestSoc: Double = 0.0
 
     public init(locationManager: TripLocationManager = TripLocationManager()) {
         self.locationManager = locationManager
@@ -58,6 +64,7 @@ public final class TripTrackingManager: ObservableObject {
         let trip = TripModel(startTime: Date(), distanceKm: 0.0, startSocPct: startSoc, vehicleName: vehicleName)
         self.currentTrip = trip
         self.isRecordingTrip = true
+        self.lastSampleTime = nil
         resetStationaryTimer()
         locationManager.startTracking()
         modelContext?.insert(trip)
@@ -73,6 +80,7 @@ public final class TripTrackingManager: ObservableObject {
 
         self.currentTrip = nil
         self.isRecordingTrip = false
+        self.lastSampleTime = nil
         resetStationaryTimer()
     }
 
@@ -133,7 +141,7 @@ public final class TripTrackingManager: ObservableObject {
         stationarySecondsRemaining = nil
     }
 
-    private func startStationaryCountdownIfNeeded(lastSoc: Double) {
+    private func startStationaryCountdownIfNeeded() {
         if stationaryStartDate == nil {
             stationaryStartDate = Date()
         }
@@ -149,23 +157,26 @@ public final class TripTrackingManager: ObservableObject {
                 self.stationarySecondsRemaining = remaining
 
                 if currentElapsed >= self.autoStopDelaySeconds {
-                    self.stopTrip(endSoc: lastSoc)
+                    // Read the SoC as of now; the value at countdown start is minutes stale.
+                    self.stopTrip(endSoc: self.latestSoc)
                 }
             }
         }
 
         if elapsed >= autoStopDelaySeconds {
-            stopTrip(endSoc: lastSoc)
+            stopTrip(endSoc: latestSoc)
         }
     }
 
     public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250") {
+        latestSoc = telemetry.stateOfChargePct
+
         if isRecordingTrip {
             recordSnapshot(telemetry)
 
             if isAutoTripEnabled {
                 if telemetry.speedKmH < 1.0 || telemetry.isCharging {
-                    startStationaryCountdownIfNeeded(lastSoc: telemetry.stateOfChargePct)
+                    startStationaryCountdownIfNeeded()
                 } else {
                     resetStationaryTimer()
                 }
@@ -182,8 +193,14 @@ public final class TripTrackingManager: ObservableObject {
 
     public func recordSnapshot(_ telemetry: TelemetrySnapshot) {
         guard let trip = currentTrip else { return }
-        let lat = locationManager.currentLocation?.coordinate.latitude ?? 0.0
-        let lon = locationManager.currentLocation?.coordinate.longitude ?? 0.0
+        // `TelemetryPointModel` stores non-optional coordinates (making them optional is a
+        // SwiftData schema change), so (0, 0) stays the "no fix" sentinel — but only write
+        // it when there genuinely is no usable fix, and let `hasValidCoordinate` /
+        // `routeSamples` filter those points out of the map.
+        let coordinate = locationManager.currentLocation?.coordinate
+        let hasFix = coordinate.map { (-90...90).contains($0.latitude) && (-180...180).contains($0.longitude) && !($0.latitude == 0 && $0.longitude == 0) } ?? false
+        let lat = hasFix ? coordinate!.latitude : 0.0
+        let lon = hasFix ? coordinate!.longitude : 0.0
 
         let sample = TelemetryPointModel(
             timestamp: Date(),
@@ -200,9 +217,16 @@ public final class TripTrackingManager: ObservableObject {
         if telemetry.powerKW > trip.maxPowerKW { trip.maxPowerKW = telemetry.powerKW }
         if telemetry.powerKW < trip.maxRegenKW { trip.maxRegenKW = telemetry.powerKW }
 
-        // Accumulate energy consumption: kW * (interval seconds / 3600)
-        if telemetry.powerKW > 0 {
-            trip.totalKWhUsed += (telemetry.powerKW * (0.5 / 3600.0))
+        // Accumulate energy consumption over the *measured* interval. The previous
+        // hardcoded 0.5 s assumption silently mis-scaled every trip's kWh total, since the
+        // poll loop's real cadence depends on adapter latency and command round-robin.
+        let now = sample.timestamp
+        if let last = lastSampleTime {
+            let interval = now.timeIntervalSince(last)
+            if interval > 0, interval < 300, telemetry.powerKW > 0 {
+                trip.totalKWhUsed += telemetry.powerKW * (interval / 3600.0)
+            }
         }
+        lastSampleTime = now
     }
 }

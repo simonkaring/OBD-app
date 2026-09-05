@@ -256,11 +256,82 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(tracker.currentSession?.peakPowerKW, 75.0)
         XCTAssertEqual(tracker.currentSession?.endSocPct, 25.0)
 
-        // Step 3: Stop charging
+        // Step 3: Stop charging. A single non-charging snapshot must NOT end the session —
+        // hysteresis keeps one charge from fragmenting on a dropped poll.
         snap.isCharging = false
         snap.chargePowerKW = 0.0
         tracker.processTelemetrySnapshot(snap)
+        XCTAssertTrue(tracker.isRecordingSession)
+
+        for _ in 1..<ChargingTrackingManager.endSessionSnapshotThreshold {
+            tracker.processTelemetrySnapshot(snap)
+        }
         XCTAssertFalse(tracker.isRecordingSession)
         XCTAssertNil(tracker.currentSession)
+    }
+
+    /// A parked car drawing power (HVAC, preconditioning) signs pack current *positive*;
+    /// only current flowing into the pack may open a charging session.
+    func testDischargeWhileParkedDoesNotStartChargingSession() {
+        let tracker = ChargingSessionTracker()
+        let state = tracker.update(
+            soc: 50.0,
+            packVoltage: 400.0,
+            packCurrent: 8.0,
+            powerKW: nil,
+            vehicleBatteryCapacityKWh: 66.5,
+            isStationary: true
+        )
+        XCTAssertFalse(state.isCharging)
+    }
+
+    func testChargeDirectionCurrentWhileParkedStartsSession() {
+        let tracker = ChargingSessionTracker()
+        let state = tracker.update(
+            soc: 50.0,
+            packVoltage: 400.0,
+            packCurrent: -25.0,
+            powerKW: nil,
+            vehicleBatteryCapacityKWh: 66.5,
+            isStationary: true
+        )
+        XCTAssertTrue(state.isCharging)
+        XCTAssertEqual(state.currentPowerKW, 10.0, accuracy: 0.01)
+    }
+
+    /// `sessionDuration` used to keep growing after a session ended because `startTime`
+    /// was never cleared.
+    func testSessionDurationStopsAtSessionEnd() {
+        let tracker = ChargingSessionTracker()
+        _ = tracker.update(soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil, vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        let ended = tracker.update(soc: 50, packVoltage: 400, packCurrent: 0, powerKW: nil, vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        XCTAssertFalse(ended.isCharging)
+        XCTAssertEqual(ended.sessionDuration, 0)
+    }
+
+    /// Out-of-range decodes (a wrong community scaling factor) must be dropped, not
+    /// published as garbage.
+    func testImplausibleDecodesAreRejected() {
+        XCTAssertFalse(VehicleDataManager.isPlausible(.soc(3_200.0)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.batteryTemp(min: -300, max: -300, avg: -300)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.packVoltage(.nan)))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.soc(58.9)))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.packCurrent(0.0)))
+
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.soc(42.0))
+        manager.applyUpdate(.soc(3_200.0))
+        XCTAssertEqual(manager.latestTelemetry.stateOfChargePct, 42.0, accuracy: 0.01)
+    }
+
+    /// A genuine 0 A pack current is data, not a "no reading" sentinel.
+    func testZeroPackCurrentReachesChargingTracker() {
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.packVoltage(400.0))
+        manager.applyUpdate(.packCurrent(0.0))
+
+        XCTAssertTrue(manager.liveMetrics.contains(.packCurrent))
+        XCTAssertEqual(manager.latestTelemetry.powerKW, 0.0, accuracy: 0.01)
+        XCTAssertFalse(manager.chargingSession.isCharging)
     }
 }

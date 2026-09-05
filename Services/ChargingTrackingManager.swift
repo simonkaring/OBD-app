@@ -10,8 +10,12 @@ public final class ChargingTrackingManager: ObservableObject {
     public var modelContext: ModelContext?
     public let locationManager: TripLocationManager
 
+    /// Consecutive non-charging snapshots required before an active session is closed.
+    static let endSessionSnapshotThreshold = 3
+
     private var cancellables = Set<AnyCancellable>()
     private var lastSnapshotTime: Date?
+    private var nonChargingSnapshotCount = 0
     private var geocoder = CLGeocoder()
 
     public init(locationManager: TripLocationManager = TripLocationManager()) {
@@ -71,11 +75,12 @@ public final class ChargingTrackingManager: ObservableObject {
             session.endSocPct = endSoc
         }
         
+        // Average power is only meaningful when energy was actually integrated. The old
+        // `else` branch fell back to peak power, reporting a flat-out session for a
+        // plug-in that delivered nothing.
         let durationHours = session.endTime!.timeIntervalSince(session.startTime) / 3600.0
         if durationHours > 0 && session.totalKWhDelivered > 0 {
             session.averagePowerKW = session.totalKWhDelivered / durationHours
-        } else if session.peakPowerKW > 0 {
-            session.averagePowerKW = session.peakPowerKW
         }
 
         try? modelContext?.save()
@@ -83,6 +88,7 @@ public final class ChargingTrackingManager: ObservableObject {
         self.currentSession = nil
         self.isRecordingSession = false
         self.lastSnapshotTime = nil
+        self.nonChargingSnapshotCount = 0
     }
 
     public func deleteSession(_ session: ChargingSessionModel) {
@@ -119,12 +125,20 @@ public final class ChargingTrackingManager: ObservableObject {
 
         if isRecordingSession {
             if isActivelyCharging {
+                nonChargingSnapshotCount = 0
                 recordSnapshot(telemetry, chargingPower: chargingPower)
             } else {
-                stopSession(endSoc: telemetry.stateOfChargePct)
+                // Hysteresis: a single dropout (a missed poll, a CP handshake pause, the
+                // charger tapering through the threshold) used to end the session and split
+                // one charge into several fragments. Require a sustained gap instead.
+                nonChargingSnapshotCount += 1
+                if nonChargingSnapshotCount >= Self.endSessionSnapshotThreshold {
+                    stopSession(endSoc: telemetry.stateOfChargePct)
+                }
             }
         } else {
             if isActivelyCharging {
+                nonChargingSnapshotCount = 0
                 startSession(startSoc: telemetry.stateOfChargePct)
                 recordSnapshot(telemetry, chargingPower: chargingPower)
             }
