@@ -2,10 +2,10 @@ import SwiftUI
 
 public struct BatteryLevelBar: View {
     public var socPct: Double?
-    public var batteryTempC: Double
+    public var batteryTempC: Double?
     public var isCharging: Bool
 
-    public init(socPct: Double?, batteryTempC: Double = 0.0, isCharging: Bool = false) {
+    public init(socPct: Double?, batteryTempC: Double? = nil, isCharging: Bool = false) {
         self.socPct = socPct
         self.batteryTempC = batteryTempC
         self.isCharging = isCharging
@@ -33,12 +33,14 @@ public struct BatteryLevelBar: View {
 
                 Spacer()
 
-                HStack(spacing: 4) {
-                    Image(systemName: "thermometer.medium")
-                        .foregroundColor(batteryTempC > 38.0 ? Theme.criticalRed : Theme.electricCyan)
-                    Text(String(format: "HV: %.1f°C", batteryTempC))
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(Theme.textPrimary)
+                if let batteryTempC {
+                    HStack(spacing: 4) {
+                        Image(systemName: "thermometer.medium")
+                            .foregroundColor(batteryTempC > 38.0 ? Theme.criticalRed : Theme.electricCyan)
+                        Text(String(format: "HV: %.1f°C", batteryTempC))
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundColor(Theme.textPrimary)
+                    }
                 }
             }
 
@@ -73,6 +75,12 @@ public struct BatteryLevelBar: View {
         .glassCard()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("High Voltage Battery")
-        .accessibilityValue(socPct.map { String(format: "%.0f percent, %.1f degrees Celsius%@", $0, batteryTempC, isCharging ? ", charging" : "") } ?? "Unavailable")
+        .accessibilityValue(accessibilityValue)
+    }
+
+    private var accessibilityValue: String {
+        guard let socPct else { return "Unavailable" }
+        let temperature = batteryTempC.map { String(format: ", %.1f degrees Celsius", $0) } ?? ""
+        return String(format: "%.0f percent", socPct) + temperature + (isCharging ? ", charging" : "")
     }
 }

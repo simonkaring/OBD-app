@@ -23,6 +23,10 @@ public struct ChargingLiveView: View {
         vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.power)
     }
 
+    private var hasBatteryTemperature: Bool {
+        vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.batteryTemp)
+    }
+
     private var chargingStatusText: String {
         if !isConnected {
             return "SCANNER DISCONNECTED"
@@ -94,7 +98,7 @@ public struct ChargingLiveView: View {
                         // Battery State of Charge Ring
                         BatteryLevelBar(
                             socPct: hasSOC ? vehicleData.latestTelemetry.stateOfChargePct : nil,
-                            batteryTempC: isConnected ? vehicleData.latestTelemetry.batteryTempC : 0.0,
+                            batteryTempC: isConnected && hasBatteryTemperature ? vehicleData.latestTelemetry.batteryTempC : nil,
                             isCharging: isCharging
                         )
                         .padding(.horizontal)

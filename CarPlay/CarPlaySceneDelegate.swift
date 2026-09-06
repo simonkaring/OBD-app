@@ -114,7 +114,8 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             timeMin = "-- min"
         }
 
-        let tempStr = String(format: "%.1f °C", snapshot.batteryTempC)
+        let hasBatteryTemperature = AppEnvironment.shared.vehicleData.liveMetrics.contains(.batteryTemp)
+        let tempStr = hasBatteryTemperature ? String(format: "%.1f °C", snapshot.batteryTempC) : "Unavailable"
 
         return [
             CPInformationItem(title: "STATUS", detail: isCharging ? "CHARGING ACTIVE" : "NOT CHARGING"),

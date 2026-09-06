@@ -34,14 +34,12 @@ public struct MercedesEQA250Profile: VehicleProfile {
             "ATCRA 18DAF159",
             "AT SH 18DA59F1",
             "22010A",         // BMS pack voltage (0.1V resolution)
-            "220210",         // Customer SOC (0.004% resolution)
-            "22010B",         // BMS pack current (signed, 0.1A resolution)
-            "22010C"          // BMS battery temperature
+            "220210"          // Remaining usable energy, converted to SOC
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.soc, .packVoltage, .power, .batteryTemp, .packCurrent]
+        [.soc, .packVoltage]
     }
 
     public init() {}
@@ -57,33 +55,15 @@ public struct MercedesEQA250Profile: VehicleProfile {
             }
             return nil
 
-        case "220210", "22 02 10": // BMS customer SOC (ECU 0x59)
-            // Live capture: 62 02 10 04 00 00 39 90 ... => 0x3990 / 250 = 58.944% gross cell SoC
-            // Maps gross chemical SoC (with top & bottom reserve buffers) to usable customer display SoC (0–100%)
+        case "220210", "22 02 10": // Remaining usable energy (ECU 0x59)
+            // Labelled vehicle capture at dashboard 100%: 0x40F4 / 250 = 66.512 kWh,
+            // matching the EQA 250's 66.5 kWh usable battery capacity.
             if let bytes = cleanHex.hexBytes(after: "620210", count: 5), bytes[0] == 0x04 {
                 let raw = UInt32(bytes[1]) << 24 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 8 | UInt32(bytes[4])
-                let grossSoC = Double(raw) / 250.0
-                guard (0...100).contains(grossSoC) else { return nil }
-
-                let minGross = 29.8
-                let maxGross = 96.0
-                let usableSoC = min(100.0, max(0.0, ((grossSoC - minGross) / (maxGross - minGross)) * 100.0))
-                return .soc(usableSoC)
-            }
-            return nil
-
-        case "22010B", "22 01 0B": // BMS pack current (ECU 0x59)
-            if let bytes = cleanHex.hexBytes(after: "62010B", count: 2) {
-                let rawInt16 = Int16(Int8(bitPattern: bytes[0])) * 256 + Int16(bytes[1])
-                let current = Double(rawInt16) * 0.1
-                return .packCurrent(current)
-            }
-            return nil
-
-        case "22010C", "22 01 0C": // BMS pack temperature
-            if let bytes = cleanHex.hexBytes(after: "62010C", count: 1) {
-                let temp = Double(Int(bytes[0]) - 40)
-                return .batteryTemp(min: temp, max: temp, avg: temp)
+                let remainingEnergyKWh = Double(raw) / 250.0
+                let soc = remainingEnergyKWh / batteryUsableCapacityKWh * 100.0
+                guard soc >= 0, soc <= 105 else { return nil }
+                return .soc(min(100.0, soc))
             }
             return nil
 

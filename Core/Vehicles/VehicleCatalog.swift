@@ -43,6 +43,9 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
     public let telemetrySupport: LiveTelemetrySupport
     public let estimatedRangeKm: Double?
     public let notes: String?
+    public let modelFamilyID: String?
+    public let modelFamilyName: String?
+    public let variantDisplayName: String?
 
     public init(
         id: String,
@@ -54,7 +57,10 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
         profileID: VehicleProfileID,
         telemetrySupport: LiveTelemetrySupport = .generic,
         estimatedRangeKm: Double? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        modelFamilyID: String? = nil,
+        modelFamilyName: String? = nil,
+        variantDisplayName: String? = nil
     ) {
         self.id = id
         self.brandName = brandName
@@ -66,11 +72,24 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
         self.telemetrySupport = telemetrySupport
         self.estimatedRangeKm = estimatedRangeKm
         self.notes = notes
+        self.modelFamilyID = modelFamilyID
+        self.modelFamilyName = modelFamilyName
+        self.variantDisplayName = variantDisplayName
     }
 
     public var fullName: String {
         "\(brandName) \(modelName)"
     }
+
+    public var resolvedVariantDisplayName: String {
+        variantDisplayName ?? modelName
+    }
+}
+
+public struct VehicleModelFamily: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let name: String
+    public let variants: [VehicleModelEntry]
 }
 
 public struct VehicleBrand: Identifiable, Hashable, Codable, Sendable {
@@ -82,6 +101,10 @@ public struct VehicleBrand: Identifiable, Hashable, Codable, Sendable {
     /// Asset image name corresponding to CarBrands in Assets.xcassets
     public var assetImageName: String {
         "CarBrands/\(id.replacingOccurrences(of: "_", with: "-"))"
+    }
+
+    public var modelFamilies: [VehicleModelFamily] {
+        VehicleCatalog.modelFamilies(for: models)
     }
 }
 
@@ -100,6 +123,43 @@ public struct VehicleCatalog {
         brands.flatMap { $0.models }
     }
 
+    public static func modelFamilies(for models: [VehicleModelEntry]) -> [VehicleModelFamily] {
+        struct FamilyKey: Hashable {
+            let explicitID: String?
+            let legacyName: String?
+        }
+
+        let grouped = Dictionary(grouping: models) { model in
+            if let familyID = model.modelFamilyID, !familyID.isEmpty {
+                return FamilyKey(explicitID: familyID, legacyName: nil)
+            }
+
+            // Legacy rows have no hierarchy. Group only identical display metadata;
+            // leaf IDs are opaque and must not be interpreted for model information.
+            let familyName = model.modelFamilyName ?? model.modelName
+            return FamilyKey(
+                explicitID: nil,
+                legacyName: familyName.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            )
+        }
+
+        return grouped.values.map { variants in
+            let sortedVariants = variants.sorted {
+                let result = $0.resolvedVariantDisplayName.localizedStandardCompare($1.resolvedVariantDisplayName)
+                return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+            }
+            let first = sortedVariants[0]
+            return VehicleModelFamily(
+                id: first.modelFamilyID ?? "legacy:\(sortedVariants.map(\.id).min() ?? first.id)",
+                name: first.modelFamilyName ?? first.modelName,
+                variants: sortedVariants
+            )
+        }.sorted {
+            let result = $0.name.localizedStandardCompare($1.name)
+            return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+        }
+    }
+
     public static let defaultModel = VehicleModelEntry(
         id: "mb-eqa-250",
         brandName: "Mercedes-Benz",
@@ -108,7 +168,10 @@ public struct VehicleCatalog {
         powertrain: .ev,
         batteryCapacityKWh: 66.5,
         profileID: .mercedesEQA250,
-        telemetrySupport: .verified
+        telemetrySupport: .verified,
+        modelFamilyID: "mercedes_benz-eqa",
+        modelFamilyName: "EQA",
+        variantDisplayName: "EQA 250 · 2021"
     )
 
     private static func loadCatalogFromData() -> [VehicleBrand] {

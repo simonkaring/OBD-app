@@ -79,4 +79,4 @@ build/
 .swarm/
 ruvector.db
 skills-lock.json
-
+eqa_capture_*.json

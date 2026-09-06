@@ -216,14 +216,16 @@ final class TripAndTelemetryTests: XCTestCase {
 
     func testSelectedVehicleCapacityDrivesChargingEstimate() {
         let manager = VehicleDataManager()
-        let ioniq = VehicleCatalog.allModels.first { $0.modelName.localizedCaseInsensitiveContains("Ioniq 5") }!
+        let ioniq = VehicleCatalog.allModels.first {
+            $0.profileID == .hkmcIoniq5 && $0.batteryCapacityKWh > 70
+        }!
         manager.selectVehicle(ioniq)
 
         let startedAt = Date.now
         manager.applyUpdate(.soc(62.000), timestamp: startedAt)
         manager.applyUpdate(.soc(62.137), timestamp: startedAt.addingTimeInterval(30))
 
-        XCTAssertTrue(manager.vehicleName.contains("Ioniq 5"))
+        XCTAssertTrue(manager.vehicleName.localizedCaseInsensitiveContains("Ioniq 5"))
         XCTAssertGreaterThan(manager.usableBatteryCapacityKWh, 70.0)
         XCTAssertGreaterThan(manager.latestTelemetry.chargePowerKW, 0.0)
         XCTAssertEqual(manager.selectedProfileID, .hkmcIoniq5)

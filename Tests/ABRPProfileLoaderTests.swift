@@ -106,10 +106,11 @@ final class ABRPProfileLoaderTests: XCTestCase {
 
     func testVehicleCatalogDataDrivenLoading() {
         XCTAssertFalse(VehicleCatalog.brands.isEmpty, "Catalog brands should not be empty")
-        XCTAssertGreaterThan(VehicleCatalog.allModels.count, 20, "Should load many vehicles from dataset")
+        XCTAssertGreaterThan(VehicleCatalog.allModels.count, 500, "Should load the expanded OpenEV catalog")
         XCTAssertEqual(VehicleCatalog.dataSource, "OpenEV Data Dataset & Iternio EV-OBD-PIDs")
 
         let brands = VehicleCatalog.brands.map { $0.name }
+        XCTAssertGreaterThan(brands.count, 60)
         XCTAssertTrue(brands.contains("Tesla"))
         XCTAssertTrue(brands.contains("Mercedes-Benz"))
         XCTAssertTrue(brands.contains("Hyundai"))
@@ -127,5 +128,17 @@ final class ABRPProfileLoaderTests: XCTestCase {
             let sortedModelNames = modelNames.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
             XCTAssertEqual(modelNames, sortedModelNames, "Models for brand \(brand.name) should be sorted alphabetically")
         }
+
+        let mercedes = try? XCTUnwrap(VehicleCatalog.brands.first { $0.id == "mercedes_benz" })
+        let eqa = mercedes?.modelFamilies.first { $0.id == "mercedes_benz-eqa" }
+        XCTAssertGreaterThanOrEqual(eqa?.variants.count ?? 0, 3)
+        XCTAssertEqual(eqa?.variants.filter { $0.telemetrySupport == .verified }.map(\.id), ["mb-eqa-250"])
+
+        XCTAssertTrue(VehicleCatalog.allModels.allSatisfy {
+            $0.modelFamilyID?.isEmpty == false && $0.modelFamilyName?.isEmpty == false
+        })
+        let bmw = try? XCTUnwrap(VehicleCatalog.brands.first { $0.id == "bmw" })
+        let i3 = bmw?.modelFamilies.first { $0.id == "bmw-i3" }
+        XCTAssertEqual(i3?.variants.count, 3)
     }
 }

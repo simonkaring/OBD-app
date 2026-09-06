@@ -64,21 +64,16 @@ struct ProbeView: View {
             }
 
             HStack(spacing: 12) {
-                TextField("Mercedes SOC %", value: $probe.referenceSOC, format: .number.precision(.fractionLength(1)))
-                    .frame(width: 150)
-                TextField("Mercedes charge kW", value: $probe.referencePowerKW, format: .number.precision(.fractionLength(1)))
-                    .frame(width: 170)
-                TextField("Measured 12V", value: $probe.referenceAuxVoltageV, format: .number.precision(.fractionLength(2)))
-                    .frame(width: 140)
                 Button("Full Discovery") { probe.startDiscovery() }
                     .disabled(!probe.connectionState.isConnected || probe.isRunning)
                 Button("Repeat Positive DIDs") { probe.repeatPositiveDIDs() }
-                    .disabled(!probe.connectionState.isConnected || probe.isRunning || probe.captures.isEmpty)
+                    .disabled(!probe.connectionState.isConnected || probe.isRunning || !probe.captures.contains(where: { $0.kind == .discovery }))
                 Button("Stop", role: .destructive) { probe.cancel() }
                     .disabled(!probe.isRunning)
                 Button("Export JSON") { exporting = true }
                     .disabled(probe.captures.isEmpty)
             }
+            CaptureReferenceFields(probe: probe)
         }
     }
 
@@ -111,6 +106,49 @@ struct ProbeView: View {
         case .error(let message): return "Connection error: \(message)"
         case .demoMode: return "Demo mode"
         case .disconnected: return "Adapter disconnected"
+        }
+    }
+}
+
+struct CaptureReferenceFields: View {
+    @ObservedObject var probe: EQAProbeController
+
+    var body: some View {
+        GroupBox("Capture references (optional unless selected)") {
+            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
+                GridRow {
+                    Text("Reference SOC")
+                    Text("Ambient temp")
+                    Text("Battery temp")
+                    Text("Charger power")
+                    Text("Measured 12V")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                GridRow {
+                    TextField("%", value: $probe.referenceSOC, format: .number.precision(.fractionLength(1)))
+                    TextField("°C", value: $probe.referenceAmbientTemperatureC, format: .number.precision(.fractionLength(1)))
+                    TextField("°C", value: $probe.referenceBatteryTemperatureC, format: .number.precision(.fractionLength(1)))
+                    TextField("kW", value: $probe.referenceChargerPowerKW, format: .number.precision(.fractionLength(1)))
+                    TextField("V", value: $probe.referenceAuxVoltageV, format: .number.precision(.fractionLength(2)))
+                }
+
+                GridRow {
+                    Picker("Plugged state", selection: $probe.referencePluggedState) {
+                        ForEach(ProbePluggedState.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    Picker("Charging type", selection: $probe.referenceChargingType) {
+                        ForEach(ProbeChargingType.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    Picker("Vehicle state", selection: $probe.referenceVehicleState) {
+                        ForEach(ProbeVehicleState.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .gridCellColumns(3)
+                }
+            }
+            .textFieldStyle(.roundedBorder)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

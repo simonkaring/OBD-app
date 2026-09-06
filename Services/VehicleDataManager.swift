@@ -3,6 +3,8 @@ import Combine
 import SwiftUI
 
 public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
+    public static let selectedVehicleIDDefaultsKey = "selectedVehicleID"
+
     @Published public private(set) var latestTelemetry = TelemetrySnapshot()
     @Published public private(set) var connectionState: BLEConnectionState = .disconnected
     @Published public private(set) var selectedProfile: VehicleProfile = MercedesEQA250Profile()
@@ -34,6 +36,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     private var commandMetrics: [String: Set<TelemetryMetric>] = [:]
     private var commandMisses: [String: Int] = [:]
     private var externalSpeedUpdatedAt: Date?
+    private let persistenceDefaults: UserDefaults?
 
     public var supportedMetrics: Set<TelemetryMetric> {
         var metrics = selectedProfile.supportedMetrics
@@ -41,7 +44,23 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         return metrics
     }
 
-    public init(connection: OBDConnectionProtocol? = nil) {
+    public init(connection: OBDConnectionProtocol? = nil, userDefaults: UserDefaults? = nil) {
+        if let userDefaults {
+            self.persistenceDefaults = userDefaults
+        } else if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
+                    ProcessInfo.processInfo.processName.localizedCaseInsensitiveContains("xctest") {
+            self.persistenceDefaults = nil
+        } else {
+            self.persistenceDefaults = .standard
+        }
+
+        if let selectedVehicleID = persistenceDefaults?.string(forKey: Self.selectedVehicleIDDefaultsKey),
+           let restoredVehicle = VehicleCatalog.allModels.first(where: { $0.id == selectedVehicleID }) {
+            self.selectedVehicle = restoredVehicle
+            self.selectedProfileID = restoredVehicle.profileID
+            self.selectedProfile = restoredVehicle.profileID.makeProfile()
+        }
+
         if let conn = connection {
             self.obdConnection = conn
         } else {
@@ -97,6 +116,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public func selectVehicle(_ vehicle: VehicleModelEntry) {
         selectedVehicle = vehicle
         selectProfile(vehicle.profileID)
+        persistenceDefaults?.set(vehicle.id, forKey: Self.selectedVehicleIDDefaultsKey)
     }
 
     public func startCalibration() {

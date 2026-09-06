@@ -27,18 +27,19 @@ struct LiveDataView: View {
                 GroupBox("Telemetry") {
                     Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 10) {
                         row("State of charge", percent(probe.telemetry.stateOfChargePct, updated: probe.telemetry.socUpdatedAt))
+                        row("Remaining usable energy", energy(probe.remainingEnergyKWh))
                         row("Pack voltage", voltage(probe.telemetry.voltageV))
-                        row("Pack current", "Unavailable")
-                        row("Battery power", probe.telemetry.isCharging ? "−\(probe.telemetry.chargePowerKW.formatted(.number.precision(.fractionLength(1)))) kW" : "Unavailable")
+                        row("Pack current", current(probe.telemetry.currentA))
+                        row("Calculated pack power", power(probe.telemetry.powerKW))
                     }
                     .padding(.vertical, 4)
                 }
 
                 GroupBox("Charging") {
                     Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 10) {
-                        row("Status", probe.telemetry.isCharging ? "Charging" : "Waiting for SOC trend")
-                        row("Estimated battery-side power", probe.telemetry.isCharging ? "\(probe.telemetry.chargePowerKW.formatted(.number.precision(.fractionLength(1)))) kW" : "—")
-                        row("Charged this session", chargedEnergy)
+                        row("Plugged state", probe.referencePluggedState.rawValue)
+                        row("Charging type", probe.referenceChargingType.rawValue)
+                        row("Reference charger power", referenceChargerPower)
                     }
                     .padding(.vertical, 4)
                 }
@@ -47,16 +48,21 @@ struct LiveDataView: View {
                     Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 10) {
                         row("Elapsed", elapsed)
                         row("SOC change", socChange)
-                        row("Distance", "Awaiting speed PID")
-                        row("Efficiency", "Awaiting power + speed")
+                        row("Raw samples", probe.liveResponses.count.formatted())
+                        row("Vehicle state", probe.referenceVehicleState.rawValue)
                     }
                     .padding(.vertical, 4)
                 }
             }
 
-            GroupBox("Latest raw responses") {
-                List(probe.liveResponses) { result in
+            CaptureReferenceFields(probe: probe)
+
+            GroupBox("Timestamped raw samples") {
+                List(probe.liveResponses.reversed()) { result in
                     HStack(alignment: .firstTextBaseline) {
+                        Text(result.capturedAt, format: .dateTime.hour().minute().second().secondFraction(.fractional(3)))
+                            .monospacedDigit()
+                            .frame(width: 105, alignment: .leading)
                         Text("0x\(result.ecu) / \(result.did)").frame(width: 120, alignment: .leading)
                         Text(result.payload.isEmpty ? result.rawResponse.replacing("\r", with: " ").replacing("\n", with: " ") : result.payload)
                             .fontDesign(.monospaced)
@@ -92,10 +98,24 @@ struct LiveDataView: View {
         value > 0 ? "\(value.formatted(.number.precision(.fractionLength(1)))) V" : "Unavailable"
     }
 
-    private var chargedEnergy: String {
-        guard let start = probe.sessionStartSOC else { return "—" }
-        let kWh = max(0, probe.telemetry.stateOfChargePct - start) / 100 * 66.5
-        return "\(kWh.formatted(.number.precision(.fractionLength(2)))) kWh"
+    private func energy(_ value: Double?) -> String {
+        value.map { "\($0.formatted(.number.precision(.fractionLength(3)))) kWh" } ?? "Unavailable"
+    }
+
+    private func current(_ value: Double) -> String {
+        guard probe.liveResponses.contains(where: { $0.did == "010B" && $0.status == .positive }) else { return "Unavailable" }
+        return "\(value.formatted(.number.precision(.fractionLength(1)))) A"
+    }
+
+    private func power(_ value: Double) -> String {
+        guard probe.telemetry.voltageV > 0,
+              probe.liveResponses.contains(where: { $0.did == "010B" && $0.status == .positive }) else { return "Unavailable" }
+        return "\(value.formatted(.number.precision(.fractionLength(1)))) kW"
+    }
+
+    private var referenceChargerPower: String {
+        guard let value = probe.referenceChargerPowerKW else { return "—" }
+        return "\(value.formatted(.number.precision(.fractionLength(1)))) kW"
     }
 
     private var socChange: String {

@@ -17,7 +17,14 @@ public struct VehicleProfilePickerSheet: View {
         } else {
             return brands.filter { brand in
                 brand.name.localizedCaseInsensitiveContains(brandSearchText) ||
-                brand.models.contains { $0.modelName.localizedCaseInsensitiveContains(brandSearchText) }
+                brand.modelFamilies.contains { family in
+                    family.name.localizedCaseInsensitiveContains(brandSearchText) ||
+                    family.variants.contains { variant in
+                        variant.resolvedVariantDisplayName.localizedCaseInsensitiveContains(brandSearchText) ||
+                        variant.modelName.localizedCaseInsensitiveContains(brandSearchText) ||
+                        variant.years.localizedCaseInsensitiveContains(brandSearchText)
+                    }
+                }
             }
         }
     }
@@ -80,7 +87,7 @@ private struct BrandRow: View {
                     .font(.body)
                     .foregroundColor(.primary)
 
-                Text("\(brand.models.count) \(brand.models.count == 1 ? "model" : "models")")
+                Text("\(brand.modelFamilies.count) \(brand.modelFamilies.count == 1 ? "model" : "models")")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -96,82 +103,130 @@ private struct VehicleModelPickerView: View {
 
     @State private var modelSearchText: String = ""
 
-    private var filteredModels: [VehicleModelEntry] {
-        let models = brand.models.sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
+    private var filteredFamilies: [VehicleModelFamily] {
+        let families = brand.modelFamilies
         if modelSearchText.isEmpty {
-            return models
+            return families
         } else {
-            return models.filter {
-                $0.modelName.localizedCaseInsensitiveContains(modelSearchText) ||
-                $0.brandName.localizedCaseInsensitiveContains(modelSearchText)
+            return families.filter { family in
+                family.name.localizedCaseInsensitiveContains(modelSearchText) ||
+                family.variants.contains {
+                    $0.modelName.localizedCaseInsensitiveContains(modelSearchText) ||
+                    $0.resolvedVariantDisplayName.localizedCaseInsensitiveContains(modelSearchText) ||
+                    $0.years.localizedCaseInsensitiveContains(modelSearchText)
+                }
             }
         }
     }
 
     var body: some View {
-        List(filteredModels) { model in
-            Button {
-                vehicleData.selectVehicle(model)
-                onSelect()
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(model.modelName)
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            Spacer()
-
-                            Text(model.powertrain.rawValue)
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.secondary.opacity(0.12))
-                                .foregroundColor(.secondary)
-                                .clipShape(Capsule())
-                        }
-
-                        HStack(spacing: 6) {
-                            Text(model.years)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-
-                            if model.batteryCapacityKWh > 0 {
-                                Text("•")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Text(String(format: "%.1f kWh", model.batteryCapacityKWh))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        Text(model.telemetrySupport.displayName)
-                            .font(.caption)
-                            .foregroundColor(model.telemetrySupport == .verified ? .green : .secondary)
-
-                        if let notes = model.notes {
-                            Text(notes)
-                                .font(.caption2)
-                                .foregroundColor(Theme.highPowerAmber)
-                        }
-                    }
-
-                    if vehicleData.selectedVehicle.id == model.id {
-                        Spacer()
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.accentColor)
-                    }
+        List(filteredFamilies) { family in
+            if family.variants.count == 1, let model = family.variants.first {
+                Button {
+                    vehicleData.selectVehicle(model)
+                    onSelect()
+                } label: {
+                    VehicleVariantRow(model: model, title: family.name, vehicleData: vehicleData)
                 }
-                .padding(.vertical, 4)
+            } else {
+                NavigationLink {
+                    VehicleVariantPickerView(family: family, vehicleData: vehicleData, onSelect: onSelect)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(family.name)
+                            .font(.headline)
+                        Text("\(family.variants.count) variants")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
             }
         }
         .navigationTitle(brand.name)
         .inlineTitleDisplayMode()
         .searchable(text: $modelSearchText, prompt: "Search \(brand.name) models")
+    }
+}
+
+private struct VehicleVariantPickerView: View {
+    let family: VehicleModelFamily
+    @ObservedObject var vehicleData: VehicleDataManager
+    let onSelect: () -> Void
+
+    var body: some View {
+        List(family.variants) { model in
+            Button {
+                vehicleData.selectVehicle(model)
+                onSelect()
+            } label: {
+                VehicleVariantRow(model: model, title: model.resolvedVariantDisplayName, vehicleData: vehicleData)
+            }
+        }
+        .navigationTitle(family.name)
+        .inlineTitleDisplayMode()
+    }
+}
+
+private struct VehicleVariantRow: View {
+    let model: VehicleModelEntry
+    let title: String
+    @ObservedObject var vehicleData: VehicleDataManager
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    Spacer()
+
+                    Text(model.powertrain.rawValue)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.12))
+                        .foregroundColor(.secondary)
+                        .clipShape(Capsule())
+                }
+
+                HStack(spacing: 6) {
+                    Text(model.years)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    if model.batteryCapacityKWh > 0 {
+                        Text("•")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.1f kWh", model.batteryCapacityKWh))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Text(model.telemetrySupport.displayName)
+                    .font(.caption)
+                    .foregroundColor(model.telemetrySupport == .verified ? .green : .secondary)
+
+                if let notes = model.notes {
+                    Text(notes)
+                        .font(.caption2)
+                        .foregroundColor(Theme.highPowerAmber)
+                }
+            }
+
+            if vehicleData.selectedVehicle.id == model.id {
+                Spacer()
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.accentColor)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

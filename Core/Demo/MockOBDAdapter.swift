@@ -54,8 +54,8 @@ public final class MockOBDAdapter: ObservableObject, OBDConnectionProtocol {
                 let byteB = rawV & 0xFF
                 mockHex = String(format: "62 01 0A %02X %02X\r\n>", byteA, byteB)
             case "220210", "22 02 10": // Mercedes EQA customer SOC
-                let grossSoC = 29.8 + (self.simulationEngine.telemetry.stateOfChargePct / 100.0) * (96.0 - 29.8)
-                let raw = UInt32(grossSoC * 250.0)
+                let remainingEnergyKWh = 66.5 * self.simulationEngine.telemetry.stateOfChargePct / 100.0
+                let raw = UInt32(remainingEnergyKWh * 250.0)
                 let b1 = (raw >> 24) & 0xFF
                 let b2 = (raw >> 16) & 0xFF
                 let b3 = (raw >> 8) & 0xFF
@@ -66,9 +66,8 @@ public final class MockOBDAdapter: ObservableObject, OBDConnectionProtocol {
                 let bA = UInt8(bitPattern: Int8((rawCurrent >> 8) & 0xFF))
                 let bB = UInt8(bitPattern: Int8(rawCurrent & 0xFF))
                 mockHex = String(format: "62 01 0B %02X %02X\r\n>", bA, bB)
-            case "22010C", "22 01 0C": // Mercedes EQA battery temp
-                let rawTemp = UInt8(max(0, min(255, Int(self.simulationEngine.telemetry.batteryTempC + 40.0))))
-                mockHex = String(format: "62 01 0C %02X\r\n>", rawTemp)
+            case "22010C", "22 01 0C": // Mercedes EQA status/capacity payload
+                mockHex = "62 01 0C 08 6A A9\r\n>"
             case "220101": // Hyundai SOC / Power
                 let rawSoc = Int(self.simulationEngine.telemetry.stateOfChargePct * 2.0)
                 mockHex = String(format: "62 01 01 00 00 00 00 00 00 00 00 00 00 00 0F A0 %02X\r\n>", rawSoc)
