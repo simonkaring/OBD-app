@@ -34,6 +34,13 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     private var inFlightCommand: QueuedCommand?
     private var commandTimer: Timer?
     private var connectionTimeoutTimer: Timer?
+    private var isDraining = false
+    private var recoveryGeneration = 0
+    private var recoveryWorkItem: DispatchWorkItem?
+    private var commandWriter: ((Data) -> Void)?
+    private var scheduleRecovery: (DispatchWorkItem) -> Void = {
+        DispatchQueue.main.asyncAfter(deadline: .now() + BLEConstants.staleResponseDrainDelay, execute: $0)
+    }
 
     private static let maxLogEntries = 500
 
@@ -42,15 +49,27 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         self.centralManager = CBCentralManager(delegate: self, queue: .main)
     }
 
+    // Exercise the command queue without creating a CoreBluetooth connection.
+    init(commandWriter: @escaping (Data) -> Void, scheduleRecovery: @escaping (DispatchWorkItem) -> Void) {
+        self.commandWriter = commandWriter
+        self.scheduleRecovery = scheduleRecovery
+        super.init()
+        state = .ready(deviceName: "Test Adapter")
+    }
+
     public func connect(peripheralName: String? = nil) {
+        guard activePeripheral == nil else { return }
         state = .scanning
         discoveredDevices.removeAll()
-        if centralManager.state == .poweredOn {
-            centralManager.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+        delegate?.obdConnectionStateDidChange(state)
+        if centralManager?.state == .poweredOn {
+            centralManager?.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
         }
     }
 
     public func connect(to peripheral: CBPeripheral) {
+        guard peripheral !== activePeripheral else { return }
+        if activePeripheral != nil { disconnect() }
         centralManager.stopScan()
         activePeripheral = peripheral
         peripheral.delegate = self
@@ -63,11 +82,12 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     }
 
     public func disconnect() {
+        centralManager?.stopScan()
         if let peripheral = activePeripheral {
             centralManager.cancelPeripheralConnection(peripheral)
         }
-        resetConnectionState()
         state = .disconnected
+        resetConnectionState()
         delegate?.obdConnectionStateDidChange(.disconnected)
     }
 
@@ -88,8 +108,12 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         connectionTimeoutTimer = nil
     }
 
-    private func resetConnectionState() {
+    func resetConnectionState() {
         cancelConnectionTimeout()
+        recoveryGeneration += 1
+        recoveryWorkItem?.cancel()
+        recoveryWorkItem = nil
+        isDraining = false
         activePeripheral = nil
         boundService = nil
         writeCharacteristic = nil
@@ -119,8 +143,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     }
 
     private func dispatchNextCommandIfIdle() {
-        guard inFlightCommand == nil, !commandQueue.isEmpty else { return }
-        guard let peripheral = activePeripheral, let writeChar = writeCharacteristic else {
+        guard !isDraining, inFlightCommand == nil, !commandQueue.isEmpty else { return }
+        guard commandWriter != nil || (activePeripheral != nil && writeCharacteristic != nil) else {
             let queued = commandQueue.removeFirst()
             queued.completion?(.failure(NSError(domain: "BluetoothManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "BLE Not connected"])))
             dispatchNextCommandIfIdle()
@@ -137,8 +161,12 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
             return
         }
 
-        let writeType: CBCharacteristicWriteType = writeChar.properties.contains(.write) ? .withResponse : .withoutResponse
-        peripheral.writeValue(data, for: writeChar, type: writeType)
+        if let commandWriter {
+            commandWriter(data)
+        } else if let peripheral = activePeripheral, let writeChar = writeCharacteristic {
+            let writeType: CBCharacteristicWriteType = writeChar.properties.contains(.write) ? .withResponse : .withoutResponse
+            peripheral.writeValue(data, for: writeChar, type: writeType)
+        }
 
         commandTimer?.invalidate()
         commandTimer = Timer.scheduledTimer(withTimeInterval: next.timeout, repeats: false) { [weak self] _ in
@@ -146,7 +174,7 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         }
     }
 
-    private func completeInFlight(_ result: Result<String, Error>, rawResponse: String?) {
+    func completeInFlight(_ result: Result<String, Error>, rawResponse: String?) {
         commandTimer?.invalidate()
         commandTimer = nil
         guard let completed = inFlightCommand else { return }
@@ -160,6 +188,21 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
             responseText = "ERROR: \(err.localizedDescription)"
             wasTimeout = (err as NSError).code == -2
         }
+        if wasTimeout {
+            // Gate dispatch before observers/completions can enqueue another command.
+            isDraining = true
+            buffer = ""
+            recoveryGeneration += 1
+            let generation = recoveryGeneration
+            let recovery = DispatchWorkItem { [weak self] in
+                guard let self, self.isDraining, self.recoveryGeneration == generation else { return }
+                self.recoveryWorkItem = nil
+                self.isDraining = false
+                self.dispatchNextCommandIfIdle()
+            }
+            recoveryWorkItem = recovery
+            scheduleRecovery(recovery)
+        }
         appendLog(sent: completed.command, response: responseText)
 
         completed.completion?(result)
@@ -167,17 +210,18 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
             delegate?.obdConnectionDidReceiveResponse(command: completed.command, rawResponse: raw)
         }
 
-        if wasTimeout {
-            // The adapter may still deliver a late notification for the command
-            // that just timed out. Drop whatever's buffered now, wait it out, then
-            // drop it again right before starting the next command.
-            buffer = ""
-            DispatchQueue.main.asyncAfter(deadline: .now() + BLEConstants.staleResponseDrainDelay) { [weak self] in
-                self?.buffer = ""
-                self?.dispatchNextCommandIfIdle()
-            }
-        } else {
+        if !wasTimeout {
             dispatchNextCommandIfIdle()
+        }
+    }
+
+    func receiveResponseChunk(_ str: String) {
+        guard !isDraining, inFlightCommand != nil, !str.isEmpty else { return }
+        buffer += str
+        if buffer.contains(">") {
+            let responseStr = buffer
+            buffer = ""
+            completeInFlight(.success(responseStr), rawResponse: responseStr)
         }
     }
 
@@ -197,11 +241,13 @@ extension BluetoothManager: CBCentralManagerDelegate {
             }
         } else {
             state = .error("Bluetooth is off or unauthorized")
+            resetConnectionState()
             delegate?.obdConnectionStateDidChange(state)
         }
     }
 
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        guard case .scanning = state else { return }
         if !discoveredDevices.contains(where: { $0.identifier == peripheral.identifier }) {
             discoveredDevices.append(peripheral)
         }
@@ -227,11 +273,13 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        guard peripheral === activePeripheral, case .connecting = state else { return }
         didRetryServiceDiscovery = false
         peripheral.discoverServices(BLEConstants.allSupportedServices)
     }
 
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        guard peripheral === activePeripheral, case .connecting = state else { return }
         let name = peripheral.name ?? "OBD Adapter"
         let msg = error?.localizedDescription ?? "Failed to connect to \(name)"
         resetConnectionState()
@@ -240,14 +288,16 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        resetConnectionState()
+        guard peripheral === activePeripheral else { return }
         state = .disconnected
+        resetConnectionState()
         delegate?.obdConnectionStateDidChange(state)
     }
 }
 
 extension BluetoothManager: CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        guard peripheral === activePeripheral, case .connecting = state else { return }
         guard error == nil else {
             let msg = error?.localizedDescription ?? "Service discovery failed"
             resetConnectionState()
@@ -282,6 +332,7 @@ extension BluetoothManager: CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        guard peripheral === activePeripheral, case .connecting = state, error == nil else { return }
         guard boundService == nil else { return }
         guard let characteristics = service.characteristics, !characteristics.isEmpty else { return }
 
@@ -306,7 +357,8 @@ extension BluetoothManager: CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-        guard characteristic === notifyCharacteristic, error == nil, characteristic.isNotifying else {
+        guard peripheral === activePeripheral, characteristic === notifyCharacteristic else { return }
+        guard error == nil, characteristic.isNotifying else {
             if let error = error {
                 let msg = "Notification setup failed: \(error.localizedDescription)"
                 resetConnectionState()
@@ -315,6 +367,7 @@ extension BluetoothManager: CBPeripheralDelegate {
             }
             return
         }
+        guard case .connecting = state else { return }
         cancelConnectionTimeout()
         let devName = peripheral.name ?? "OBD Adapter"
         state = .ready(deviceName: devName)
@@ -322,19 +375,12 @@ extension BluetoothManager: CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        guard peripheral === activePeripheral, characteristic === notifyCharacteristic, error == nil else { return }
         guard let data = characteristic.value else { return }
         let str = String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .ascii)
             ?? String(data: data, encoding: .isoLatin1)
             ?? ""
-        guard !str.isEmpty else { return }
-
-        buffer += str
-
-        if buffer.contains(">") {
-            let responseStr = buffer
-            buffer = ""
-            completeInFlight(.success(responseStr), rawResponse: responseStr)
-        }
+        receiveResponseChunk(str)
     }
 }

@@ -72,6 +72,105 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(payload, "62010A0D3E")
     }
 
+    func testISO15765ParserRejectsIncompleteAndInvalidSingleFrames() {
+        let parser = ISO15765Parser()
+        for header in ["", "7E8 ", "18 DA F1 59 ", "18DAF159 "] {
+            for frame in ["03 41 0D", "00 41 0D 32", "08 41 0D 32 00 00 00 00 00"] {
+                XCTAssertTrue(parser.assembleISOTPPayloads(header + frame).isEmpty, header + frame)
+            }
+        }
+        XCTAssertEqual(parser.assembleISOTPPayload("7E8 03 41 0D 32 AA AA AA AA"), "410D32")
+    }
+
+    func testISO15765ParserRejectsIncompleteAndInterruptedMultiFrames() {
+        let parser = ISO15765Parser()
+        let firstFrame = "7E8 10 0A 62 01 05 0E 74 03"
+        for suffix in ["", "\r7E8 21 E8", "\r7E8 21", "\r7E8 03 41 0D 32",
+                       "\r7E8 10 08 62 01 0A 00 00 00\r7E8 21 11 22",
+                       "\r7E8 62 01 05 E8 00 00 00"] {
+            XCTAssertTrue(parser.assembleISOTPPayloads(firstFrame + suffix).isEmpty, suffix)
+        }
+        for frame in ["7E8 10", "7E8 10 0A", "7E8 10 00 62", "7E8 10 01 62"] {
+            XCTAssertTrue(parser.assembleISOTPPayloads(frame).isEmpty, frame)
+        }
+    }
+
+    func testISO15765ParserRejectsOrphanAndExtraConsecutiveFrames() {
+        let parser = ISO15765Parser()
+        for raw in [
+            "7E8 21 62 01 0A 0D 3E",
+            "21 62 01 0A 0D 3E",
+            "7E8 03 41 0D 32\r7E8 21 00",
+            "7E8 10 08 62 01 0A 0D 3E 00\r7E8 21 00 00\r7E8 22 00",
+            "7E8 10 0E 62 01 0A 0D 3E 00\r7E8 21 00 00 00 00 00 00 00\r7E8 21 00"
+        ] {
+            XCTAssertTrue(parser.assembleISOTPPayloads(raw).isEmpty, raw)
+        }
+    }
+
+    func testISO15765ParserRejectsMalformedByteTokens() {
+        let parser = ISO15765Parser()
+        for token in ["GG", "F", "000", "100", "+1", "-1", "0x01"] {
+            for raw in [
+                "7E8 \(token) 41 0D 32",
+                "7E8 03 41 0D \(token)",
+                "7E8 03 41 0D 32 \(token)",
+                "7E8 10 \(token) 62 01 0A 00 00 00",
+                "7E8 10 08 62 01 0A \(token) 00 00\r7E8 21 11 22",
+                "7E8 10 08 62 01 0A 00 00 00\r7E8 21 11 \(token)",
+                "62 01 0A 0D \(token)"
+            ] {
+                XCTAssertTrue(parser.assembleISOTPPayloads(raw).isEmpty, raw)
+            }
+        }
+    }
+
+    func testISO15765ParserInvalidFramesDoNotDiscardOtherECUs() {
+        let parser = ISO15765Parser()
+        for invalid in ["7E8 03 41 0D", "7E8 10 0A 62 01 05 0E 74 03",
+                        "7E8 21 00", "7E8 03 41 0D GG",
+                        "7E8 10 08 62 01 0A 00 00 00\r7E8 22 11 22"] {
+            let results = parser.assembleISOTPPayloads(invalid + "\r7E9 03 41 0D 32")
+            XCTAssertEqual(results.map(\.ecu), ["7E9"], invalid)
+            XCTAssertEqual(results.map(\.payload), ["410D32"], invalid)
+        }
+    }
+
+    func testISO15765ParserCompletesMultipleMessagesForSameECU() {
+        let parser = ISO15765Parser()
+        let message = "7E8 10 08 62 01 0A 0D 3E 00\r7E8 21 11 22 AA AA AA AA AA"
+        let raw = message + "\r7E8 03 41 0D 32\r" + message
+        XCTAssertEqual(parser.assembleISOTPPayload(raw), "62010A0D3E001122410D3262010A0D3E001122")
+    }
+
+    func testISO15765ParserConsecutiveFrameSequenceWraps() {
+        let parser = ISO15765Parser()
+        // 6 FF bytes + 16 CFs of 7 bytes = 118 (0x76); sequence wraps from F to 0.
+        var frames = ["7E8 10 76 62 01 0A 00 00 00"]
+        for sequence in 1...16 {
+            frames.append(String(format: "7E8 %02X 00 00 00 00 00 00 00", 0x20 | (sequence & 0x0F)))
+        }
+        XCTAssertEqual(parser.assembleISOTPPayload(frames.joined(separator: "\r")),
+                       "62010A" + String(repeating: "00", count: 115))
+    }
+
+    func testISO15765ParserPreservesHeaderlessFormattedPayloadsAndGenericProfiles() {
+        let parser = ISO15765Parser()
+        let results = parser.assembleISOTPPayloads("62 01 0A 0D 3E\r>")
+        XCTAssertEqual(results.map(\.ecu), [ISO15765Parser.headerlessECU])
+        XCTAssertEqual(results.map(\.payload), ["62010A0D3E"])
+        let profiles: [any VehicleProfile] = [GenericOBD2Profile(), GenericEVProfile()]
+        for raw in ["41 0D 32\r>", "03 41 0D 32\r>", "7E8 03 41 0D 32\r>"] {
+            for profile in profiles {
+                guard case .speed(let speed)? = profile.parseResponse(command: "010D", rawResponse: raw) else {
+                    XCTFail("Expected generic speed update from \(raw)")
+                    continue
+                }
+                XCTAssertEqual(speed, 50)
+            }
+        }
+    }
+
     func testISO15765Parser29BitHeaderMultiFrame() {
         let parser = ISO15765Parser()
         let raw = "18 DA F1 59 10 0B 62 01 00 00 00\r\n18 DA F1 59 21 FF 00 02 FF FF AA\r\n>"
@@ -174,6 +273,15 @@ final class OBDParserTests: XCTestCase {
             return XCTFail("Expected SOC update")
         }
         XCTAssertEqual(soc, 100.0, accuracy: 0.01)
+    }
+
+    func testMercedesEQA250TruncatedReplyDoesNotDecodeSOC() {
+        let profile = MercedesEQA250Profile()
+        // Enough bytes for the SOC formula, but fewer than the declared 11-byte payload.
+        for header in ["18 DA F1 59", "18DAF159"] {
+            let raw = "\(header) 10 0B 62 02 10 04 00 00\r\(header) 21 39 90\r>"
+            XCTAssertNil(profile.parseResponse(command: "220210", rawResponse: raw))
+        }
     }
 
     func testMercedesEQA250PackVoltageParsing() {
@@ -335,7 +443,8 @@ final class OBDParserTests: XCTestCase {
         let scanner = DTCScannerService()
         // First Frame: 43 04 01 43 01 33  (service=43, count=4, DTC1=0143, DTC2 starts 01/33...)
         // Consecutive Frame continues the byte stream: 02 47 03 01 00 00 00
-        let raw = "7E8 10 0E 43 04 01 43 01 33\r\n7E8 21 02 47 03 01 00 00 00\r\n>"
+        // 6 FF bytes + 7 CF bytes = 13 (0x0D), not 14.
+        let raw = "7E8 10 0D 43 04 01 43 01 33\r\n7E8 21 02 47 03 01 00 00 00\r\n>"
         let codes = scanner.parseDTCResponse(raw, serviceByte: 0x43)
         XCTAssertEqual(codes.count, 4)
         XCTAssertEqual(codes.map(\.code), ["P0143", "P0133", "P0247", "P0301"])

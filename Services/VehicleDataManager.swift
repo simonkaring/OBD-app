@@ -29,7 +29,13 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         selectedVehicle.estimatedRangeKm ?? selectedProfile.estimatedFullRangeKm
     }
 
+    public var hasChargePower: Bool {
+        isDemoMode || latestTelemetry.chargePowerUpdatedAt != nil
+    }
+
     private var isPolling = false
+    private var isInitializing = false
+    private var shouldPollAfterInitialization = false
     private var pollingIndex = 0
     private var pollingGeneration = 0
     private var socHistory: [(timestamp: Date, value: Double)] = []
@@ -101,6 +107,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     }
 
     public func selectProfile(_ id: VehicleProfileID) {
+        let wasPolling = isPolling
+        stopPolling()
         selectedProfileID = id
         selectedProfile = id.makeProfile()
         calibratedCommands = nil
@@ -108,8 +116,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         pollingIndex = 0
         socHistory.removeAll()
         resetTelemetryValidity()
-        for cmd in selectedProfile.initializationCommands {
-            obdConnection.sendCommand(cmd, completion: nil)
+        if !isDemoMode, obdConnection.state.isConnected {
+            initializeProfile(resumePolling: wasPolling)
         }
     }
 
@@ -120,7 +128,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     }
 
     public func startCalibration() {
-        guard !isCalibrating else { return }
+        guard !isCalibrating, !isInitializing else { return }
         let wasPolling = isPolling
         stopPolling()
         isCalibrating = true
@@ -128,6 +136,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         calibrationSummary = nil
 
         let commandsToTest = selectedProfile.pollingCommands
+        let generation = pollingGeneration
         guard !commandsToTest.isEmpty else {
             isCalibrating = false
             if wasPolling { startPolling() }
@@ -140,8 +149,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             let total = commandsToTest.count
 
             for (index, cmd) in commandsToTest.enumerated() {
-                guard self.isCalibrating else { break }
+                guard self.isCalibrating, generation == self.pollingGeneration else { return }
                 let raw = await self.sendOBDCommandAsync(cmd)
+                guard self.isCalibrating, generation == self.pollingGeneration else { return }
 
                 if self.isSupportedResponse(command: cmd, rawResponse: raw) {
                     verifiedCommands.append(cmd)
@@ -154,15 +164,18 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 self.calibrationProgress = Double(index + 1) / Double(total)
             }
 
-            if !verifiedCommands.isEmpty {
-                self.calibratedCommands = verifiedCommands
-                let validMetricCount = verifiedCommands.filter { !$0.uppercased().hasPrefix("AT") }.count
+            let validMetricCount = verifiedCommands.filter { !$0.uppercased().hasPrefix("AT") }.count
+            if validMetricCount > 0 {
+                // The EQA has only two known reads. A sleeping ECU must not permanently
+                // remove either one from polling after a single calibration miss.
+                self.calibratedCommands = self.selectedProfileID == .mercedesEQA250 ? nil : verifiedCommands
                 let totalMetricCount = commandsToTest.filter { !$0.uppercased().hasPrefix("AT") }.count
                 self.calibrationSummary = "\(validMetricCount) of \(totalMetricCount) metrics active"
             } else {
                 self.calibratedCommands = nil
                 self.calibrationSummary = "No metrics responded"
             }
+            self.pollingIndex = 0
             self.isCalibrating = false
             if wasPolling || self.obdConnection.state.isConnected {
                 self.startPolling()
@@ -199,7 +212,13 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         }
 
         if command.uppercased().hasPrefix("AT") {
-            return true
+            let lines = upper.components(separatedBy: .newlines).map {
+                $0.trimmingCharacters(in: .whitespaces)
+            }
+            if command.replacingOccurrences(of: " ", with: "").uppercased() == "ATZ" {
+                return lines.contains { !$0.isEmpty && $0.replacingOccurrences(of: " ", with: "") != "ATZ" }
+            }
+            return lines.contains("OK")
         }
 
         if !selectedProfile.parseResponses(command: command, rawResponse: rawResponse).isEmpty {
@@ -218,6 +237,10 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
     public func startPolling() {
         guard !isDemoMode, !isPolling else { return }
+        if isInitializing {
+            shouldPollAfterInitialization = true
+            return
+        }
         isPolling = true
         pollingGeneration += 1
         pollNextCommand(generation: pollingGeneration)
@@ -225,7 +248,12 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
     public func stopPolling() {
         isPolling = false
+        isInitializing = false
+        shouldPollAfterInitialization = false
+        isCalibrating = false
         pollingGeneration += 1
+        socHistory.removeAll()
+        invalidateEstimatedChargingPower()
     }
 
     private func pollNextCommand(generation: Int) {
@@ -243,7 +271,19 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         pollingIndex += 1
 
         obdConnection.sendCommand(cmd) { [weak self] result in
-            guard let self = self else { return }
+            guard let self = self, self.isPolling, generation == self.pollingGeneration else { return }
+            if cmd.uppercased().hasPrefix("AT") {
+                guard case .success(let raw) = result,
+                      self.isSupportedResponse(command: cmd, rawResponse: raw) else {
+                    self.stopPolling()
+                    self.resetTelemetryValidity()
+                    self.obdConnection.disconnect()
+                    self.connectionState = .error("Adapter routing failed at \(cmd). Reconnect the scanner.")
+                    return
+                }
+                self.scheduleNextPoll(generation: generation)
+                return
+            }
             if case .success(let raw) = result {
                 let updates = self.selectedProfile.parseResponses(command: cmd, rawResponse: raw)
                 let applied = updates.reduce(false) { self.applyUpdate($1, timestamp: .now, sourceCommand: cmd) || $0 }
@@ -254,6 +294,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 self.recordMiss(for: cmd)
             }
             self.expireExternalSpeed()
+            self.expireEstimatedChargingPower(at: .now)
             self.scheduleNextPoll(generation: generation)
         }
     }
@@ -328,17 +369,24 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         }
         var snap = latestTelemetry
         snap.timestamp = timestamp
+        if let socAt = snap.socUpdatedAt, timestamp.timeIntervalSince(socAt) > 15 {
+            clearEstimatedChargingPower(snapshot: &snap)
+            socHistory.removeAll()
+        }
         var updatedMetrics = metrics(for: update)
         switch update {
         case .speed(let s):
             snap.speedKmH = s
             if s > 1.0 {
+                clearEstimatedChargingPower(snapshot: &snap)
+                socHistory.removeAll()
                 // If moving, we cannot be plugged in and charging
                 snap.isCharging = false
                 snap.chargePowerKW = 0.0
             }
 
         case .power(let v, let a, let kw):
+            clearEstimatedChargingPower(snapshot: &snap)
             snap.voltageV = v
             snap.currentA = a
             snap.powerKW = kw
@@ -348,11 +396,13 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 snap.isCharging = true
                 snap.chargePowerKW = abs(kw)
                 snap.chargePowerUpdatedAt = snap.timestamp
-            } else if a >= -1.0 {
+            } else {
                 snap.isCharging = false
                 snap.chargePowerKW = 0.0
                 snap.chargePowerUpdatedAt = snap.timestamp
             }
+            snap.chargePowerSource = .measured
+            snap.chargePowerUpdatedAt = timestamp
 
         case .packVoltage(let v):
             snap.voltageV = v
@@ -382,6 +432,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 snap.isCharging = kw > 0.5
                 snap.chargePowerKW = kw
                 snap.chargePowerUpdatedAt = snap.timestamp
+                snap.chargePowerSource = .measured
             } else {
                 // Status bit says "charging" but the profile can't measure the rate. Flag
                 // it and let the SoC-slope estimator or a pack-power PID fill in the kW.
@@ -426,16 +477,18 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     private func updatePackPower(snapshot: inout TelemetrySnapshot, updatedMetrics: inout Set<TelemetryMetric>) {
         let available = liveMetrics.union(updatedMetrics)
         guard available.contains(.packVoltage), available.contains(.packCurrent) else { return }
+        clearEstimatedChargingPower(snapshot: &snapshot)
         snapshot.powerKW = (snapshot.voltageV * snapshot.currentA) / 1000.0
         updatedMetrics.insert(.power)
         if snapshot.currentA < -1.0 && snapshot.speedKmH < 1.0 {
             snapshot.isCharging = true
             snapshot.chargePowerKW = abs(snapshot.powerKW)
-        } else if snapshot.currentA >= -1.0 {
+        } else {
             snapshot.isCharging = false
             snapshot.chargePowerKW = 0
         }
         snapshot.chargePowerUpdatedAt = snapshot.timestamp
+        snapshot.chargePowerSource = .measured
     }
 
     private func metrics(for update: TelemetryUpdate) -> Set<TelemetryMetric> {
@@ -469,11 +522,20 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         commandMisses[command, default: 0] += 1
         guard commandMisses[command, default: 0] >= 3 else { return }
         liveMetrics.subtract(metrics)
+        if metrics.contains(.soc) {
+            socHistory.removeAll()
+            invalidateEstimatedChargingPower()
+        }
         if metrics.contains(.packVoltage) || metrics.contains(.packCurrent) {
             liveMetrics.remove(.power)
             latestTelemetry.powerKW = 0
-            latestTelemetry.chargePowerKW = 0
-            latestTelemetry.isCharging = false
+            // SOC-derived charging power does not depend on a voltage/current read.
+            if latestTelemetry.chargePowerSource != .socEstimate {
+                latestTelemetry.chargePowerKW = 0
+                latestTelemetry.isCharging = false
+                latestTelemetry.chargePowerUpdatedAt = nil
+                latestTelemetry.chargePowerSource = nil
+            }
         }
     }
 
@@ -488,13 +550,49 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         commandMetrics = [:]
         commandMisses = [:]
         externalSpeedUpdatedAt = nil
+        latestTelemetry.isCharging = false
+        latestTelemetry.chargePowerKW = 0
+        latestTelemetry.chargePowerUpdatedAt = nil
+        latestTelemetry.chargePowerSource = nil
+        chargingTracker.reset()
+        chargingSession = chargingTracker.state
+    }
+
+    private func clearEstimatedChargingPower(snapshot: inout TelemetrySnapshot) {
+        guard snapshot.chargePowerSource == .socEstimate else { return }
+        snapshot.isCharging = false
+        snapshot.chargePowerKW = 0
+        snapshot.chargePowerUpdatedAt = nil
+        snapshot.chargePowerSource = nil
+    }
+
+    private func expireEstimatedChargingPower(at timestamp: Date) {
+        guard latestTelemetry.chargePowerSource == .socEstimate,
+              let socAt = latestTelemetry.socUpdatedAt,
+              timestamp.timeIntervalSince(socAt) > 15 else { return }
+        socHistory.removeAll()
+        invalidateEstimatedChargingPower()
+    }
+
+    private func invalidateEstimatedChargingPower() {
+        guard latestTelemetry.chargePowerSource == .socEstimate else { return }
+        clearEstimatedChargingPower(snapshot: &latestTelemetry)
+        chargingTracker.reset()
+        chargingSession = chargingTracker.state
     }
 
     private func updateEstimatedChargingPower(soc: Double, snapshot: inout TelemetrySnapshot) {
         // A profile that reports pack current has better information than an
         // SOC slope. Keep its reading until it is stale.
-        if let directPowerAt = snapshot.chargePowerUpdatedAt,
+        if snapshot.chargePowerSource == .measured,
+           let directPowerAt = snapshot.chargePowerUpdatedAt,
            snapshot.timestamp.timeIntervalSince(directPowerAt) < 10 {
+            return
+        }
+
+        guard snapshot.speedKmH < 1.0 else {
+            socHistory.removeAll()
+            clearEstimatedChargingPower(snapshot: &snapshot)
             return
         }
 
@@ -505,21 +603,21 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         guard let oldest = socHistory.first else { return }
         let duration = snapshot.timestamp.timeIntervalSince(oldest.timestamp)
         let delta = soc - oldest.value
-        guard duration >= 30, delta >= 0.04 else {
-            if duration >= 30, delta <= 0 {
-                snapshot.isCharging = false
-                snapshot.chargePowerKW = 0
-                snapshot.chargePowerUpdatedAt = snapshot.timestamp
-            }
+        guard duration >= 30 else { return }
+        guard delta > 0 else {
+            clearEstimatedChargingPower(snapshot: &snapshot)
             return
         }
 
         let kw = (delta / 100 * usableBatteryCapacityKWh) / (duration / 3_600)
-        guard (0.5...200).contains(kw) else { return }
+        guard (0.5...200).contains(kw) else {
+            clearEstimatedChargingPower(snapshot: &snapshot)
+            return
+        }
         snapshot.isCharging = true
         snapshot.chargePowerKW = kw
-        snapshot.powerKW = -kw
         snapshot.chargePowerUpdatedAt = snapshot.timestamp
+        snapshot.chargePowerSource = .socEstimate
     }
 
     public func obdConnectionDidReceiveResponse(command: String, rawResponse: String) {
@@ -532,10 +630,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public func obdConnectionStateDidChange(_ state: BLEConnectionState) {
         self.connectionState = state
         if case .ready = state {
-            for cmd in selectedProfile.initializationCommands {
-                obdConnection.sendCommand(cmd, completion: nil)
-            }
-            startPolling()
+            initializeProfile()
         } else if case .disconnected = state {
             stopPolling()
             latestTelemetry = TelemetrySnapshot()
@@ -546,6 +641,52 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             latestTelemetry = TelemetrySnapshot()
             socHistory.removeAll()
             resetTelemetryValidity()
+        }
+    }
+
+    private func initializeProfile(commandIndex: Int = 0, resumePolling: Bool = true) {
+        if commandIndex == 0 {
+            stopPolling()
+            resetTelemetryValidity()
+            isInitializing = true
+            shouldPollAfterInitialization = resumePolling
+            if case .ready(let name) = obdConnection.state {
+                connectionState = .connecting(deviceName: name)
+            }
+        }
+        let generation = pollingGeneration
+        let commands = selectedProfile.initializationCommands
+        guard commandIndex < commands.count else {
+            isInitializing = false
+            connectionState = obdConnection.state
+            let shouldResume = shouldPollAfterInitialization
+            shouldPollAfterInitialization = false
+            if shouldResume { startPolling() }
+            return
+        }
+        let command = commands[commandIndex]
+        obdConnection.sendCommand(command) { [weak self] result in
+            guard let self, self.isInitializing, generation == self.pollingGeneration else { return }
+            let accepted: Bool
+            if case .success(let raw) = result {
+                let request = command.replacingOccurrences(of: " ", with: "").uppercased()
+                if request.hasPrefix("10"), request.count == 4 {
+                    // Bundled Zoe profiles enter a diagnostic session before reading PIDs.
+                    let expected = "50" + request.suffix(2)
+                    accepted = ISO15765Parser().assembleISOTPPayloads(raw).contains { $0.payload.hasPrefix(expected) }
+                } else {
+                    accepted = self.isSupportedResponse(command: command, rawResponse: raw)
+                }
+            } else {
+                accepted = false
+            }
+            guard accepted else {
+                self.stopPolling()
+                self.obdConnection.disconnect()
+                self.connectionState = .error("Adapter setup failed at \(command). Reconnect the scanner.")
+                return
+            }
+            self.initializeProfile(commandIndex: commandIndex + 1, resumePolling: resumePolling)
         }
     }
 }

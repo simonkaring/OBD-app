@@ -39,7 +39,7 @@ public struct AILogAnalyzer: Sendable {
         """
 
         for entry in log {
-            text += "\nSent: \(entry.sent)\nResponse: \(entry.response.replacingOccurrences(of: "\r\n", with: " ").replacingOccurrences(of: "\r", with: " "))\n"
+            text += "\nTimestamp: \(entry.timestamp.ISO8601Format())\nSent: \(entry.sent)\nResponse:\n\(entry.response)\n"
         }
 
         text += """

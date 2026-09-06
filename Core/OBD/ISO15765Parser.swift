@@ -48,7 +48,7 @@ public final class ISO15765Parser: Sendable {
         var order: [String] = []
 
         for line in lines {
-            let tokens = line.split(separator: " ").map(String.init)
+            let tokens = line.split(whereSeparator: \.isWhitespace).map(String.init)
             guard !tokens.isEmpty else { continue }
 
             // Check if headers are included, either 11-bit (e.g. 7E8 06 41 0D ...) or
@@ -68,46 +68,76 @@ public final class ISO15765Parser: Sendable {
                 ecuKey = first.uppercased()
             }
 
-            guard !hexTokens.isEmpty else { continue }
-
-            let firstByteStr = hexTokens[0]
-            // Non-hex lines are adapter chatter ("NO DATA", "CAN ERROR", "?") — never payload.
-            guard let firstByte = UInt8(firstByteStr, radix: 16) else { continue }
-
-            let frameType = (firstByte & 0xF0) >> 4
+            // Headerless non-hex lines are adapter chatter, not CAN frames.
+            if ecuKey == Self.headerlessECU,
+               let first = hexTokens.first, UInt8(first, radix: 16) == nil { continue }
 
             if buckets[ecuKey] == nil {
                 buckets[ecuKey] = Bucket()
                 order.append(ecuKey)
             }
 
+            guard !buckets[ecuKey]!.isInvalid else { continue }
+            guard !hexTokens.isEmpty,
+                  hexTokens.allSatisfy({ token in
+                      token.utf8.count == 2 && token.utf8.allSatisfy {
+                          (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
+                      }
+                  }),
+                  let firstByte = UInt8(hexTokens[0], radix: 16) else {
+                buckets[ecuKey]!.isInvalid = true
+                continue
+            }
+
+            let frameType = (firstByte & 0xF0) >> 4
+            // Only CFs (or payload-free flow control) may follow an unfinished FF.
+            guard buckets[ecuKey]!.expectedSeq == nil || frameType == 2 || frameType == 3 else {
+                buckets[ecuKey]!.isInvalid = true
+                continue
+            }
+
             switch frameType {
             case 0: // Single Frame (0x0N length)
                 let length = Int(firstByte & 0x0F)
-                if length > 0, hexTokens.count >= 1 + length {
-                    let dataBytes = hexTokens[1...(length)]
-                    buckets[ecuKey]!.payloadHex += dataBytes.joined()
-                } else {
-                    buckets[ecuKey]!.payloadHex += hexTokens.dropFirst().joined()
+                guard (1...7).contains(length), hexTokens.count >= 1 + length else {
+                    buckets[ecuKey]!.isInvalid = true
+                    continue
                 }
+                buckets[ecuKey]!.payloadHex += hexTokens[1...length].joined()
 
             case 1: // First Frame (0x1N NN) — 12-bit total message length
-                guard hexTokens.count >= 2, let lowLength = UInt8(hexTokens[1], radix: 16) else { continue }
+                guard hexTokens.count > 2, let lowLength = UInt8(hexTokens[1], radix: 16) else {
+                    buckets[ecuKey]!.isInvalid = true
+                    continue
+                }
                 let totalLength = (Int(firstByte & 0x0F) << 8) | Int(lowLength)
+                guard totalLength > hexTokens.count - 2 else {
+                    buckets[ecuKey]!.isInvalid = true
+                    continue
+                }
                 buckets[ecuKey]!.multiFrameStart = buckets[ecuKey]!.payloadHex.count
                 buckets[ecuKey]!.multiFrameHexLength = totalLength * 2
                 buckets[ecuKey]!.expectedSeq = 1
                 buckets[ecuKey]!.payloadHex += hexTokens.dropFirst(2).joined()
 
             case 2: // Consecutive Frame (0x2N sequence index)
-                if let expected = buckets[ecuKey]!.expectedSeq {
-                    guard Int(firstByte & 0x0F) == expected & 0x0F else {
-                        buckets[ecuKey]!.isInvalid = true
-                        continue
-                    }
-                    buckets[ecuKey]!.expectedSeq = expected + 1
+                guard let expected = buckets[ecuKey]!.expectedSeq,
+                      let start = buckets[ecuKey]!.multiFrameStart,
+                      let length = buckets[ecuKey]!.multiFrameHexLength,
+                      Int(firstByte & 0x0F) == expected & 0x0F,
+                      hexTokens.count > 1 else {
+                    buckets[ecuKey]!.isInvalid = true
+                    continue
                 }
+                buckets[ecuKey]!.expectedSeq = expected + 1
                 buckets[ecuKey]!.payloadHex += hexTokens.dropFirst(1).joined()
+                if buckets[ecuKey]!.payloadHex.count >= start + length {
+                    // Trim final-frame padding now, so a later message cannot fill a gap.
+                    buckets[ecuKey]!.payloadHex = String(buckets[ecuKey]!.payloadHex.prefix(start + length))
+                    buckets[ecuKey]!.multiFrameStart = nil
+                    buckets[ecuKey]!.multiFrameHexLength = nil
+                    buckets[ecuKey]!.expectedSeq = nil
+                }
 
             case 3: // Flow Control (0x30 CTS / 0x31 wait / 0x32 abort) — carries no payload
                 continue
@@ -117,16 +147,9 @@ public final class ISO15765Parser: Sendable {
             }
         }
 
-        // Truncate the trailing padding the final consecutive frame pads out with,
-        // using the length each First Frame declared, per bucket.
-        for key in buckets.keys {
-            guard let start = buckets[key]!.multiFrameStart, let length = buckets[key]!.multiFrameHexLength,
-                  buckets[key]!.payloadHex.count > start + length else { continue }
-            buckets[key]!.payloadHex = String(buckets[key]!.payloadHex.prefix(start + length))
-        }
-
         return order.compactMap { key -> (ecu: String, payload: String)? in
-            guard let bucket = buckets[key], !bucket.isInvalid, !bucket.payloadHex.isEmpty else { return nil }
+            guard let bucket = buckets[key], !bucket.isInvalid, bucket.expectedSeq == nil,
+                  !bucket.payloadHex.isEmpty else { return nil }
             return (ecu: key, payload: bucket.payloadHex)
         }
     }

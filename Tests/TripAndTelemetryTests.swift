@@ -208,10 +208,16 @@ final class TripAndTelemetryTests: XCTestCase {
         let manager = VehicleDataManager()
         let startedAt = Date.now
         manager.applyUpdate(.soc(62.000), timestamp: startedAt)
+        manager.applyUpdate(.soc(62.046), timestamp: startedAt.addingTimeInterval(10))
+        manager.applyUpdate(.soc(62.091), timestamp: startedAt.addingTimeInterval(20))
         manager.applyUpdate(.soc(62.137), timestamp: startedAt.addingTimeInterval(30))
 
         XCTAssertTrue(manager.latestTelemetry.isCharging)
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 10.93, accuracy: 0.2)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerSource, .socEstimate)
+        XCTAssertTrue(manager.hasChargePower)
+        XCTAssertFalse(manager.liveMetrics.contains(.power))
+        XCTAssertEqual(manager.latestTelemetry.powerKW, 0, "An SOC estimate is not measured pack power")
     }
 
     func testSelectedVehicleCapacityDrivesChargingEstimate() {
@@ -223,6 +229,8 @@ final class TripAndTelemetryTests: XCTestCase {
 
         let startedAt = Date.now
         manager.applyUpdate(.soc(62.000), timestamp: startedAt)
+        manager.applyUpdate(.soc(62.046), timestamp: startedAt.addingTimeInterval(10))
+        manager.applyUpdate(.soc(62.091), timestamp: startedAt.addingTimeInterval(20))
         manager.applyUpdate(.soc(62.137), timestamp: startedAt.addingTimeInterval(30))
 
         XCTAssertTrue(manager.vehicleName.localizedCaseInsensitiveContains("Ioniq 5"))
@@ -239,6 +247,82 @@ final class TripAndTelemetryTests: XCTestCase {
         manager.applyUpdate(.soc(50.2), timestamp: startedAt.addingTimeInterval(31))
 
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 10.0, accuracy: 0.01)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerSource, .measured)
+    }
+
+    func testSOCEstimateEndsOnPlateauAndRecordingStops() {
+        let manager = VehicleDataManager()
+        let tracker = ChargingTrackingManager()
+        let start = Date.now
+        for seconds in stride(from: 0, through: 30, by: 10) {
+            manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
+        }
+        tracker.processTelemetrySnapshot(manager.latestTelemetry)
+        XCTAssertTrue(tracker.isRecordingSession)
+
+        for seconds in stride(from: 40, through: 150, by: 10) {
+            manager.applyUpdate(.soc(50.12), timestamp: start.addingTimeInterval(Double(seconds)))
+            tracker.processTelemetrySnapshot(manager.latestTelemetry)
+        }
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0)
+        XCTAssertEqual(manager.latestTelemetry.powerKW, 0)
+        XCTAssertFalse(manager.hasChargePower)
+        XCTAssertFalse(tracker.isRecordingSession)
+    }
+
+    func testVoltageUpdatesDoNotKeepMissingSOCEstimateAlive() {
+        let manager = VehicleDataManager()
+        let start = Date.now
+        for seconds in stride(from: 0, through: 30, by: 10) {
+            manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
+        }
+        XCTAssertTrue(manager.hasChargePower)
+        manager.applyUpdate(.packVoltage(380), timestamp: start.addingTimeInterval(46))
+        XCTAssertFalse(manager.hasChargePower)
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertFalse(manager.chargingSession.isCharging)
+
+        manager.applyUpdate(.soc(51), timestamp: start.addingTimeInterval(50))
+        XCTAssertFalse(manager.hasChargePower, "Recovery requires a new continuous SOC history")
+    }
+
+    func testRisingSOCWhileMovingDoesNotEstimateCharging() {
+        let manager = VehicleDataManager()
+        let start = Date.now
+        manager.applyUpdate(.speed(40), timestamp: start)
+        for seconds in stride(from: 0, through: 60, by: 10) {
+            manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
+        }
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertFalse(manager.hasChargePower)
+    }
+
+    func testStoppingPollingClearsEstimateAndHistory() {
+        let manager = VehicleDataManager()
+        let start = Date.now
+        for seconds in stride(from: 0, through: 30, by: 10) {
+            manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
+        }
+        XCTAssertTrue(manager.hasChargePower)
+        manager.stopPolling()
+        XCTAssertFalse(manager.hasChargePower)
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertFalse(manager.chargingSession.isCharging)
+        XCTAssertEqual(manager.chargingSession.currentPowerKW, 0)
+        manager.applyUpdate(.soc(50.16), timestamp: start.addingTimeInterval(40))
+        XCTAssertFalse(manager.hasChargePower)
+    }
+
+    func testLowPowerACChargingCanBeEstimated() {
+        let manager = VehicleDataManager()
+        let start = Date.now
+        for seconds in stride(from: 0, through: 90, by: 10) {
+            let soc = 50 + (0.8 / 66.5 * 100 * Double(seconds) / 3600)
+            manager.applyUpdate(.soc(soc), timestamp: start.addingTimeInterval(Double(seconds)))
+        }
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0.8, accuracy: 0.01)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerSource, .socEstimate)
     }
 
     func testStandalonePackCurrentUsesMeasuredVoltage() {

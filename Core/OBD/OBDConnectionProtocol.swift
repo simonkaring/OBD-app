@@ -28,6 +28,11 @@ public enum TelemetryUpdate: Sendable {
     case barometricPressure(Double)     // kPa
 }
 
+public enum ChargePowerSource: String, Codable, Sendable {
+    case measured
+    case socEstimate
+}
+
 public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var id = UUID()
     public var timestamp: Date = Date()
@@ -48,6 +53,7 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var isCharging: Bool = false
     public var chargePowerKW: Double = 0.0
     public var chargePowerUpdatedAt: Date?
+    public var chargePowerSource: ChargePowerSource?
     public var fuelLevelPct: Double = 0.0
     public var throttlePositionPct: Double = 0.0
     public var engineLoadPct: Double = 0.0

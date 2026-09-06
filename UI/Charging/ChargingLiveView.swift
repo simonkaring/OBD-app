@@ -20,7 +20,7 @@ public struct ChargingLiveView: View {
     }
 
     private var hasChargePower: Bool {
-        vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.power)
+        isConnected && vehicleData.hasChargePower
     }
 
     private var hasBatteryTemperature: Bool {
@@ -37,7 +37,7 @@ public struct ChargingLiveView: View {
         if !isCharging {
             return "NOT CHARGING"
         }
-        return "CHARGING"
+        return vehicleData.latestTelemetry.chargePowerSource == .socEstimate ? "CHARGING (ESTIMATED)" : "CHARGING"
     }
 
     private var usableCapacityKWh: Double {
@@ -89,6 +89,13 @@ public struct ChargingLiveView: View {
                             Text(hasChargePower ? String(format: "%.1f kW", vehicleData.latestTelemetry.chargePowerKW) : "— kW")
                                 .font(.system(size: 48, weight: .black, design: .rounded))
                                 .foregroundColor(isCharging ? Theme.regenGreen : Theme.textPrimary)
+
+                            if vehicleData.latestTelemetry.chargePowerSource == .socEstimate {
+                                Text("Estimated from battery level change, not AC wall power.")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
                         .padding()
                         .frame(maxWidth: .infinity)

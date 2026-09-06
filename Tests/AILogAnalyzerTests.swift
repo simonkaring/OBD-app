@@ -36,4 +36,14 @@ final class AILogAnalyzerTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+
+    func testExportPreservesCANFrameBoundariesAndTimestamp() {
+        let timestamp = Date(timeIntervalSince1970: 1_788_000_000)
+        let raw = "18 DA F1 59 10 0B 62 02 10 04 00 00\r18 DA F1 59 21 40 F4 00 00 00 00 00\r>"
+        let prompt = AILogAnalyzer.buildAnalysisPrompt(log: [
+            OBDLogEntry(timestamp: timestamp, sent: "220210", response: raw)
+        ])
+        XCTAssertTrue(prompt.contains(raw))
+        XCTAssertTrue(prompt.contains(timestamp.ISO8601Format()))
+    }
 }
