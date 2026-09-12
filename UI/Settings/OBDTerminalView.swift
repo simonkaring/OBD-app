@@ -1,10 +1,39 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 public struct OBDTerminalView: View {
     @ObservedObject public var vehicleData: VehicleDataManager
+
+    public init(vehicleData: VehicleDataManager) {
+        self.vehicleData = vehicleData
+    }
+
+    public var body: some View {
+        if let bluetooth = vehicleData.obdConnection as? BluetoothManager {
+            BluetoothTerminalView(vehicleData: vehicleData, bluetoothManager: bluetooth)
+        } else {
+            OBDTerminalContent(vehicleData: vehicleData, bluetoothManager: nil, bluetoothLogs: [])
+        }
+    }
+}
+
+private struct BluetoothTerminalView: View {
+    let vehicleData: VehicleDataManager
+    @ObservedObject var bluetoothManager: BluetoothManager
+
+    var body: some View {
+        OBDTerminalContent(vehicleData: vehicleData, bluetoothManager: bluetoothManager, bluetoothLogs: bluetoothManager.log)
+    }
+}
+
+private struct OBDTerminalContent: View {
+    @ObservedObject var vehicleData: VehicleDataManager
+    let bluetoothManager: BluetoothManager?
+    let bluetoothLogs: [OBDLogEntry]
     @AppStorage("aiApiKey") private var aiApiKey: String = ""
 
     @State private var commandText = ""
+    @State private var commandError: String?
     @State private var supportedPIDs: [String] = []
     @State private var isScanningPIDs = false
     @State private var sweepResults: [String] = []
@@ -18,22 +47,8 @@ public struct OBDTerminalView: View {
     @State private var manualLogs: [OBDLogEntry] = []
     @State private var showAISheet = false
 
-    private var bluetoothManager: BluetoothManager? {
-        vehicleData.obdConnection as? BluetoothManager
-    }
-
     private var combinedLogs: [OBDLogEntry] {
-        var logs = bluetoothManager?.log ?? []
-        for manual in manualLogs {
-            if !logs.contains(where: { $0.id == manual.id }) {
-                logs.append(manual)
-            }
-        }
-        return logs.sorted(by: { $0.timestamp < $1.timestamp })
-    }
-
-    public init(vehicleData: VehicleDataManager) {
-        self.vehicleData = vehicleData
+        bluetoothManager == nil ? manualLogs : bluetoothLogs
     }
 
     public var body: some View {
@@ -46,7 +61,7 @@ public struct OBDTerminalView: View {
                     Button {
                         showAISheet = true
                     } label: {
-                        Label("AI Analyze", systemImage: "sparkles")
+                        Label("AI Analyze Recent (500 max)", systemImage: "sparkles")
                             .foregroundColor(Theme.electricCyan)
                     }
                     .disabled(combinedLogs.isEmpty)
@@ -56,7 +71,7 @@ public struct OBDTerminalView: View {
                         subject: Text("OBD CAN Trace - \(vehicleData.vehicleName)"),
                         message: Text("Help me decode this CAN trace for VoltLink")
                     ) {
-                        Label("Export for AI", systemImage: "square.and.arrow.up")
+                        Label("Export Recent for AI (500 max)", systemImage: "square.and.arrow.up")
                     }
                     .disabled(combinedLogs.isEmpty)
                 }
@@ -65,7 +80,7 @@ public struct OBDTerminalView: View {
                     Button {
                         showAISheet = true
                     } label: {
-                        Label("AI Analyze", systemImage: "sparkles")
+                        Label("AI Analyze Recent (500 max)", systemImage: "sparkles")
                     }
                     .disabled(combinedLogs.isEmpty)
 
@@ -74,7 +89,7 @@ public struct OBDTerminalView: View {
                         subject: Text("OBD CAN Trace - \(vehicleData.vehicleName)"),
                         message: Text("Help me decode this CAN trace for VoltLink")
                     ) {
-                        Label("Export for AI", systemImage: "square.and.arrow.up")
+                        Label("Export Recent for AI (500 max)", systemImage: "square.and.arrow.up")
                     }
                     .disabled(combinedLogs.isEmpty)
                 }
@@ -92,6 +107,16 @@ public struct OBDTerminalView: View {
     @ViewBuilder
     private var terminalList: some View {
         List {
+            if let bluetoothManager {
+                BluetoothCaptureSection(bluetoothManager: bluetoothManager, vehicleContext: vehicleData.vehicleName)
+            } else {
+                Section("Diagnostic Capture") {
+                    Text("File capture is available outside demo mode. Recent manual logs are shown below.")
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                }
+            }
+
             Section("Discovery Tools") {
                 Button {
                     runSupportedPIDScan()
@@ -150,21 +175,30 @@ public struct OBDTerminalView: View {
                     }
                     .disabled(commandText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
+                if let commandError {
+                    Label(commandError, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundColor(Theme.criticalRed)
+                }
             }
 
             Section {
                 HStack {
-                    Text("Trace Log (\(combinedLogs.count) entries)")
+                    Text("Recent Log (\(combinedLogs.count)/500)")
                         .foregroundColor(Theme.textSecondary)
                     Spacer()
                     if !combinedLogs.isEmpty {
                         Button("Clear") {
+                            bluetoothManager?.clearLog()
                             manualLogs.removeAll()
                         }
                         .font(.caption)
                         .foregroundColor(Theme.textSecondary)
                     }
                 }
+                Text("AI analysis and AI export use only these recent entries, not the capture file. Clear does not erase the capture file.")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
             }
 
             if combinedLogs.isEmpty {
@@ -190,23 +224,33 @@ public struct OBDTerminalView: View {
         let cmd = commandText.trimmingCharacters(in: .whitespaces)
         guard !cmd.isEmpty else { return }
         commandText = ""
+        commandError = nil
         Task {
             let response = await sendCommandAsync(cmd)
-            await MainActor.run {
-                manualLogs.append(OBDLogEntry(timestamp: Date(), sent: cmd, response: response))
-            }
+            commandError = response.hasPrefix("ERROR:") ? response : nil
         }
     }
 
     private func sendCommandAsync(_ command: String) async -> String {
-        await withCheckedContinuation { continuation in
-            vehicleData.obdConnection.sendCommand(command) { result in
+        let connection = vehicleData.obdConnection
+        let response: String = await withCheckedContinuation { continuation in
+            connection.sendCommand(command) { result in
                 switch result {
                 case .success(let raw): continuation.resume(returning: raw)
                 case .failure(let err): continuation.resume(returning: "ERROR: \(err.localizedDescription)")
                 }
             }
         }
+        // Bluetooth already logs at completion; only demo/non-Bluetooth needs a local tail.
+        if !(connection is BluetoothManager) {
+            await MainActor.run {
+                manualLogs.append(OBDLogEntry(timestamp: Date(), sent: command, response: response))
+                if manualLogs.count > BluetoothManager.maxLogEntries {
+                    manualLogs.removeFirst(manualLogs.count - BluetoothManager.maxLogEntries)
+                }
+            }
+        }
+        return response
     }
 
     private func runSupportedPIDScan() {
@@ -219,9 +263,6 @@ public struct OBDTerminalView: View {
             var found: [String] = []
             for query in queries {
                 let raw = await sendCommandAsync(query)
-                await MainActor.run {
-                    manualLogs.append(OBDLogEntry(timestamp: Date(), sent: query, response: raw))
-                }
                 guard let pids = parsePIDBitmask(raw, query: query) else { break }
                 found.append(contentsOf: pids)
             }
@@ -279,7 +320,6 @@ public struct OBDTerminalView: View {
                         let line = "\(label) DID 01\(didLow): \(clean)"
                         await MainActor.run {
                             sweepResults.append(line)
-                            manualLogs.append(OBDLogEntry(timestamp: Date(), sent: cmd, response: raw))
                         }
                     }
                     done += 1
@@ -349,7 +389,6 @@ public struct OBDTerminalView: View {
                     if isProbeHit(presentRaw) {
                         await MainActor.run {
                             probeResults.append("SP\(entry.protocol) \(header) 3E00: \(presentRaw.trimmingCharacters(in: .whitespacesAndNewlines))")
-                            manualLogs.append(OBDLogEntry(timestamp: Date(), sent: "SP\(entry.protocol) \(header) 3E00", response: presentRaw))
                         }
                     }
 
@@ -357,7 +396,6 @@ public struct OBDTerminalView: View {
                     if isProbeHit(vinRaw) {
                         await MainActor.run {
                             probeResults.append("SP\(entry.protocol) \(header) 22F190: \(vinRaw.trimmingCharacters(in: .whitespacesAndNewlines))")
-                            manualLogs.append(OBDLogEntry(timestamp: Date(), sent: "SP\(entry.protocol) \(header) 22F190", response: vinRaw))
                         }
                     }
 
@@ -378,6 +416,101 @@ public struct OBDTerminalView: View {
                 vehicleData.startPolling()
             }
         }
+    }
+}
+
+private struct BluetoothCaptureSection: View {
+    @ObservedObject var bluetoothManager: BluetoothManager
+    let vehicleContext: String
+    @State private var confirmReplacement = false
+    @State private var exportDocument: CaptureExportDocument?
+    @State private var exportError: String?
+
+    var body: some View {
+        Section {
+            Label(bluetoothManager.isCapturing ? "Capturing to File" : "Capture Stopped", systemImage: bluetoothManager.isCapturing ? "record.circle" : "stop.circle")
+
+            if bluetoothManager.isCapturing {
+                Button("Stop Capture") { bluetoothManager.stopCapture() }
+            } else {
+                Button("Start Capture") {
+                    if bluetoothManager.captureFileURL != nil {
+                        confirmReplacement = true
+                    } else {
+                        bluetoothManager.startCapture(vehicleContext: vehicleContext)
+                    }
+                }
+            }
+
+            if let url = bluetoothManager.captureFileURL {
+                Button {
+                    do {
+                        exportDocument = CaptureExportDocument(data: try Data(contentsOf: url))
+                    } catch {
+                        exportError = "Could not read capture: \(error.localizedDescription)"
+                    }
+                } label: {
+                    Label("Export Capture File", systemImage: "square.and.arrow.up")
+                }
+                .disabled(bluetoothManager.isCapturing)
+            }
+
+            if let error = bluetoothManager.captureError {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundColor(Theme.criticalRed)
+            }
+        } header: {
+            Text("Diagnostic Capture")
+        } footer: {
+            Text("Start before your drive. Only new completed Bluetooth commands are saved, including across reconnects. Stop to export. The file stays in Documents after relaunch; a new capture replaces it. Clear only clears recent logs.")
+        }
+        .confirmationDialog("Replace the Previous Capture?", isPresented: $confirmReplacement, titleVisibility: .visible) {
+            Button("Replace and Start Capture", role: .destructive) {
+                bluetoothManager.startCapture(vehicleContext: vehicleContext)
+            }
+        } message: {
+            Text("Export the previous capture first if you want to keep it. Starting a new capture replaces that file.")
+        }
+        .fileExporter(
+            isPresented: Binding(
+                get: { exportDocument != nil },
+                set: { if !$0 { exportDocument = nil } }
+            ),
+            document: exportDocument,
+            contentType: .plainText,
+            defaultFilename: "VoltLink-OBD-Capture"
+        ) { result in
+            if case let .failure(error) = result {
+                exportError = "Could not export capture: \(error.localizedDescription)"
+            }
+            exportDocument = nil
+        }
+        .alert("Export Failed", isPresented: Binding(
+            get: { exportError != nil },
+            set: { if !$0 { exportError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportError ?? "Unknown error")
+        }
+    }
+}
+
+private struct CaptureExportDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.plainText] }
+    let data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
 
@@ -433,7 +566,7 @@ public struct AIAnalysisSheet: View {
                 }
                 .padding()
             }
-            .navigationTitle("AI CAN Analysis")
+            .navigationTitle("AI Recent Log Analysis")
             .inlineTitleDisplayMode()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

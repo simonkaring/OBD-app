@@ -313,7 +313,7 @@ public struct DashboardView: View {
                 HUDModeView(
                     speedKmH: vehicleData.latestTelemetry.speedKmH,
                     powerKW: vehicleData.latestTelemetry.powerKW,
-                    socPct: vehicleData.latestTelemetry.stateOfChargePct,
+                    socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.latestTelemetry.stateOfChargePct : nil,
                     isPresented: $showHUDMode
                 )
             }
@@ -322,7 +322,7 @@ public struct DashboardView: View {
                 HUDModeView(
                     speedKmH: vehicleData.latestTelemetry.speedKmH,
                     powerKW: vehicleData.latestTelemetry.powerKW,
-                    socPct: vehicleData.latestTelemetry.stateOfChargePct,
+                    socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.latestTelemetry.stateOfChargePct : nil,
                     isPresented: $showHUDMode
                 )
             }

@@ -97,28 +97,41 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     }
 
     private func buildChargingItems(snapshot: TelemetrySnapshot) -> [CPInformationItem] {
-        let isCharging = snapshot.isCharging || snapshot.chargePowerKW > 0.5
-        let powerKW = snapshot.chargePowerKW > 0 ? snapshot.chargePowerKW : abs(snapshot.powerKW)
-        let powerStr = String(format: "%.1f kW", powerKW)
-        let socStr = String(format: "%.1f%%", snapshot.stateOfChargePct)
+        let vehicleData = AppEnvironment.shared.vehicleData
+        let isConnected = vehicleData.isDemoMode || vehicleData.connectionState.isConnected
+        let hasSOC = vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc)
+        let hasChargePower = isConnected && vehicleData.hasChargePower
+        let isCharging = hasChargePower && (snapshot.isCharging || snapshot.chargePowerKW > 0)
+        let powerKW = snapshot.chargePowerKW
+        let powerStr = hasChargePower ? String(format: "%.1f kW", powerKW) : "-- kW"
+        let socStr = hasSOC ? String(format: "%.1f%%", snapshot.stateOfChargePct) : "--%"
+
+        let statusStr: String
+        if !isConnected {
+            statusStr = "SCANNER DISCONNECTED"
+        } else if !hasChargePower {
+            statusStr = "CHARGE DATA UNAVAILABLE"
+        } else if !isCharging {
+            statusStr = "NOT CHARGING"
+        } else {
+            statusStr = snapshot.chargePowerSource == .socEstimate ? "CHARGING (ESTIMATED)" : "CHARGING ACTIVE"
+        }
         
         let remainingPct = max(0.0, 80.0 - snapshot.stateOfChargePct)
         let timeMin: String
-        if powerKW > 1.0 {
-            let batteryCapacityKWh = AppEnvironment.shared.vehicleData.usableBatteryCapacityKWh
-            let neededKWh = (remainingPct / 100.0) * batteryCapacityKWh
-            let hours = neededKWh / powerKW
-            let mins = Int(ceil(hours * 60.0))
+        if hasSOC && isCharging {
+            let neededKWh = (remainingPct / 100.0) * vehicleData.usableBatteryCapacityKWh
+            let mins = remainingPct > 0 && powerKW > 0 ? Int(ceil(neededKWh / powerKW * 60.0)) : 0
             timeMin = "\(mins) min to 80%"
         } else {
             timeMin = "-- min"
         }
 
-        let hasBatteryTemperature = AppEnvironment.shared.vehicleData.liveMetrics.contains(.batteryTemp)
-        let tempStr = hasBatteryTemperature ? String(format: "%.1f °C", snapshot.batteryTempC) : "Unavailable"
+        let hasBatteryTemperature = vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.batteryTemp)
+        let tempStr = isConnected && hasBatteryTemperature ? String(format: "%.1f °C", snapshot.batteryTempC) : "Unavailable"
 
         return [
-            CPInformationItem(title: "STATUS", detail: isCharging ? "CHARGING ACTIVE" : "NOT CHARGING"),
+            CPInformationItem(title: "STATUS", detail: statusStr),
             CPInformationItem(title: "CHARGE RATE", detail: powerStr),
             CPInformationItem(title: "BATTERY SOC", detail: socStr),
             CPInformationItem(title: "EST. TIME TO 80%", detail: timeMin),

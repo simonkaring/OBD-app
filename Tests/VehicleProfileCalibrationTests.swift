@@ -144,9 +144,10 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     @MainActor
     func testMissingVoltageThenSOCClearsEstimatedSession() async {
         let mock = CalibrationMockAdapter()
-        mock.responses["22010A"] = .success("18 DA F1 59 05 62 01 0A 0D 3E\r>")
-        mock.responses["220210"] = .success("18 DA F1 59 10 0B 62 02 10 04 00 00\r18 DA F1 59 21 39 90 00 00 00 00 00\r>")
+        mock.responses["03221E3B55555555"] = .success("62 1E 3B 05 F0\r>")
+        mock.responses["0322028C55555555"] = .success("62 02 8C C8\r>")
         let manager = VehicleDataManager(connection: mock)
+        manager.selectProfile(.volkswagenMEB)
         defer { manager.stopPolling() }
         manager.startPolling()
         for _ in 0..<20 {
@@ -162,8 +163,8 @@ final class VehicleProfileCalibrationTests: XCTestCase {
             manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
         }
         XCTAssertTrue(manager.chargingSession.isCharging)
-        mock.responses["22010A"] = .success("NO DATA\r>")
-        mock.responses["220210"] = .success("NO DATA\r>")
+        mock.responses["03221E3B55555555"] = .success("NO DATA\r>")
+        mock.responses["0322028C55555555"] = .success("NO DATA\r>")
         manager.startPolling()
         for _ in 0..<30 {
             if !manager.liveMetrics.contains(.soc) { break }
@@ -192,7 +193,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         }
         XCTAssertFalse(manager.isCalibrating)
         XCTAssertNil(manager.calibratedCommands)
-        XCTAssertEqual(manager.calibrationSummary, "No metrics responded")
+        XCTAssertEqual(manager.calibrationSummary, "No reads responded")
 
         mock.sentCommands.removeAll()
         mock.responses["22010A"] = .success("18 DA F1 59 05 62 01 0A 0D 3E\r>")
@@ -203,7 +204,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     }
 
     @MainActor
-    func testEQACalibrationDoesNotDropTemporarilyMissingSOC() async {
+    func testEQACalibrationRetainsUndecodedCaptureDIDWithoutPublishingSOC() async {
         let mock = CalibrationMockAdapter()
         mock.responses = [
             "ATCRA 18DAF159": .success("OK\r>"),
@@ -219,7 +220,25 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         }
         XCTAssertFalse(manager.isCalibrating)
         XCTAssertNil(manager.calibratedCommands)
-        XCTAssertEqual(manager.calibrationSummary, "1 of 2 metrics active")
+        XCTAssertEqual(manager.calibrationSummary, "1 of 2 reads responded")
+
+        manager.stopPolling()
+        mock.responses["220210"] = .success("18 DA F1 59 10 0B 62 02 10 04 00 00\r18 DA F1 59 21 3E BC 00 00 00 AA AA\r>")
+        manager.startCalibration()
+        for _ in 0..<20 {
+            if !manager.isCalibrating { break }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        XCTAssertEqual(manager.calibrationSummary, "2 of 2 reads responded")
+        XCTAssertNil(manager.calibratedCommands)
+        mock.sentCommands.removeAll()
+        try? await Task.sleep(nanoseconds: 450_000_000)
+        XCTAssertGreaterThanOrEqual(mock.sentCommands.filter { $0 == "220210" }.count, 2)
+        XCTAssertTrue(manager.liveMetrics.contains(.packVoltage))
+        XCTAssertFalse(manager.liveMetrics.contains(.soc))
+        XCTAssertNil(manager.latestTelemetry.socUpdatedAt)
+        XCTAssertFalse(manager.hasChargePower)
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
     }
 
     @MainActor

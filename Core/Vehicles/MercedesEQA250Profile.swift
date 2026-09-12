@@ -34,12 +34,12 @@ public struct MercedesEQA250Profile: VehicleProfile {
             "ATCRA 18DAF159",
             "AT SH 18DA59F1",
             "22010A",         // BMS pack voltage (0.1V resolution)
-            "220210"          // Remaining usable energy, converted to SOC
+            "220210"          // Raw capture only; DID meaning/scaling unverified
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.soc, .packVoltage]
+        [.packVoltage]
     }
 
     public init() {}
@@ -55,16 +55,9 @@ public struct MercedesEQA250Profile: VehicleProfile {
             }
             return nil
 
-        case "220210", "22 02 10": // Remaining usable energy (ECU 0x59)
-            // Labelled vehicle capture at dashboard 100%: 0x40F4 / 250 = 66.512 kWh,
-            // matching the EQA 250's 66.5 kWh usable battery capacity.
-            if let bytes = cleanHex.hexBytes(after: "620210", count: 5), bytes[0] == 0x04 {
-                let raw = UInt32(bytes[1]) << 24 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 8 | UInt32(bytes[4])
-                let remainingEnergyKWh = Double(raw) / 250.0
-                let soc = remainingEnergyKWh / batteryUsableCapacityKWh * 100.0
-                guard soc >= 0, soc <= 105 else { return nil }
-                return .soc(min(100.0, soc))
-            }
+        case "220210", "22 02 10":
+            // 2026-09-06 18:58-18:59 UTC: dashboard 81%, but raw / 250 / 66.5 * 100
+            // yielded ~96.6%. A match at full charge did not validate this as SOC.
             return nil
 
         default:

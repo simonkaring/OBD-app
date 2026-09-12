@@ -3,7 +3,7 @@ import SwiftUI
 public struct HUDModeView: View {
     public var speedKmH: Double
     public var powerKW: Double
-    public var socPct: Double
+    public var socPct: Double?
     @Binding public var isPresented: Bool
 
     public var body: some View {
@@ -42,7 +42,7 @@ public struct HUDModeView: View {
 
                 HStack(spacing: 40) {
                     VStack {
-                        Text("\(Int(socPct))%")
+                        Text(socPct.map { "\(Int($0))%" } ?? "--%")
                             .font(.system(size: 40, weight: .bold, design: .rounded))
                             .foregroundColor(Theme.electricCyan)
                         Text("BATTERY")

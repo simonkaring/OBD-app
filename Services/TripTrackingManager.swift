@@ -85,14 +85,20 @@ public final class TripTrackingManager: ObservableObject {
     }
 
     public func deleteTrip(_ trip: TripModel) {
-        if currentTrip?.id == trip.id {
+        let tripID = trip.id
+        if currentTrip?.id == tripID {
             self.currentTrip = nil
             self.isRecordingTrip = false
             resetStationaryTimer()
         }
         modelContext?.delete(trip)
-        try? modelContext?.save()
-        NotificationCenter.default.post(name: Notification.Name("DeleteTripNotification"), object: trip.id)
+        do {
+            try modelContext?.save()
+        } catch {
+            print("Failed to delete trip: \(error)")
+            return
+        }
+        NotificationCenter.default.post(name: Notification.Name("DeleteTripNotification"), object: tripID)
     }
 
     public func clearAllTrips() {
@@ -122,16 +128,59 @@ public final class TripTrackingManager: ObservableObject {
     public func merge(_ newer: TripModel, into older: TripModel) {
         guard canMerge(newer, into: older) else { return }
 
-        older.samples.append(contentsOf: newer.samples)
-        older.distanceKm += newer.distanceKm
-        older.totalKWhUsed += newer.totalKWhUsed
-        older.maxPowerKW = max(older.maxPowerKW, newer.maxPowerKW)
-        older.maxRegenKW = min(older.maxRegenKW, newer.maxRegenKW)
-        older.endTime = newer.endTime
-        older.endSocPct = newer.endSocPct
+        let context = modelContext
+        // Flush earlier edits before grouping so a failed merge only undoes itself.
+        context?.processPendingChanges()
+        let previousUndoManager = context?.undoManager
+        let undoManager = previousUndoManager ?? UndoManager()
+        if previousUndoManager == nil {
+            context?.undoManager = undoManager
+        }
+        defer {
+            if previousUndoManager == nil { context?.undoManager = nil }
+        }
 
-        modelContext?.delete(newer)
-        try? modelContext?.save()
+        // Copy values instead of reparenting: SwiftData can lose a moved sample's
+        // relationship or cascade-delete it. Copies and deletion commit in one save.
+        let copies = newer.samples.map { sample in
+            TelemetryPointModel(timestamp: sample.timestamp,
+                                latitude: sample.latitude, longitude: sample.longitude,
+                                speedKmH: sample.speedKmH, powerKW: sample.powerKW,
+                                socPct: sample.socPct, batteryTempC: sample.batteryTempC)
+        }
+
+        let applyMerge = {
+            older.samples.append(contentsOf: copies)
+            older.distanceKm += newer.distanceKm
+            older.totalKWhUsed += newer.totalKWhUsed
+            older.maxPowerKW = max(older.maxPowerKW, newer.maxPowerKW)
+            older.maxRegenKW = min(older.maxRegenKW, newer.maxRegenKW)
+            older.endTime = newer.endTime
+            older.endSocPct = newer.endSocPct
+            context?.delete(newer)
+        }
+
+        do {
+            if let context {
+                let groupingLevel = undoManager.groupingLevel
+                undoManager.beginUndoGrouping()
+                applyMerge()
+                context.processPendingChanges()
+                // Processing pending changes may already close the outermost group.
+                if undoManager.groupingLevel > groupingLevel { undoManager.endUndoGrouping() }
+                try context.save()
+            } else {
+                applyMerge()
+            }
+        } catch {
+            if previousUndoManager != nil { undoManager.disableUndoRegistration() }
+            undoManager.undoNestedGroup()
+            // Refresh SwiftData's registration after undoing Core Data's deletion.
+            context?.insert(newer)
+            context?.processPendingChanges()
+            if previousUndoManager != nil { undoManager.enableUndoRegistration() }
+            print("Failed to merge trips: \(error)")
+        }
     }
 
     private func resetStationaryTimer() {

@@ -164,16 +164,15 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 self.calibrationProgress = Double(index + 1) / Double(total)
             }
 
-            let validMetricCount = verifiedCommands.filter { !$0.uppercased().hasPrefix("AT") }.count
-            if validMetricCount > 0 {
-                // The EQA has only two known reads. A sleeping ECU must not permanently
-                // remove either one from polling after a single calibration miss.
+            let respondingReadCount = verifiedCommands.filter { !$0.uppercased().hasPrefix("AT") }.count
+            if respondingReadCount > 0 {
+                // Keep EQA voltage and the undecoded capture DID polling after a miss.
                 self.calibratedCommands = self.selectedProfileID == .mercedesEQA250 ? nil : verifiedCommands
-                let totalMetricCount = commandsToTest.filter { !$0.uppercased().hasPrefix("AT") }.count
-                self.calibrationSummary = "\(validMetricCount) of \(totalMetricCount) metrics active"
+                let totalReadCount = commandsToTest.filter { !$0.uppercased().hasPrefix("AT") }.count
+                self.calibrationSummary = "\(respondingReadCount) of \(totalReadCount) reads responded"
             } else {
                 self.calibratedCommands = nil
-                self.calibrationSummary = "No metrics responded"
+                self.calibrationSummary = "No reads responded"
             }
             self.pollingIndex = 0
             self.isCalibrating = false

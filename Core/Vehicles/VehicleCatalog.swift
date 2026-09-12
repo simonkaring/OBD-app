@@ -169,6 +169,7 @@ public struct VehicleCatalog {
         batteryCapacityKWh: 66.5,
         profileID: .mercedesEQA250,
         telemetrySupport: .verified,
+        notes: "Pack-voltage decoding only. SOC and SOC-derived charging are unavailable; DID 0x0210 is retained for raw capture pending validation.",
         modelFamilyID: "mercedes_benz-eqa",
         modelFamilyName: "EQA",
         variantDisplayName: "EQA 250 · 2021"

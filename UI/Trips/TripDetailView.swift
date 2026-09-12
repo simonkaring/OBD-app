@@ -6,6 +6,8 @@ public struct TripDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var tripTracker: TripTrackingManager
     @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
+    @State private var samplePage = 0
     public let trip: TripModel
 
     public init(trip: TripModel) {
@@ -15,7 +17,9 @@ public struct TripDetailView: View {
     private var durationText: String {
         guard let endTime = trip.endTime else { return "In Progress" }
         let interval = endTime.timeIntervalSince(trip.startTime)
-        let minutes = Int(interval / 60)
+        guard interval >= 0, let minutes = Int(exactly: (interval / 60).rounded(.towardZero)) else {
+            return "Unavailable"
+        }
         if minutes >= 60 {
             let hours = minutes / 60
             let mins = minutes % 60
@@ -24,18 +28,39 @@ public struct TripDetailView: View {
         return "\(minutes) m"
     }
 
-    private var topSpeedKmH: Double {
-        trip.samples.map(\.speedKmH).max() ?? trip.averageSpeedKmH
+    // Display-only sampling keeps long trips bounded without deleting recorded telemetry.
+    // ponytail: uniform sampling may miss brief peaks; use an extrema-preserving algorithm if needed.
+    static func displaySamples(_ samples: [TelemetryPointModel], limit: Int) -> [TelemetryPointModel] {
+        guard limit > 1 else { return Array(samples.prefix(max(0, limit))) }
+        guard samples.count > limit else { return samples }
+        return (0..<limit).map { samples[$0 * (samples.count - 1) / (limit - 1)] }
     }
 
     public var body: some View {
-        let routeSamples = trip.routeSamples
+        Group {
+            if isDeleting || trip.isDeleted {
+                Color.clear
+            } else {
+                detailContent
+            }
+        }
+    }
 
-        ZStack {
+    private var detailContent: some View {
+        let samples = trip.samples.filter { $0.timestamp.timeIntervalSince1970.isFinite }
+            .sorted { $0.timestamp < $1.timestamp }
+        let chartSamples = Self.displaySamples(samples.filter { $0.speedKmH.isFinite && $0.powerKW.isFinite }, limit: 500)
+        let routeSamples = Self.displaySamples(trip.routeSamples, limit: 2_000)
+        let topSpeedKmH = samples.lazy.map(\.speedKmH).filter(\.isFinite).max() ?? trip.averageSpeedKmH
+        let pageCount = max(1, (samples.count + 99) / 100)
+        let page = min(samplePage, pageCount - 1)
+        let pageSamples = Array(samples.dropFirst(page * 100).prefix(100))
+
+        return ZStack {
             Theme.backgroundDark.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 20) {
+                LazyVStack(spacing: 20) {
                     // Header Overview Card
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -196,7 +221,7 @@ public struct TripDetailView: View {
                     }
 
                     // Interactive Telemetry Charts (Speed & Power over Time)
-                    if !trip.samples.isEmpty {
+                    if !chartSamples.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("SPEED & POWER CURVES")
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
@@ -207,13 +232,13 @@ public struct TripDetailView: View {
                                 Text("Speed Profile (km/h)")
                                     .font(.caption).fontWeight(.bold).foregroundColor(Theme.electricCyan)
 
-                                Chart(trip.samples, id: \.timestamp) { sample in
+                                Chart(chartSamples, id: \.persistentModelID) { sample in
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Speed", sample.speedKmH)
                                     )
                                     .foregroundStyle(Theme.electricCyan)
-                                    .interpolationMethod(.catmullRom)
+                                    .interpolationMethod(.linear)
 
                                     AreaMark(
                                         x: .value("Time", sample.timestamp),
@@ -234,13 +259,13 @@ public struct TripDetailView: View {
                                 Text("Power Draw & Regen (kW)")
                                     .font(.caption).fontWeight(.bold).foregroundColor(Theme.regenGreen)
 
-                                Chart(trip.samples, id: \.timestamp) { sample in
+                                Chart(chartSamples, id: \.persistentModelID) { sample in
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Power", sample.powerKW)
                                     )
                                     .foregroundStyle(sample.powerKW >= 0 ? Theme.highPowerAmber : Theme.regenGreen)
-                                    .interpolationMethod(.monotone)
+                                    .interpolationMethod(.linear)
                                 }
                                 .frame(height: 140)
                             }
@@ -253,14 +278,14 @@ public struct TripDetailView: View {
                     // Detailed Sample Telemetry Points with Timestamps
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("TELEMETRY LOG (\(trip.samples.count) SAMPLES)")
+                            Text("TELEMETRY LOG (\(samples.count) SAMPLES)")
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.textSecondary)
                             Spacer()
                         }
                         .padding(.horizontal)
 
-                        if trip.samples.isEmpty {
+                        if samples.isEmpty {
                             VStack(spacing: 8) {
                                 Image(systemName: "chart.line.uptrend.xyaxis")
                                     .font(.system(size: 36))
@@ -295,7 +320,7 @@ public struct TripDetailView: View {
 
                                 Divider().background(Color.white.opacity(0.2))
 
-                                ForEach(Array(trip.samples.enumerated()), id: \.offset) { index, sample in
+                                ForEach(Array(pageSamples.enumerated()), id: \.element.persistentModelID) { index, sample in
                                     HStack {
                                         Text(sample.timestamp.formatted(date: .omitted, time: .standard))
                                             .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -334,13 +359,28 @@ public struct TripDetailView: View {
                                     .padding(.vertical, 8)
                                     .background(index % 2 == 0 ? Color.clear : Color.white.opacity(0.02))
 
-                                    if index < trip.samples.count - 1 {
+                                    if index < pageSamples.count - 1 {
                                         Divider().background(Color.white.opacity(0.05))
                                     }
                                 }
                             }
                             .glassCard()
                             .padding(.horizontal)
+
+                            if pageCount > 1 {
+                                HStack {
+                                    Button("Previous") { samplePage = page - 1 }
+                                        .disabled(page == 0)
+                                    Spacer()
+                                    Text("Page \(page + 1) of \(pageCount)")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.textSecondary)
+                                    Spacer()
+                                    Button("Next") { samplePage = page + 1 }
+                                        .disabled(page + 1 == pageCount)
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                     }
                     .padding(.bottom, 20)
@@ -373,8 +413,9 @@ public struct TripDetailView: View {
         }
         .confirmationDialog("Delete Trip", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("Delete Trip", role: .destructive) {
-                tripTracker.deleteTrip(trip)
+                isDeleting = true
                 dismiss()
+                tripTracker.deleteTrip(trip)
             }
             Button("Cancel", role: .cancel) {}
         } message: {

@@ -92,14 +92,20 @@ public final class ChargingTrackingManager: ObservableObject {
     }
 
     public func deleteSession(_ session: ChargingSessionModel) {
-        if currentSession?.id == session.id {
+        let sessionID = session.id
+        if currentSession?.id == sessionID {
             self.currentSession = nil
             self.isRecordingSession = false
             self.lastSnapshotTime = nil
         }
         modelContext?.delete(session)
-        try? modelContext?.save()
-        NotificationCenter.default.post(name: Notification.Name("DeleteChargingSessionNotification"), object: session.id)
+        do {
+            try modelContext?.save()
+        } catch {
+            print("Failed to delete charging session: \(error)")
+            return
+        }
+        NotificationCenter.default.post(name: Notification.Name("DeleteChargingSessionNotification"), object: sessionID)
     }
 
     public func clearAllSessions() {

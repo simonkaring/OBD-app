@@ -7,172 +7,172 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BDF1A789C8EA416E96430061 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4500B11D753344C0AB706933 /* AppEnvironment.swift */; };
-		8501BA5C5EFA4159A4FABA87 /* VoltLinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFD39DC5776441D0A0895800 /* VoltLinkApp.swift */; };
-		4C28A705CEA04670A85BACAD /* CarPlayLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 883FFC2B43F74DD4956AEA99 /* CarPlayLayoutStore.swift */; };
-		E09E5AFE621D4095AE625456 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A611C8ABD2B74BB6A7E6DA5C /* CarPlaySceneDelegate.swift */; };
-		41921AFB5F4F451D94747D2D /* BLEConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342225020A3743C8B658BCCF /* BLEConstants.swift */; };
-		FF249B549D984173B6C6F8FB /* BluetoothManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406AA56EAC5B41C6856E85C4 /* BluetoothManager.swift */; };
-		E12B36AF77A745179DB6457E /* MockDrivingSimulation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BA43F22999142E9B771B3A7 /* MockDrivingSimulation.swift */; };
-		F076FE34AF4D4E46BD7061BD /* MockOBDAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 805D00A7A14549798B4AD8C0 /* MockOBDAdapter.swift */; };
-		5E9D9256779E40FC806DEB67 /* TripLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53DD11F67F77476DBF8A6F22 /* TripLocationManager.swift */; };
-		DDC7E7A549964BA8B40C489E /* DTCCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26598CCF29304EFE89F326C1 /* DTCCode.swift */; };
-		2DB3B82DE7334DDB98497B4F /* ISO15765Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4179F4B528294C84BA08E791 /* ISO15765Parser.swift */; };
-		83D2A55AAF5C428D9B3B6F8D /* OBDConnectionProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C39B6E18BB48778337E717 /* OBDConnectionProtocol.swift */; };
-		43ECAD0C8CB94E069C363BBD /* ChargingSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6911E7F11CD4DFF9FFD4259 /* ChargingSessionTracker.swift */; };
-		C777A5F2F8E04530815377D3 /* TelemetryMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC8D6BFBF526412AB6AB69A6 /* TelemetryMetric.swift */; };
-		A342A97B13524493ADB0849B /* ABRPProfileLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8172CD2EC045558AFD6A26 /* ABRPProfileLoader.swift */; };
-		16A5EFCB1F5546909691AEE1 /* GenericEVProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF8E20B3AA3443CB62CC784 /* GenericEVProfile.swift */; };
-		D91E40F9000149CC916ED00D /* GenericOBD2Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17725D7B54349E4B0BFC30F /* GenericOBD2Profile.swift */; };
-		2DA5815F89FC4CE7964804F7 /* HyundaiKiaEGMPProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44C8933A1964DB7B777F3C5 /* HyundaiKiaEGMPProfile.swift */; };
-		2344D3D7C56141728E7E04FF /* MercedesEQA250Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CD22B37EE8475EAAB0E9A9 /* MercedesEQA250Profile.swift */; };
-		1720A6521421455085585970 /* NissanLeafZE1Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F6AAE3CC0F4A6BBD56C326 /* NissanLeafZE1Profile.swift */; };
-		8437DFD7D6DB4D43845DE9D2 /* VehicleCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C018D211D0848DFA6D07014 /* VehicleCatalog.swift */; };
-		85D4531574D04A0283287E85 /* VehicleProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148CDE7DD6B5441197652070 /* VehicleProfile.swift */; };
-		FA11B5AAE3544B51ABBC039F /* VehicleProfileRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD2405E93BC4291A055ED1B /* VehicleProfileRegistry.swift */; };
-		3D738E0E8CA6402AAED4D3F4 /* VolkswagenMEBProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8B9C8C3314442182F466E4 /* VolkswagenMEBProfile.swift */; };
-		2CCFF2A2708B42D79E14F671 /* ChargingSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D9B1D6F7FDE4E3483AB223D /* ChargingSessionModel.swift */; };
-		598EDA9297C1453491154562 /* TripModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 242E6A7AE68448C8A328A566 /* TripModel.swift */; };
-		B6A67D777C344E94A8855A77 /* DTCLocalDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 366EF2D8B3644C18A541D448 /* DTCLocalDatabase.swift */; };
-		9A095B8F31EE41F28549D3C8 /* Mini_MiniCooperSE.json in Sources */ = {isa = PBXBuildFile; fileRef = 5A0A2292B4B645D4B3451143 /* Mini_MiniCooperSE.json */; };
-		5F672EFE8A8F4AF59EE0D0B5 /* aiways_u5.json in Sources */ = {isa = PBXBuildFile; fileRef = B758AEA039B44F3D8F250C17 /* aiways_u5.json */; };
-		4A22870B76984F5E9CA3109A /* bmw_i3.json in Sources */ = {isa = PBXBuildFile; fileRef = E53BE98B07ED4A378F079EBD /* bmw_i3.json */; };
-		70D5E360B5254787A624CAB6 /* byd_atto3.json in Sources */ = {isa = PBXBuildFile; fileRef = F55E3BA23C1E4603B2C308E1 /* byd_atto3.json */; };
-		28F3802FC4DD4F308AD133FE /* deepal_s05.json in Sources */ = {isa = PBXBuildFile; fileRef = 10BEF9D9C9EB4AD795D2EC92 /* deepal_s05.json */; };
-		DD8ACA7E251A44FC8F9A0F5D /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json in Sources */ = {isa = PBXBuildFile; fileRef = DB4F4A18162B403381107641 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json */; };
-		D9215C49F82B44208B106429 /* ford_MachE.json in Sources */ = {isa = PBXBuildFile; fileRef = 1514F917DDCB42D988830D1F /* ford_MachE.json */; };
-		6298A2E697F84F86BD4982A0 /* gmc_bolt17.json in Sources */ = {isa = PBXBuildFile; fileRef = AEA08EE05EDB4BD9A31E8372 /* gmc_bolt17.json */; };
-		9EADA41220CD4F7BA8EE185C /* gmc_bolt19.json in Sources */ = {isa = PBXBuildFile; fileRef = 5E5867A759B44827A2EBA9AF /* gmc_bolt19.json */; };
-		3756897F6BA44C2B85406746 /* hkmc_Ioniq5.json in Sources */ = {isa = PBXBuildFile; fileRef = DDFED96534DE4593B27D2307 /* hkmc_Ioniq5.json */; };
-		F26D75B5E2DE40F88395831C /* hkmc_hkmc2017.json in Sources */ = {isa = PBXBuildFile; fileRef = 712960E883FF4107BEEDBE85 /* hkmc_hkmc2017.json */; };
-		7A20DD67D1324DFAA4845398 /* hkmc_hkmc2019.json in Sources */ = {isa = PBXBuildFile; fileRef = 466C13A9946F4BCC960FD7BE /* hkmc_hkmc2019.json */; };
-		3471D32A7000422ABFBF8851 /* honda_eny1.json in Sources */ = {isa = PBXBuildFile; fileRef = F51C3B5DA0D0468EA9BA3D7D /* honda_eny1.json */; };
-		2E3D2C6894D84CBCA8DCDBF4 /* jaguar_ipace2019.json in Sources */ = {isa = PBXBuildFile; fileRef = C01FEB940FCF4F9D8C17E110 /* jaguar_ipace2019.json */; };
-		5D14CFA87A624411A21ECD59 /* jaguar_ipace2021.json in Sources */ = {isa = PBXBuildFile; fileRef = 04F0D400B6F44274AE5169C6 /* jaguar_ipace2021.json */; };
-		AE12A3816A9843CBACC97988 /* mg_mgzsev.json in Sources */ = {isa = PBXBuildFile; fileRef = AD833FF9C931462CAE78AC59 /* mg_mgzsev.json */; };
-		386E2E2DD9E34F00A5A5EBB5 /* obdble_cars.json in Sources */ = {isa = PBXBuildFile; fileRef = 363705B40CF1474182C86C21 /* obdble_cars.json */; };
-		729BA947D4FF4FE3B4A9502C /* renault_zoe.json in Sources */ = {isa = PBXBuildFile; fileRef = 8D20404FB1FF469CB2A7BE28 /* renault_zoe.json */; };
-		D695DB83F0C94FF5A6BDE9F8 /* renault_zoe2.json in Sources */ = {isa = PBXBuildFile; fileRef = 91528129A69043D788C1C1F5 /* renault_zoe2.json */; };
-		6640CE687DEA44BCBCD1E07D /* volkswagen_MEB.json in Sources */ = {isa = PBXBuildFile; fileRef = 6F7B453C2E4644C68DC08A35 /* volkswagen_MEB.json */; };
-		4B685BE8D5984A3C8B3D46CA /* volkswagen_eGolf.json in Sources */ = {isa = PBXBuildFile; fileRef = 34FFACFC3799437EA7E31F36 /* volkswagen_eGolf.json */; };
-		136815791F6E4E4CA4718688 /* volkswagen_eUP.json in Sources */ = {isa = PBXBuildFile; fileRef = DA9B8904300B41FC9A714266 /* volkswagen_eUP.json */; };
-		27DA1199F7E44F3CBE260F0F /* dtc_definitions.json in Sources */ = {isa = PBXBuildFile; fileRef = DF55EAFE3EC34D14B1BD289A /* dtc_definitions.json */; };
-		7ABB1612195441F3A130566E /* vehicle_catalog.json in Sources */ = {isa = PBXBuildFile; fileRef = 942A9C1E0E23454389003F49 /* vehicle_catalog.json */; };
-		6842249404754F7095C2D4A8 /* AILogAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8662E83CFC94FFA93F95F06 /* AILogAnalyzer.swift */; };
-		ACDFC068BA9549059204A50B /* ChargingTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C79E4E84D4B42368AE128A4 /* ChargingTrackingManager.swift */; };
-		C6B35E25F7634A24B2C8AB5F /* DTCScannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D133155C391B408F8CEECA5A /* DTCScannerService.swift */; };
-		DBD9F4249F2F48B4A0DB543C /* TripTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B09417A2E8CC4A558B2C6BE1 /* TripTrackingManager.swift */; };
-		6761A1A2A34D46038292A142 /* VehicleDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98146D3352184BE2B129B967 /* VehicleDataManager.swift */; };
-		6CFF735513EC4763B9B1932E /* ChargingLiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0588E0692F684A8B9E097F99 /* ChargingLiveView.swift */; };
-		8644B8554B43480C8CB7C021 /* ChargingSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EFE64D808A4C81B24564C6 /* ChargingSessionDetailView.swift */; };
-		BC6D475BFBE040809927BD9E /* DashboardCustomizationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7CA507AE5CD4E6C96956136 /* DashboardCustomizationSheet.swift */; };
-		2BC811CB0BB342F9A9C9F6B3 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CFD4E20061D495595295534 /* DashboardView.swift */; };
-		6F715B525DBB4F82AEF05B6C /* DashboardWidgetConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31A6E80F1CF34BE1B75A145C /* DashboardWidgetConfig.swift */; };
-		D525E14D39F44A618F01A7C4 /* DashboardWidgetTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 070AAF66841349D0AC48F187 /* DashboardWidgetTile.swift */; };
-		A6899206E791448BA0394084 /* HUDModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849FC562135647E48C4F3F15 /* HUDModeView.swift */; };
-		291F2674B0204D9DB15B928F /* LiveTelemetryChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EFCE3710A47589D4BEEC7 /* LiveTelemetryChartView.swift */; };
-		D75BF9B7BD9641E1B9974B7F /* BatteryLevelBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222379DA730540F8A509C490 /* BatteryLevelBar.swift */; };
-		3F40BBAAC50C4FDB84885994 /* MetricBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 725A822DAFE54AC78631D91A /* MetricBarView.swift */; };
-		B8A1F5C6585347A09812F578 /* MetricDialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1889B8DA516549F0B8634930 /* MetricDialView.swift */; };
-		3AE1C5D518554A99AE13C583 /* MetricNumericTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 065B8C2B7C1D4F6DBF94D1BC /* MetricNumericTileView.swift */; };
-		D70D9215F47E4142846746FC /* FloatingConnectionBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F666A95074B4A17B4510058 /* FloatingConnectionBanner.swift */; };
-		44F1E0ECC3EB4D6D85EA7182 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6565D9B8A0643C6931FDD9F /* Theme.swift */; };
-		E8D14B353B7745C188E40F9A /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51DBFBE5ED6643BA9B4C244D /* DiagnosticsView.swift */; };
-		73E66E9615824F469BEF3556 /* CarPlayTileEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A86D51B441D14A608E408C24 /* CarPlayTileEditorView.swift */; };
-		2327B01A378A45259F26A7FD /* OBDTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 956EC295871D444FBA551323 /* OBDTerminalView.swift */; };
-		709EC5BF625543ECBEA968D1 /* ProfileMetricStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437F4B1301A14A2BAC30F88F /* ProfileMetricStatusView.swift */; };
-		63138F31BB2642F69B988BF7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 024EAEA329A648269EF73CF6 /* SettingsView.swift */; };
-		E8005D18AD744AFD8EE0202F /* VehicleProfilePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F695F141784BF59356AFC5 /* VehicleProfilePickerSheet.swift */; };
-		C687192AFBD045B8B3AAB80B /* TripDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D394DA9807F44860856F921C /* TripDetailView.swift */; };
-		62573F94491744029A38AC74 /* TripHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14F80F2278F43E5AA2BEA6F /* TripHistoryView.swift */; };
-		A8DA31C5FDBA4518AB3695A0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 032CDCA959E9489FB7D77DD0 /* Assets.xcassets */; };
+		A6EEA2D279D04973B8461FA2 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E5198EB0B840F1A305D70D /* AppEnvironment.swift */; };
+		F10D03BBEC544B8485B6A93E /* VoltLinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608F4247457B465EBB6165AF /* VoltLinkApp.swift */; };
+		1C6B0192E06741CE8635B5B6 /* CarPlayLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558C2F18E40B4A5E99E4CBD5 /* CarPlayLayoutStore.swift */; };
+		743A18FA1E874E5492F19455 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A2E8C7EA2C4196964A071A /* CarPlaySceneDelegate.swift */; };
+		CC0F4143C1C84ADAA2F50D22 /* BLEConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC3027A1CDB4C47A87A89DC /* BLEConstants.swift */; };
+		C857639974DA42EF9E7AA49C /* BluetoothManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F237C66DE64D109A00CFE4 /* BluetoothManager.swift */; };
+		C6098E45FE784D3FA8F7E68F /* MockDrivingSimulation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9460122F6BC3421597A6080D /* MockDrivingSimulation.swift */; };
+		6A3AB986CF21420485C8955D /* MockOBDAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030AA43F82394EA5BBFA66F8 /* MockOBDAdapter.swift */; };
+		D55DD302FD674A5B9B295B7A /* TripLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71002A585F7D4CF2A82A22B4 /* TripLocationManager.swift */; };
+		CDFAEE41371C4B3998022DA7 /* DTCCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5230C32DE29F4E188557470E /* DTCCode.swift */; };
+		0C71DD50C62942889236BADC /* ISO15765Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C90E553A934EF9816E94F8 /* ISO15765Parser.swift */; };
+		8936662439664CBEA4E57A4A /* OBDConnectionProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE391DA1B9B04F9A9B7DF8A6 /* OBDConnectionProtocol.swift */; };
+		E84B2BF4AABC4D9682B84758 /* ChargingSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA7E53B8CE2641ECBEDEF43F /* ChargingSessionTracker.swift */; };
+		81AB936060ED41CD85FD06E1 /* TelemetryMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CE694E0A679471BABE53035 /* TelemetryMetric.swift */; };
+		6A47275E97C44115AA6944F3 /* ABRPProfileLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B380501F3B446CAAA1030A7 /* ABRPProfileLoader.swift */; };
+		6EE10A9B63C64ED8A97E6964 /* GenericEVProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C882DF75F1524CC388DA06BA /* GenericEVProfile.swift */; };
+		C0892FC63258497CBAF559F0 /* GenericOBD2Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F811073C0764B039B251C7A /* GenericOBD2Profile.swift */; };
+		1A4C2701B1144F0CB3B9D721 /* HyundaiKiaEGMPProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00E602BAA2B44438938A642 /* HyundaiKiaEGMPProfile.swift */; };
+		E5FCA839F0B14F4A929ECE37 /* MercedesEQA250Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C180BBCA94504F57A3BEDF05 /* MercedesEQA250Profile.swift */; };
+		C20AD50CF3ED46DEA8D81AB2 /* NissanLeafZE1Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC912F91AE446D95C97202 /* NissanLeafZE1Profile.swift */; };
+		BE5E1C02ACD44AA4BA964106 /* VehicleCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABBF0E3C34C1400A9FEBDF39 /* VehicleCatalog.swift */; };
+		9C258EBFC324494999C660A6 /* VehicleProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE62B6893CC4449AEF08055 /* VehicleProfile.swift */; };
+		3D7833F030E84DBAA8BE9B97 /* VehicleProfileRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D7E61ACEF649AA914FC1AE /* VehicleProfileRegistry.swift */; };
+		9485A1CDA7B24741BDFCFDBF /* VolkswagenMEBProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E2E6AA963A49FCAA69A29D /* VolkswagenMEBProfile.swift */; };
+		AB35FBE1045542C4B621DC26 /* ChargingSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A644929C824F5EAC578A09 /* ChargingSessionModel.swift */; };
+		9657D43CBE254E71B5FFB118 /* TripModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1048BE3BFE0A4A42AADFCE25 /* TripModel.swift */; };
+		D855450E0A3B4EBFA3231588 /* DTCLocalDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFA61FA7FDD24EA28BA48FF2 /* DTCLocalDatabase.swift */; };
+		831709CC4F6240A6AAAE12FC /* Mini_MiniCooperSE.json in Sources */ = {isa = PBXBuildFile; fileRef = C583EC83B2044C9CADD70900 /* Mini_MiniCooperSE.json */; };
+		4D7E6AEA5EAB4E2DBABFC5D3 /* aiways_u5.json in Sources */ = {isa = PBXBuildFile; fileRef = D57C9022998C4A20B6A8E076 /* aiways_u5.json */; };
+		6A8BFE4A91254971B1DBF319 /* bmw_i3.json in Sources */ = {isa = PBXBuildFile; fileRef = 8EAA92CD09EE4B0BB4428547 /* bmw_i3.json */; };
+		8FFE2509CA5A4F3B8C306F61 /* byd_atto3.json in Sources */ = {isa = PBXBuildFile; fileRef = 68A7E83ECE2149EBA188F20D /* byd_atto3.json */; };
+		326E20B78869433B988890A8 /* deepal_s05.json in Sources */ = {isa = PBXBuildFile; fileRef = 9ABEDD72473B487389733F66 /* deepal_s05.json */; };
+		A473C927C17F49D8B88E5562 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json in Sources */ = {isa = PBXBuildFile; fileRef = 2035C02FE2A74C3F8DFBE098 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json */; };
+		FDC02E1BC30447FAB4E476D6 /* ford_MachE.json in Sources */ = {isa = PBXBuildFile; fileRef = B04DA58CE7AB4D6392ACEEAA /* ford_MachE.json */; };
+		C86B9791547A4CE5A59FCEAD /* gmc_bolt17.json in Sources */ = {isa = PBXBuildFile; fileRef = 59407C9992C7425AA6596190 /* gmc_bolt17.json */; };
+		45762C61986643D585DA8435 /* gmc_bolt19.json in Sources */ = {isa = PBXBuildFile; fileRef = 9CF83B51A3CB46AA8C590F18 /* gmc_bolt19.json */; };
+		2A4A31DDCFCC47BD833110C3 /* hkmc_Ioniq5.json in Sources */ = {isa = PBXBuildFile; fileRef = 651427B22E8E409C934018B9 /* hkmc_Ioniq5.json */; };
+		934125D79822447B8BA8BD1E /* hkmc_hkmc2017.json in Sources */ = {isa = PBXBuildFile; fileRef = F573F1739CB14B918C81090C /* hkmc_hkmc2017.json */; };
+		DF811459B0414E3B91E39BF5 /* hkmc_hkmc2019.json in Sources */ = {isa = PBXBuildFile; fileRef = 044EE5A218A84081AFE41F75 /* hkmc_hkmc2019.json */; };
+		279201B4EE8445E294CDEEA6 /* honda_eny1.json in Sources */ = {isa = PBXBuildFile; fileRef = 966DEE196F674B3AAF1EEA78 /* honda_eny1.json */; };
+		BCBF7C64E7F24DDA8140DE84 /* jaguar_ipace2019.json in Sources */ = {isa = PBXBuildFile; fileRef = CF0F41FE62F54B678B761C75 /* jaguar_ipace2019.json */; };
+		119BACD81648451A925483DB /* jaguar_ipace2021.json in Sources */ = {isa = PBXBuildFile; fileRef = BCEB91BA94574FB3B3648669 /* jaguar_ipace2021.json */; };
+		BDEE7CA93E7B41E781BFA945 /* mg_mgzsev.json in Sources */ = {isa = PBXBuildFile; fileRef = D6C3C29CC5D74162B48F4EA2 /* mg_mgzsev.json */; };
+		2E0207BB2E9F477BB539F6BF /* obdble_cars.json in Sources */ = {isa = PBXBuildFile; fileRef = F274CE07E9584EF4A22EE5FD /* obdble_cars.json */; };
+		C6F80EF55EC2433794017CC6 /* renault_zoe.json in Sources */ = {isa = PBXBuildFile; fileRef = 9376CF525A0249B1907E23C4 /* renault_zoe.json */; };
+		E8DC9810E8634D4E9CEEDF34 /* renault_zoe2.json in Sources */ = {isa = PBXBuildFile; fileRef = B73625A099054B28BB71FBD0 /* renault_zoe2.json */; };
+		3AAA9271670446C2A858CC4A /* volkswagen_MEB.json in Sources */ = {isa = PBXBuildFile; fileRef = ECFBD21E6D3C4CA39AF0A533 /* volkswagen_MEB.json */; };
+		87AD1198A78145C7A8607B75 /* volkswagen_eGolf.json in Sources */ = {isa = PBXBuildFile; fileRef = A69CEFE35B7D4989BE26781B /* volkswagen_eGolf.json */; };
+		46F920FC0F8047048B546EB0 /* volkswagen_eUP.json in Sources */ = {isa = PBXBuildFile; fileRef = 805D2AEF1E3D45B98B94A45C /* volkswagen_eUP.json */; };
+		B3EB725B9E1946F4A333C700 /* dtc_definitions.json in Sources */ = {isa = PBXBuildFile; fileRef = 7AE53C48100145B18D21CCCC /* dtc_definitions.json */; };
+		152F84896B574EAF8B7DA90C /* vehicle_catalog.json in Sources */ = {isa = PBXBuildFile; fileRef = 9DB1606EC38547E981D66A33 /* vehicle_catalog.json */; };
+		74C78306E98F4794B959BDAB /* AILogAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F0218829254886B925CDDF /* AILogAnalyzer.swift */; };
+		D6499A85FF084961A557011A /* ChargingTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D239BE722F145C488918EE9 /* ChargingTrackingManager.swift */; };
+		6CC1B3199BEE469B90281A53 /* DTCScannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B39BD71045614B2E90E0DF9A /* DTCScannerService.swift */; };
+		CA9C4434DCDF40A3B45D29B8 /* TripTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9D7F0D4FC64164B9A7B7E6 /* TripTrackingManager.swift */; };
+		57DDA5009E60475C93E2F510 /* VehicleDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF4187332C54B908715351D /* VehicleDataManager.swift */; };
+		59C211CAE635418797902BBF /* ChargingLiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F920C7A20CAA41B1AE688ACA /* ChargingLiveView.swift */; };
+		8C8C17397B434E2698FB9552 /* ChargingSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60719C357A194779B6686359 /* ChargingSessionDetailView.swift */; };
+		A497003552064F5ABF7EA383 /* DashboardCustomizationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D4BF7504754E87BFA2B65A /* DashboardCustomizationSheet.swift */; };
+		964FDC52BC634227BEE0B44B /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11654E631E4A4995B174A5A4 /* DashboardView.swift */; };
+		4587EEFFA6BF4E7CAC0C10FE /* DashboardWidgetConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150412F0B1C743ED8D97BBEF /* DashboardWidgetConfig.swift */; };
+		EA46FF65E8FF41AA85DE5DC0 /* DashboardWidgetTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1CE92FCFC444E8582DE9C3A /* DashboardWidgetTile.swift */; };
+		6AF5E3ABB18A4ABD832DDBB5 /* HUDModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14DF4F13345340F7B6C07428 /* HUDModeView.swift */; };
+		523ADDA0525147069DFAA894 /* LiveTelemetryChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 987FADAC84DE4CD8939E7A17 /* LiveTelemetryChartView.swift */; };
+		0DB8105049F64B6298236589 /* BatteryLevelBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0E380A77FB490F8C410539 /* BatteryLevelBar.swift */; };
+		C490CEE3CC3249A8AA8821D6 /* MetricBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172A8DEA7F034519BB22B951 /* MetricBarView.swift */; };
+		132DBA011FE4410CB6DBC02E /* MetricDialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35DDCBB2287E492794CE2BA4 /* MetricDialView.swift */; };
+		C81AC087618845778F577E1D /* MetricNumericTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EA385B60C1419C8C09FB40 /* MetricNumericTileView.swift */; };
+		59D4168F54764DE98260A0CE /* FloatingConnectionBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8136603067D740A68826A77F /* FloatingConnectionBanner.swift */; };
+		F19AB1B2BF0B4827B6F2A55B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E2420D632D3497E9531AFF3 /* Theme.swift */; };
+		5B734DE92F8A4930BF182AC1 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C09E5AA0D4C41BDA564F1E4 /* DiagnosticsView.swift */; };
+		5F07AA9626A94049912963B1 /* CarPlayTileEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FDE0CB3414B4FCCA4DB1821 /* CarPlayTileEditorView.swift */; };
+		4AA0F18E421947948EA36E9D /* OBDTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF23ABF75E8C4EDB960E1C3E /* OBDTerminalView.swift */; };
+		A1EFB3221E1340FB92DBE64B /* ProfileMetricStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 640CD06E91214FC0AAE1E24F /* ProfileMetricStatusView.swift */; };
+		5017816AF1784C12BB838936 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C91E8E532C043C6BAD41E62 /* SettingsView.swift */; };
+		423BCFE8053241509C6142AD /* VehicleProfilePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B3AD18570C34D2798C7F1B3 /* VehicleProfilePickerSheet.swift */; };
+		691B9166856D4695A9B164A7 /* TripDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6881C571854B4495A1AE62AC /* TripDetailView.swift */; };
+		701BF5CF1EDE4184A4F0D369 /* TripHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2782873C173740B68091E318 /* TripHistoryView.swift */; };
+		FC18F197E0784F9E96522C62 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E61A5A4E1204426FAFE9F332 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4500B11D753344C0AB706933 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppEnvironment.swift"; sourceTree = "<group>"; };
-		EFD39DC5776441D0A0895800 /* VoltLinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkApp.swift"; sourceTree = "<group>"; };
-		883FFC2B43F74DD4956AEA99 /* CarPlayLayoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CarPlayLayoutStore.swift"; sourceTree = "<group>"; };
-		A611C8ABD2B74BB6A7E6DA5C /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CarPlaySceneDelegate.swift"; sourceTree = "<group>"; };
-		342225020A3743C8B658BCCF /* BLEConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BLEConstants.swift"; sourceTree = "<group>"; };
-		406AA56EAC5B41C6856E85C4 /* BluetoothManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BluetoothManager.swift"; sourceTree = "<group>"; };
-		4BA43F22999142E9B771B3A7 /* MockDrivingSimulation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MockDrivingSimulation.swift"; sourceTree = "<group>"; };
-		805D00A7A14549798B4AD8C0 /* MockOBDAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MockOBDAdapter.swift"; sourceTree = "<group>"; };
-		53DD11F67F77476DBF8A6F22 /* TripLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripLocationManager.swift"; sourceTree = "<group>"; };
-		26598CCF29304EFE89F326C1 /* DTCCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCCode.swift"; sourceTree = "<group>"; };
-		4179F4B528294C84BA08E791 /* ISO15765Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ISO15765Parser.swift"; sourceTree = "<group>"; };
-		C0C39B6E18BB48778337E717 /* OBDConnectionProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OBDConnectionProtocol.swift"; sourceTree = "<group>"; };
-		E6911E7F11CD4DFF9FFD4259 /* ChargingSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionTracker.swift"; sourceTree = "<group>"; };
-		BC8D6BFBF526412AB6AB69A6 /* TelemetryMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetryMetric.swift"; sourceTree = "<group>"; };
-		0B8172CD2EC045558AFD6A26 /* ABRPProfileLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ABRPProfileLoader.swift"; sourceTree = "<group>"; };
-		ECF8E20B3AA3443CB62CC784 /* GenericEVProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GenericEVProfile.swift"; sourceTree = "<group>"; };
-		B17725D7B54349E4B0BFC30F /* GenericOBD2Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GenericOBD2Profile.swift"; sourceTree = "<group>"; };
-		C44C8933A1964DB7B777F3C5 /* HyundaiKiaEGMPProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HyundaiKiaEGMPProfile.swift"; sourceTree = "<group>"; };
-		37CD22B37EE8475EAAB0E9A9 /* MercedesEQA250Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MercedesEQA250Profile.swift"; sourceTree = "<group>"; };
-		F5F6AAE3CC0F4A6BBD56C326 /* NissanLeafZE1Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NissanLeafZE1Profile.swift"; sourceTree = "<group>"; };
-		7C018D211D0848DFA6D07014 /* VehicleCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleCatalog.swift"; sourceTree = "<group>"; };
-		148CDE7DD6B5441197652070 /* VehicleProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfile.swift"; sourceTree = "<group>"; };
-		2AD2405E93BC4291A055ED1B /* VehicleProfileRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfileRegistry.swift"; sourceTree = "<group>"; };
-		EB8B9C8C3314442182F466E4 /* VolkswagenMEBProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VolkswagenMEBProfile.swift"; sourceTree = "<group>"; };
-		6D9B1D6F7FDE4E3483AB223D /* ChargingSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionModel.swift"; sourceTree = "<group>"; };
-		242E6A7AE68448C8A328A566 /* TripModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripModel.swift"; sourceTree = "<group>"; };
-		366EF2D8B3644C18A541D448 /* DTCLocalDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCLocalDatabase.swift"; sourceTree = "<group>"; };
-		5A0A2292B4B645D4B3451143 /* Mini_MiniCooperSE.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Mini_MiniCooperSE.json"; sourceTree = "<group>"; };
-		B758AEA039B44F3D8F250C17 /* aiways_u5.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "aiways_u5.json"; sourceTree = "<group>"; };
-		E53BE98B07ED4A378F079EBD /* bmw_i3.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bmw_i3.json"; sourceTree = "<group>"; };
-		F55E3BA23C1E4603B2C308E1 /* byd_atto3.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "byd_atto3.json"; sourceTree = "<group>"; };
-		10BEF9D9C9EB4AD795D2EC92 /* deepal_s05.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "deepal_s05.json"; sourceTree = "<group>"; };
-		DB4F4A18162B403381107641 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json"; sourceTree = "<group>"; };
-		1514F917DDCB42D988830D1F /* ford_MachE.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ford_MachE.json"; sourceTree = "<group>"; };
-		AEA08EE05EDB4BD9A31E8372 /* gmc_bolt17.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "gmc_bolt17.json"; sourceTree = "<group>"; };
-		5E5867A759B44827A2EBA9AF /* gmc_bolt19.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "gmc_bolt19.json"; sourceTree = "<group>"; };
-		DDFED96534DE4593B27D2307 /* hkmc_Ioniq5.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "hkmc_Ioniq5.json"; sourceTree = "<group>"; };
-		712960E883FF4107BEEDBE85 /* hkmc_hkmc2017.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "hkmc_hkmc2017.json"; sourceTree = "<group>"; };
-		466C13A9946F4BCC960FD7BE /* hkmc_hkmc2019.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "hkmc_hkmc2019.json"; sourceTree = "<group>"; };
-		F51C3B5DA0D0468EA9BA3D7D /* honda_eny1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "honda_eny1.json"; sourceTree = "<group>"; };
-		C01FEB940FCF4F9D8C17E110 /* jaguar_ipace2019.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "jaguar_ipace2019.json"; sourceTree = "<group>"; };
-		04F0D400B6F44274AE5169C6 /* jaguar_ipace2021.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "jaguar_ipace2021.json"; sourceTree = "<group>"; };
-		AD833FF9C931462CAE78AC59 /* mg_mgzsev.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "mg_mgzsev.json"; sourceTree = "<group>"; };
-		363705B40CF1474182C86C21 /* obdble_cars.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "obdble_cars.json"; sourceTree = "<group>"; };
-		8D20404FB1FF469CB2A7BE28 /* renault_zoe.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "renault_zoe.json"; sourceTree = "<group>"; };
-		91528129A69043D788C1C1F5 /* renault_zoe2.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "renault_zoe2.json"; sourceTree = "<group>"; };
-		6F7B453C2E4644C68DC08A35 /* volkswagen_MEB.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_MEB.json"; sourceTree = "<group>"; };
-		34FFACFC3799437EA7E31F36 /* volkswagen_eGolf.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_eGolf.json"; sourceTree = "<group>"; };
-		DA9B8904300B41FC9A714266 /* volkswagen_eUP.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_eUP.json"; sourceTree = "<group>"; };
-		DF55EAFE3EC34D14B1BD289A /* dtc_definitions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "dtc_definitions.json"; sourceTree = "<group>"; };
-		942A9C1E0E23454389003F49 /* vehicle_catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vehicle_catalog.json"; sourceTree = "<group>"; };
-		E8662E83CFC94FFA93F95F06 /* AILogAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AILogAnalyzer.swift"; sourceTree = "<group>"; };
-		3C79E4E84D4B42368AE128A4 /* ChargingTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingTrackingManager.swift"; sourceTree = "<group>"; };
-		D133155C391B408F8CEECA5A /* DTCScannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCScannerService.swift"; sourceTree = "<group>"; };
-		B09417A2E8CC4A558B2C6BE1 /* TripTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripTrackingManager.swift"; sourceTree = "<group>"; };
-		98146D3352184BE2B129B967 /* VehicleDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleDataManager.swift"; sourceTree = "<group>"; };
-		0588E0692F684A8B9E097F99 /* ChargingLiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingLiveView.swift"; sourceTree = "<group>"; };
-		85EFE64D808A4C81B24564C6 /* ChargingSessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionDetailView.swift"; sourceTree = "<group>"; };
-		B7CA507AE5CD4E6C96956136 /* DashboardCustomizationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardCustomizationSheet.swift"; sourceTree = "<group>"; };
-		9CFD4E20061D495595295534 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardView.swift"; sourceTree = "<group>"; };
-		31A6E80F1CF34BE1B75A145C /* DashboardWidgetConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardWidgetConfig.swift"; sourceTree = "<group>"; };
-		070AAF66841349D0AC48F187 /* DashboardWidgetTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardWidgetTile.swift"; sourceTree = "<group>"; };
-		849FC562135647E48C4F3F15 /* HUDModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HUDModeView.swift"; sourceTree = "<group>"; };
-		5E8EFCE3710A47589D4BEEC7 /* LiveTelemetryChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LiveTelemetryChartView.swift"; sourceTree = "<group>"; };
-		222379DA730540F8A509C490 /* BatteryLevelBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatteryLevelBar.swift"; sourceTree = "<group>"; };
-		725A822DAFE54AC78631D91A /* MetricBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetricBarView.swift"; sourceTree = "<group>"; };
-		1889B8DA516549F0B8634930 /* MetricDialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetricDialView.swift"; sourceTree = "<group>"; };
-		065B8C2B7C1D4F6DBF94D1BC /* MetricNumericTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetricNumericTileView.swift"; sourceTree = "<group>"; };
-		2F666A95074B4A17B4510058 /* FloatingConnectionBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FloatingConnectionBanner.swift"; sourceTree = "<group>"; };
-		F6565D9B8A0643C6931FDD9F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Theme.swift"; sourceTree = "<group>"; };
-		51DBFBE5ED6643BA9B4C244D /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DiagnosticsView.swift"; sourceTree = "<group>"; };
-		A86D51B441D14A608E408C24 /* CarPlayTileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CarPlayTileEditorView.swift"; sourceTree = "<group>"; };
-		956EC295871D444FBA551323 /* OBDTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OBDTerminalView.swift"; sourceTree = "<group>"; };
-		437F4B1301A14A2BAC30F88F /* ProfileMetricStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileMetricStatusView.swift"; sourceTree = "<group>"; };
-		024EAEA329A648269EF73CF6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView.swift"; sourceTree = "<group>"; };
-		23F695F141784BF59356AFC5 /* VehicleProfilePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfilePickerSheet.swift"; sourceTree = "<group>"; };
-		D394DA9807F44860856F921C /* TripDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripDetailView.swift"; sourceTree = "<group>"; };
-		A14F80F2278F43E5AA2BEA6F /* TripHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripHistoryView.swift"; sourceTree = "<group>"; };
-		032CDCA959E9489FB7D77DD0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Assets.xcassets"; sourceTree = "<group>"; };
-		D65254B3147E41AAA3C366E4 /* VoltLink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoltLink.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D8E5198EB0B840F1A305D70D /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppEnvironment.swift"; sourceTree = "<group>"; };
+		608F4247457B465EBB6165AF /* VoltLinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkApp.swift"; sourceTree = "<group>"; };
+		558C2F18E40B4A5E99E4CBD5 /* CarPlayLayoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CarPlayLayoutStore.swift"; sourceTree = "<group>"; };
+		23A2E8C7EA2C4196964A071A /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CarPlaySceneDelegate.swift"; sourceTree = "<group>"; };
+		3FC3027A1CDB4C47A87A89DC /* BLEConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BLEConstants.swift"; sourceTree = "<group>"; };
+		22F237C66DE64D109A00CFE4 /* BluetoothManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BluetoothManager.swift"; sourceTree = "<group>"; };
+		9460122F6BC3421597A6080D /* MockDrivingSimulation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MockDrivingSimulation.swift"; sourceTree = "<group>"; };
+		030AA43F82394EA5BBFA66F8 /* MockOBDAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MockOBDAdapter.swift"; sourceTree = "<group>"; };
+		71002A585F7D4CF2A82A22B4 /* TripLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripLocationManager.swift"; sourceTree = "<group>"; };
+		5230C32DE29F4E188557470E /* DTCCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCCode.swift"; sourceTree = "<group>"; };
+		A6C90E553A934EF9816E94F8 /* ISO15765Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ISO15765Parser.swift"; sourceTree = "<group>"; };
+		BE391DA1B9B04F9A9B7DF8A6 /* OBDConnectionProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OBDConnectionProtocol.swift"; sourceTree = "<group>"; };
+		DA7E53B8CE2641ECBEDEF43F /* ChargingSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionTracker.swift"; sourceTree = "<group>"; };
+		6CE694E0A679471BABE53035 /* TelemetryMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetryMetric.swift"; sourceTree = "<group>"; };
+		4B380501F3B446CAAA1030A7 /* ABRPProfileLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ABRPProfileLoader.swift"; sourceTree = "<group>"; };
+		C882DF75F1524CC388DA06BA /* GenericEVProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GenericEVProfile.swift"; sourceTree = "<group>"; };
+		5F811073C0764B039B251C7A /* GenericOBD2Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GenericOBD2Profile.swift"; sourceTree = "<group>"; };
+		D00E602BAA2B44438938A642 /* HyundaiKiaEGMPProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HyundaiKiaEGMPProfile.swift"; sourceTree = "<group>"; };
+		C180BBCA94504F57A3BEDF05 /* MercedesEQA250Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MercedesEQA250Profile.swift"; sourceTree = "<group>"; };
+		28EC912F91AE446D95C97202 /* NissanLeafZE1Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NissanLeafZE1Profile.swift"; sourceTree = "<group>"; };
+		ABBF0E3C34C1400A9FEBDF39 /* VehicleCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleCatalog.swift"; sourceTree = "<group>"; };
+		9EE62B6893CC4449AEF08055 /* VehicleProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfile.swift"; sourceTree = "<group>"; };
+		01D7E61ACEF649AA914FC1AE /* VehicleProfileRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfileRegistry.swift"; sourceTree = "<group>"; };
+		E9E2E6AA963A49FCAA69A29D /* VolkswagenMEBProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VolkswagenMEBProfile.swift"; sourceTree = "<group>"; };
+		B4A644929C824F5EAC578A09 /* ChargingSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionModel.swift"; sourceTree = "<group>"; };
+		1048BE3BFE0A4A42AADFCE25 /* TripModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripModel.swift"; sourceTree = "<group>"; };
+		EFA61FA7FDD24EA28BA48FF2 /* DTCLocalDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCLocalDatabase.swift"; sourceTree = "<group>"; };
+		C583EC83B2044C9CADD70900 /* Mini_MiniCooperSE.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "Mini_MiniCooperSE.json"; sourceTree = "<group>"; };
+		D57C9022998C4A20B6A8E076 /* aiways_u5.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "aiways_u5.json"; sourceTree = "<group>"; };
+		8EAA92CD09EE4B0BB4428547 /* bmw_i3.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bmw_i3.json"; sourceTree = "<group>"; };
+		68A7E83ECE2149EBA188F20D /* byd_atto3.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "byd_atto3.json"; sourceTree = "<group>"; };
+		9ABEDD72473B487389733F66 /* deepal_s05.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "deepal_s05.json"; sourceTree = "<group>"; };
+		2035C02FE2A74C3F8DFBE098 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json"; sourceTree = "<group>"; };
+		B04DA58CE7AB4D6392ACEEAA /* ford_MachE.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ford_MachE.json"; sourceTree = "<group>"; };
+		59407C9992C7425AA6596190 /* gmc_bolt17.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "gmc_bolt17.json"; sourceTree = "<group>"; };
+		9CF83B51A3CB46AA8C590F18 /* gmc_bolt19.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "gmc_bolt19.json"; sourceTree = "<group>"; };
+		651427B22E8E409C934018B9 /* hkmc_Ioniq5.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "hkmc_Ioniq5.json"; sourceTree = "<group>"; };
+		F573F1739CB14B918C81090C /* hkmc_hkmc2017.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "hkmc_hkmc2017.json"; sourceTree = "<group>"; };
+		044EE5A218A84081AFE41F75 /* hkmc_hkmc2019.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "hkmc_hkmc2019.json"; sourceTree = "<group>"; };
+		966DEE196F674B3AAF1EEA78 /* honda_eny1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "honda_eny1.json"; sourceTree = "<group>"; };
+		CF0F41FE62F54B678B761C75 /* jaguar_ipace2019.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "jaguar_ipace2019.json"; sourceTree = "<group>"; };
+		BCEB91BA94574FB3B3648669 /* jaguar_ipace2021.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "jaguar_ipace2021.json"; sourceTree = "<group>"; };
+		D6C3C29CC5D74162B48F4EA2 /* mg_mgzsev.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "mg_mgzsev.json"; sourceTree = "<group>"; };
+		F274CE07E9584EF4A22EE5FD /* obdble_cars.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "obdble_cars.json"; sourceTree = "<group>"; };
+		9376CF525A0249B1907E23C4 /* renault_zoe.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "renault_zoe.json"; sourceTree = "<group>"; };
+		B73625A099054B28BB71FBD0 /* renault_zoe2.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "renault_zoe2.json"; sourceTree = "<group>"; };
+		ECFBD21E6D3C4CA39AF0A533 /* volkswagen_MEB.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_MEB.json"; sourceTree = "<group>"; };
+		A69CEFE35B7D4989BE26781B /* volkswagen_eGolf.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_eGolf.json"; sourceTree = "<group>"; };
+		805D2AEF1E3D45B98B94A45C /* volkswagen_eUP.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "volkswagen_eUP.json"; sourceTree = "<group>"; };
+		7AE53C48100145B18D21CCCC /* dtc_definitions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "dtc_definitions.json"; sourceTree = "<group>"; };
+		9DB1606EC38547E981D66A33 /* vehicle_catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "vehicle_catalog.json"; sourceTree = "<group>"; };
+		99F0218829254886B925CDDF /* AILogAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AILogAnalyzer.swift"; sourceTree = "<group>"; };
+		7D239BE722F145C488918EE9 /* ChargingTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingTrackingManager.swift"; sourceTree = "<group>"; };
+		B39BD71045614B2E90E0DF9A /* DTCScannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCScannerService.swift"; sourceTree = "<group>"; };
+		9E9D7F0D4FC64164B9A7B7E6 /* TripTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripTrackingManager.swift"; sourceTree = "<group>"; };
+		AEF4187332C54B908715351D /* VehicleDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleDataManager.swift"; sourceTree = "<group>"; };
+		F920C7A20CAA41B1AE688ACA /* ChargingLiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingLiveView.swift"; sourceTree = "<group>"; };
+		60719C357A194779B6686359 /* ChargingSessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionDetailView.swift"; sourceTree = "<group>"; };
+		F0D4BF7504754E87BFA2B65A /* DashboardCustomizationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardCustomizationSheet.swift"; sourceTree = "<group>"; };
+		11654E631E4A4995B174A5A4 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardView.swift"; sourceTree = "<group>"; };
+		150412F0B1C743ED8D97BBEF /* DashboardWidgetConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardWidgetConfig.swift"; sourceTree = "<group>"; };
+		F1CE92FCFC444E8582DE9C3A /* DashboardWidgetTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardWidgetTile.swift"; sourceTree = "<group>"; };
+		14DF4F13345340F7B6C07428 /* HUDModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HUDModeView.swift"; sourceTree = "<group>"; };
+		987FADAC84DE4CD8939E7A17 /* LiveTelemetryChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LiveTelemetryChartView.swift"; sourceTree = "<group>"; };
+		0F0E380A77FB490F8C410539 /* BatteryLevelBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatteryLevelBar.swift"; sourceTree = "<group>"; };
+		172A8DEA7F034519BB22B951 /* MetricBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetricBarView.swift"; sourceTree = "<group>"; };
+		35DDCBB2287E492794CE2BA4 /* MetricDialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetricDialView.swift"; sourceTree = "<group>"; };
+		49EA385B60C1419C8C09FB40 /* MetricNumericTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetricNumericTileView.swift"; sourceTree = "<group>"; };
+		8136603067D740A68826A77F /* FloatingConnectionBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FloatingConnectionBanner.swift"; sourceTree = "<group>"; };
+		3E2420D632D3497E9531AFF3 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Theme.swift"; sourceTree = "<group>"; };
+		4C09E5AA0D4C41BDA564F1E4 /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DiagnosticsView.swift"; sourceTree = "<group>"; };
+		0FDE0CB3414B4FCCA4DB1821 /* CarPlayTileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CarPlayTileEditorView.swift"; sourceTree = "<group>"; };
+		EF23ABF75E8C4EDB960E1C3E /* OBDTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OBDTerminalView.swift"; sourceTree = "<group>"; };
+		640CD06E91214FC0AAE1E24F /* ProfileMetricStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileMetricStatusView.swift"; sourceTree = "<group>"; };
+		2C91E8E532C043C6BAD41E62 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView.swift"; sourceTree = "<group>"; };
+		5B3AD18570C34D2798C7F1B3 /* VehicleProfilePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfilePickerSheet.swift"; sourceTree = "<group>"; };
+		6881C571854B4495A1AE62AC /* TripDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripDetailView.swift"; sourceTree = "<group>"; };
+		2782873C173740B68091E318 /* TripHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripHistoryView.swift"; sourceTree = "<group>"; };
+		E61A5A4E1204426FAFE9F332 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Assets.xcassets"; sourceTree = "<group>"; };
+		7F8D166ECDC94C1485AE1248 /* VoltLink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoltLink.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		52A0E6CACFD34753ABB0EF61 /* Frameworks */ = {
+		353D9953FFA8464BBE1609D9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -182,280 +182,280 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		048224CF3B8345DBB1564EE6 /* Main */ = {
+		DF92956BE8284C7EAD27242B /* Main */ = {
 			isa = PBXGroup;
 			children = (
-				2E58947AF6C74DA09ABF8114,
-				23B60C7E235A4FA79A6C3259,
-				8DCE7482497C4773B170C050,
-				5DC58909BD484F7FAA08A579,
-				EA87592B03F8465CABFD12E0,
-				9FA71BC27D1148B7A8D0F162,
-				51FADFFA40354E2B947E50FB
+				90E6507B30644C1D815DB7E0,
+				EEA9CCFEEB1C44F58FE6B16D,
+				3869EFB01F2B4607A70AB59C,
+				C7C9397089814936ADD20237,
+				074B334C8D04410AA465C68B,
+				1E46629A4A1B452CA623ABCB,
+				7DCF7A79D2204114BC5400FE
 			);
 			sourceTree = "<group>";
 		};
-		51FADFFA40354E2B947E50FB /* Products */ = {
+		7DCF7A79D2204114BC5400FE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D65254B3147E41AAA3C366E4 /* VoltLink.app */,
+				7F8D166ECDC94C1485AE1248 /* VoltLink.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		2E58947AF6C74DA09ABF8114 /* App */ = {
+		90E6507B30644C1D815DB7E0 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				4500B11D753344C0AB706933,
-				EFD39DC5776441D0A0895800,
-				032CDCA959E9489FB7D77DD0
+				D8E5198EB0B840F1A305D70D,
+				608F4247457B465EBB6165AF,
+				E61A5A4E1204426FAFE9F332
 			);
 			path = "App";
 			sourceTree = "<group>";
 		};
-		23B60C7E235A4FA79A6C3259 /* CarPlay */ = {
+		EEA9CCFEEB1C44F58FE6B16D /* CarPlay */ = {
 			isa = PBXGroup;
 			children = (
-				883FFC2B43F74DD4956AEA99,
-				A611C8ABD2B74BB6A7E6DA5C
+				558C2F18E40B4A5E99E4CBD5,
+				23A2E8C7EA2C4196964A071A
 			);
 			path = "CarPlay";
 			sourceTree = "<group>";
 		};
-		8DCE7482497C4773B170C050 /* Core */ = {
+		3869EFB01F2B4607A70AB59C /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				20CBED747E2B423C93CA933A,
-				5DC9BF2DFE8041BB86FF5D22,
-				8C6CD7E1363740A9BC356715,
-				B1600A0AF237484A916C31DC,
-				7C479B6C2F07429699551760,
-				C268EEC7AB5D437F91479B5C
+				B11A2B0C2C7C4CA4B4E14085,
+				615622822A0C42C3B4CBBE36,
+				D14B046D367D4C4A833639F4,
+				A13DDDAF243D4303B3E4E989,
+				7503E3C6CDD2406DB9FEE92B,
+				5620D328C0824BA6B1C16F30
 			);
 			path = "Core";
 			sourceTree = "<group>";
 		};
-		20CBED747E2B423C93CA933A /* Bluetooth */ = {
+		B11A2B0C2C7C4CA4B4E14085 /* Bluetooth */ = {
 			isa = PBXGroup;
 			children = (
-				342225020A3743C8B658BCCF,
-				406AA56EAC5B41C6856E85C4
+				3FC3027A1CDB4C47A87A89DC,
+				22F237C66DE64D109A00CFE4
 			);
 			path = "Bluetooth";
 			sourceTree = "<group>";
 		};
-		5DC9BF2DFE8041BB86FF5D22 /* Demo */ = {
+		615622822A0C42C3B4CBBE36 /* Demo */ = {
 			isa = PBXGroup;
 			children = (
-				4BA43F22999142E9B771B3A7,
-				805D00A7A14549798B4AD8C0
+				9460122F6BC3421597A6080D,
+				030AA43F82394EA5BBFA66F8
 			);
 			path = "Demo";
 			sourceTree = "<group>";
 		};
-		8C6CD7E1363740A9BC356715 /* Location */ = {
+		D14B046D367D4C4A833639F4 /* Location */ = {
 			isa = PBXGroup;
 			children = (
-				53DD11F67F77476DBF8A6F22
+				71002A585F7D4CF2A82A22B4
 			);
 			path = "Location";
 			sourceTree = "<group>";
 		};
-		B1600A0AF237484A916C31DC /* OBD */ = {
+		A13DDDAF243D4303B3E4E989 /* OBD */ = {
 			isa = PBXGroup;
 			children = (
-				26598CCF29304EFE89F326C1,
-				4179F4B528294C84BA08E791,
-				C0C39B6E18BB48778337E717
+				5230C32DE29F4E188557470E,
+				A6C90E553A934EF9816E94F8,
+				BE391DA1B9B04F9A9B7DF8A6
 			);
 			path = "OBD";
 			sourceTree = "<group>";
 		};
-		7C479B6C2F07429699551760 /* Telemetry */ = {
+		7503E3C6CDD2406DB9FEE92B /* Telemetry */ = {
 			isa = PBXGroup;
 			children = (
-				E6911E7F11CD4DFF9FFD4259,
-				BC8D6BFBF526412AB6AB69A6
+				DA7E53B8CE2641ECBEDEF43F,
+				6CE694E0A679471BABE53035
 			);
 			path = "Telemetry";
 			sourceTree = "<group>";
 		};
-		C268EEC7AB5D437F91479B5C /* Vehicles */ = {
+		5620D328C0824BA6B1C16F30 /* Vehicles */ = {
 			isa = PBXGroup;
 			children = (
-				0B8172CD2EC045558AFD6A26,
-				ECF8E20B3AA3443CB62CC784,
-				B17725D7B54349E4B0BFC30F,
-				C44C8933A1964DB7B777F3C5,
-				37CD22B37EE8475EAAB0E9A9,
-				F5F6AAE3CC0F4A6BBD56C326,
-				7C018D211D0848DFA6D07014,
-				148CDE7DD6B5441197652070,
-				2AD2405E93BC4291A055ED1B,
-				EB8B9C8C3314442182F466E4
+				4B380501F3B446CAAA1030A7,
+				C882DF75F1524CC388DA06BA,
+				5F811073C0764B039B251C7A,
+				D00E602BAA2B44438938A642,
+				C180BBCA94504F57A3BEDF05,
+				28EC912F91AE446D95C97202,
+				ABBF0E3C34C1400A9FEBDF39,
+				9EE62B6893CC4449AEF08055,
+				01D7E61ACEF649AA914FC1AE,
+				E9E2E6AA963A49FCAA69A29D
 			);
 			path = "Vehicles";
 			sourceTree = "<group>";
 		};
-		5DC58909BD484F7FAA08A579 /* Data */ = {
+		C7C9397089814936ADD20237 /* Data */ = {
 			isa = PBXGroup;
 			children = (
-				674E818866164DBB89BD7DDE,
-				A6D0792D5E34491E9CE9706D,
-				A999D93DFDC744BD9E762D02
+				7D687F64BB354020ACD3191F,
+				00ADF250FBA74BE6BBAA8940,
+				16982AD794B0433CB843C1DB
 			);
 			path = "Data";
 			sourceTree = "<group>";
 		};
-		674E818866164DBB89BD7DDE /* Models */ = {
+		7D687F64BB354020ACD3191F /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				6D9B1D6F7FDE4E3483AB223D,
-				242E6A7AE68448C8A328A566
+				B4A644929C824F5EAC578A09,
+				1048BE3BFE0A4A42AADFCE25
 			);
 			path = "Models";
 			sourceTree = "<group>";
 		};
-		A6D0792D5E34491E9CE9706D /* Repositories */ = {
+		00ADF250FBA74BE6BBAA8940 /* Repositories */ = {
 			isa = PBXGroup;
 			children = (
-				366EF2D8B3644C18A541D448
+				EFA61FA7FDD24EA28BA48FF2
 			);
 			path = "Repositories";
 			sourceTree = "<group>";
 		};
-		A999D93DFDC744BD9E762D02 /* Seed */ = {
+		16982AD794B0433CB843C1DB /* Seed */ = {
 			isa = PBXGroup;
 			children = (
-				AF14A975063D423CBC87221C,
-				DF55EAFE3EC34D14B1BD289A,
-				942A9C1E0E23454389003F49
+				B5AA32EB57FD4BD394F9B7C0,
+				7AE53C48100145B18D21CCCC,
+				9DB1606EC38547E981D66A33
 			);
 			path = "Seed";
 			sourceTree = "<group>";
 		};
-		AF14A975063D423CBC87221C /* abrp_pids */ = {
+		B5AA32EB57FD4BD394F9B7C0 /* abrp_pids */ = {
 			isa = PBXGroup;
 			children = (
-				5A0A2292B4B645D4B3451143,
-				B758AEA039B44F3D8F250C17,
-				E53BE98B07ED4A378F079EBD,
-				F55E3BA23C1E4603B2C308E1,
-				10BEF9D9C9EB4AD795D2EC92,
-				DB4F4A18162B403381107641,
-				1514F917DDCB42D988830D1F,
-				AEA08EE05EDB4BD9A31E8372,
-				5E5867A759B44827A2EBA9AF,
-				DDFED96534DE4593B27D2307,
-				712960E883FF4107BEEDBE85,
-				466C13A9946F4BCC960FD7BE,
-				F51C3B5DA0D0468EA9BA3D7D,
-				C01FEB940FCF4F9D8C17E110,
-				04F0D400B6F44274AE5169C6,
-				AD833FF9C931462CAE78AC59,
-				363705B40CF1474182C86C21,
-				8D20404FB1FF469CB2A7BE28,
-				91528129A69043D788C1C1F5,
-				6F7B453C2E4644C68DC08A35,
-				34FFACFC3799437EA7E31F36,
-				DA9B8904300B41FC9A714266
+				C583EC83B2044C9CADD70900,
+				D57C9022998C4A20B6A8E076,
+				8EAA92CD09EE4B0BB4428547,
+				68A7E83ECE2149EBA188F20D,
+				9ABEDD72473B487389733F66,
+				2035C02FE2A74C3F8DFBE098,
+				B04DA58CE7AB4D6392ACEEAA,
+				59407C9992C7425AA6596190,
+				9CF83B51A3CB46AA8C590F18,
+				651427B22E8E409C934018B9,
+				F573F1739CB14B918C81090C,
+				044EE5A218A84081AFE41F75,
+				966DEE196F674B3AAF1EEA78,
+				CF0F41FE62F54B678B761C75,
+				BCEB91BA94574FB3B3648669,
+				D6C3C29CC5D74162B48F4EA2,
+				F274CE07E9584EF4A22EE5FD,
+				9376CF525A0249B1907E23C4,
+				B73625A099054B28BB71FBD0,
+				ECFBD21E6D3C4CA39AF0A533,
+				A69CEFE35B7D4989BE26781B,
+				805D2AEF1E3D45B98B94A45C
 			);
 			path = "abrp_pids";
 			sourceTree = "<group>";
 		};
-		EA87592B03F8465CABFD12E0 /* Services */ = {
+		074B334C8D04410AA465C68B /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				E8662E83CFC94FFA93F95F06,
-				3C79E4E84D4B42368AE128A4,
-				D133155C391B408F8CEECA5A,
-				B09417A2E8CC4A558B2C6BE1,
-				98146D3352184BE2B129B967
+				99F0218829254886B925CDDF,
+				7D239BE722F145C488918EE9,
+				B39BD71045614B2E90E0DF9A,
+				9E9D7F0D4FC64164B9A7B7E6,
+				AEF4187332C54B908715351D
 			);
 			path = "Services";
 			sourceTree = "<group>";
 		};
-		9FA71BC27D1148B7A8D0F162 /* UI */ = {
+		1E46629A4A1B452CA623ABCB /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				8B30C1749F194DE9A5C981D0,
-				EEF0C741A9A64D1A8DBCAE5F,
-				9DE390036F4B4261A11D6084,
-				1A84603C63844222A4A07A88,
-				35255B0D924345529953A763,
-				2A5E62BF45E84840BFC40163
+				A527EFB0B9954871A05A62E2,
+				03C54E8D117641F0875AE9AF,
+				AA409952271C474A8C164910,
+				FD66B06111E54E8587348EAF,
+				642E850BD5A644BEB5EE2C7C,
+				9930F0A5C207460787FF77A1
 			);
 			path = "UI";
 			sourceTree = "<group>";
 		};
-		8B30C1749F194DE9A5C981D0 /* Charging */ = {
+		A527EFB0B9954871A05A62E2 /* Charging */ = {
 			isa = PBXGroup;
 			children = (
-				0588E0692F684A8B9E097F99,
-				85EFE64D808A4C81B24564C6
+				F920C7A20CAA41B1AE688ACA,
+				60719C357A194779B6686359
 			);
 			path = "Charging";
 			sourceTree = "<group>";
 		};
-		EEF0C741A9A64D1A8DBCAE5F /* Dashboard */ = {
+		03C54E8D117641F0875AE9AF /* Dashboard */ = {
 			isa = PBXGroup;
 			children = (
-				B7CA507AE5CD4E6C96956136,
-				9CFD4E20061D495595295534,
-				31A6E80F1CF34BE1B75A145C,
-				070AAF66841349D0AC48F187,
-				849FC562135647E48C4F3F15,
-				5E8EFCE3710A47589D4BEEC7
+				F0D4BF7504754E87BFA2B65A,
+				11654E631E4A4995B174A5A4,
+				150412F0B1C743ED8D97BBEF,
+				F1CE92FCFC444E8582DE9C3A,
+				14DF4F13345340F7B6C07428,
+				987FADAC84DE4CD8939E7A17
 			);
 			path = "Dashboard";
 			sourceTree = "<group>";
 		};
-		9DE390036F4B4261A11D6084 /* DesignSystem */ = {
+		AA409952271C474A8C164910 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
-				E21B5C583D5A4C9CADE95AC2,
-				2F666A95074B4A17B4510058,
-				F6565D9B8A0643C6931FDD9F
+				E3FEC05C29A54C96ABA71396,
+				8136603067D740A68826A77F,
+				3E2420D632D3497E9531AFF3
 			);
 			path = "DesignSystem";
 			sourceTree = "<group>";
 		};
-		E21B5C583D5A4C9CADE95AC2 /* AnimatedGauges */ = {
+		E3FEC05C29A54C96ABA71396 /* AnimatedGauges */ = {
 			isa = PBXGroup;
 			children = (
-				222379DA730540F8A509C490,
-				725A822DAFE54AC78631D91A,
-				1889B8DA516549F0B8634930,
-				065B8C2B7C1D4F6DBF94D1BC
+				0F0E380A77FB490F8C410539,
+				172A8DEA7F034519BB22B951,
+				35DDCBB2287E492794CE2BA4,
+				49EA385B60C1419C8C09FB40
 			);
 			path = "AnimatedGauges";
 			sourceTree = "<group>";
 		};
-		1A84603C63844222A4A07A88 /* Diagnostics */ = {
+		FD66B06111E54E8587348EAF /* Diagnostics */ = {
 			isa = PBXGroup;
 			children = (
-				51DBFBE5ED6643BA9B4C244D
+				4C09E5AA0D4C41BDA564F1E4
 			);
 			path = "Diagnostics";
 			sourceTree = "<group>";
 		};
-		35255B0D924345529953A763 /* Settings */ = {
+		642E850BD5A644BEB5EE2C7C /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				A86D51B441D14A608E408C24,
-				956EC295871D444FBA551323,
-				437F4B1301A14A2BAC30F88F,
-				024EAEA329A648269EF73CF6,
-				23F695F141784BF59356AFC5
+				0FDE0CB3414B4FCCA4DB1821,
+				EF23ABF75E8C4EDB960E1C3E,
+				640CD06E91214FC0AAE1E24F,
+				2C91E8E532C043C6BAD41E62,
+				5B3AD18570C34D2798C7F1B3
 			);
 			path = "Settings";
 			sourceTree = "<group>";
 		};
-		2A5E62BF45E84840BFC40163 /* Trips */ = {
+		9930F0A5C207460787FF77A1 /* Trips */ = {
 			isa = PBXGroup;
 			children = (
-				D394DA9807F44860856F921C,
-				A14F80F2278F43E5AA2BEA6F
+				6881C571854B4495A1AE62AC,
+				2782873C173740B68091E318
 			);
 			path = "Trips";
 			sourceTree = "<group>";
@@ -463,13 +463,13 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		38B5FC8F25134C5CAD528DA5 /* VoltLink */ = {
+		F3F4F825265F4289BD6DA7D9 /* VoltLink */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 01F514E71BC2448A95FBA787 /* Build configuration list for PBXNativeTarget "VoltLink" */;
+			buildConfigurationList = E24C1899AC7A4A8F9867C14B /* Build configuration list for PBXNativeTarget "VoltLink" */;
 			buildPhases = (
-				BF0ABAA1C3FA46C6B09DAFCD /* Sources */,
-				930EB64B241F449C96A1B283 /* Resources */,
-				52A0E6CACFD34753ABB0EF61 /* Frameworks */,
+				EA7680D0EE154402B091FA15 /* Sources */,
+				83D0B5A4643E4662B6A1A17B /* Resources */,
+				353D9953FFA8464BBE1609D9 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -477,24 +477,24 @@
 			);
 			name = VoltLink;
 			productName = VoltLink;
-			productReference = D65254B3147E41AAA3C366E4 /* VoltLink.app */;
+			productReference = 7F8D166ECDC94C1485AE1248 /* VoltLink.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		7C23D6ADE721497FADA48E2C /* Project Object */ = {
+		5547BA1B617040CB84AA7316 /* Project Object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					38B5FC8F25134C5CAD528DA5 = {
+					F3F4F825265F4289BD6DA7D9 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
-			buildConfigurationList = EB49287BE7054AFF9DDDB3A0 /* Build configuration list for PBXProject "VoltLink" */;
+			buildConfigurationList = 6BEF87C6067345A987A8435D /* Build configuration list for PBXProject "VoltLink" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -502,117 +502,117 @@
 				en,
 				Base,
 			);
-			mainGroup = 048224CF3B8345DBB1564EE6 /* Main */;
-			productRefGroup = 51FADFFA40354E2B947E50FB /* Products */;
+			mainGroup = DF92956BE8284C7EAD27242B /* Main */;
+			productRefGroup = 7DCF7A79D2204114BC5400FE /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				38B5FC8F25134C5CAD528DA5 /* VoltLink */,
+				F3F4F825265F4289BD6DA7D9 /* VoltLink */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		930EB64B241F449C96A1B283 /* Resources */ = {
+		83D0B5A4643E4662B6A1A17B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9A095B8F31EE41F28549D3C8 /* Mini_MiniCooperSE.json in Resources */,
-				5F672EFE8A8F4AF59EE0D0B5 /* aiways_u5.json in Resources */,
-				4A22870B76984F5E9CA3109A /* bmw_i3.json in Resources */,
-				70D5E360B5254787A624CAB6 /* byd_atto3.json in Resources */,
-				28F3802FC4DD4F308AD133FE /* deepal_s05.json in Resources */,
-				DD8ACA7E251A44FC8F9A0F5D /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json in Resources */,
-				D9215C49F82B44208B106429 /* ford_MachE.json in Resources */,
-				6298A2E697F84F86BD4982A0 /* gmc_bolt17.json in Resources */,
-				9EADA41220CD4F7BA8EE185C /* gmc_bolt19.json in Resources */,
-				3756897F6BA44C2B85406746 /* hkmc_Ioniq5.json in Resources */,
-				F26D75B5E2DE40F88395831C /* hkmc_hkmc2017.json in Resources */,
-				7A20DD67D1324DFAA4845398 /* hkmc_hkmc2019.json in Resources */,
-				3471D32A7000422ABFBF8851 /* honda_eny1.json in Resources */,
-				2E3D2C6894D84CBCA8DCDBF4 /* jaguar_ipace2019.json in Resources */,
-				5D14CFA87A624411A21ECD59 /* jaguar_ipace2021.json in Resources */,
-				AE12A3816A9843CBACC97988 /* mg_mgzsev.json in Resources */,
-				386E2E2DD9E34F00A5A5EBB5 /* obdble_cars.json in Resources */,
-				729BA947D4FF4FE3B4A9502C /* renault_zoe.json in Resources */,
-				D695DB83F0C94FF5A6BDE9F8 /* renault_zoe2.json in Resources */,
-				6640CE687DEA44BCBCD1E07D /* volkswagen_MEB.json in Resources */,
-				4B685BE8D5984A3C8B3D46CA /* volkswagen_eGolf.json in Resources */,
-				136815791F6E4E4CA4718688 /* volkswagen_eUP.json in Resources */,
-				27DA1199F7E44F3CBE260F0F /* dtc_definitions.json in Resources */,
-				7ABB1612195441F3A130566E /* vehicle_catalog.json in Resources */,
-				A8DA31C5FDBA4518AB3695A0 /* Assets.xcassets in Resources */
+				831709CC4F6240A6AAAE12FC /* Mini_MiniCooperSE.json in Resources */,
+				4D7E6AEA5EAB4E2DBABFC5D3 /* aiways_u5.json in Resources */,
+				6A8BFE4A91254971B1DBF319 /* bmw_i3.json in Resources */,
+				8FFE2509CA5A4F3B8C306F61 /* byd_atto3.json in Resources */,
+				326E20B78869433B988890A8 /* deepal_s05.json in Resources */,
+				A473C927C17F49D8B88E5562 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json in Resources */,
+				FDC02E1BC30447FAB4E476D6 /* ford_MachE.json in Resources */,
+				C86B9791547A4CE5A59FCEAD /* gmc_bolt17.json in Resources */,
+				45762C61986643D585DA8435 /* gmc_bolt19.json in Resources */,
+				2A4A31DDCFCC47BD833110C3 /* hkmc_Ioniq5.json in Resources */,
+				934125D79822447B8BA8BD1E /* hkmc_hkmc2017.json in Resources */,
+				DF811459B0414E3B91E39BF5 /* hkmc_hkmc2019.json in Resources */,
+				279201B4EE8445E294CDEEA6 /* honda_eny1.json in Resources */,
+				BCBF7C64E7F24DDA8140DE84 /* jaguar_ipace2019.json in Resources */,
+				119BACD81648451A925483DB /* jaguar_ipace2021.json in Resources */,
+				BDEE7CA93E7B41E781BFA945 /* mg_mgzsev.json in Resources */,
+				2E0207BB2E9F477BB539F6BF /* obdble_cars.json in Resources */,
+				C6F80EF55EC2433794017CC6 /* renault_zoe.json in Resources */,
+				E8DC9810E8634D4E9CEEDF34 /* renault_zoe2.json in Resources */,
+				3AAA9271670446C2A858CC4A /* volkswagen_MEB.json in Resources */,
+				87AD1198A78145C7A8607B75 /* volkswagen_eGolf.json in Resources */,
+				46F920FC0F8047048B546EB0 /* volkswagen_eUP.json in Resources */,
+				B3EB725B9E1946F4A333C700 /* dtc_definitions.json in Resources */,
+				152F84896B574EAF8B7DA90C /* vehicle_catalog.json in Resources */,
+				FC18F197E0784F9E96522C62 /* Assets.xcassets in Resources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		BF0ABAA1C3FA46C6B09DAFCD /* Sources */ = {
+		EA7680D0EE154402B091FA15 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BDF1A789C8EA416E96430061 /* AppEnvironment.swift in Sources */,
-				8501BA5C5EFA4159A4FABA87 /* VoltLinkApp.swift in Sources */,
-				4C28A705CEA04670A85BACAD /* CarPlayLayoutStore.swift in Sources */,
-				E09E5AFE621D4095AE625456 /* CarPlaySceneDelegate.swift in Sources */,
-				41921AFB5F4F451D94747D2D /* BLEConstants.swift in Sources */,
-				FF249B549D984173B6C6F8FB /* BluetoothManager.swift in Sources */,
-				E12B36AF77A745179DB6457E /* MockDrivingSimulation.swift in Sources */,
-				F076FE34AF4D4E46BD7061BD /* MockOBDAdapter.swift in Sources */,
-				5E9D9256779E40FC806DEB67 /* TripLocationManager.swift in Sources */,
-				DDC7E7A549964BA8B40C489E /* DTCCode.swift in Sources */,
-				2DB3B82DE7334DDB98497B4F /* ISO15765Parser.swift in Sources */,
-				83D2A55AAF5C428D9B3B6F8D /* OBDConnectionProtocol.swift in Sources */,
-				43ECAD0C8CB94E069C363BBD /* ChargingSessionTracker.swift in Sources */,
-				C777A5F2F8E04530815377D3 /* TelemetryMetric.swift in Sources */,
-				A342A97B13524493ADB0849B /* ABRPProfileLoader.swift in Sources */,
-				16A5EFCB1F5546909691AEE1 /* GenericEVProfile.swift in Sources */,
-				D91E40F9000149CC916ED00D /* GenericOBD2Profile.swift in Sources */,
-				2DA5815F89FC4CE7964804F7 /* HyundaiKiaEGMPProfile.swift in Sources */,
-				2344D3D7C56141728E7E04FF /* MercedesEQA250Profile.swift in Sources */,
-				1720A6521421455085585970 /* NissanLeafZE1Profile.swift in Sources */,
-				8437DFD7D6DB4D43845DE9D2 /* VehicleCatalog.swift in Sources */,
-				85D4531574D04A0283287E85 /* VehicleProfile.swift in Sources */,
-				FA11B5AAE3544B51ABBC039F /* VehicleProfileRegistry.swift in Sources */,
-				3D738E0E8CA6402AAED4D3F4 /* VolkswagenMEBProfile.swift in Sources */,
-				2CCFF2A2708B42D79E14F671 /* ChargingSessionModel.swift in Sources */,
-				598EDA9297C1453491154562 /* TripModel.swift in Sources */,
-				B6A67D777C344E94A8855A77 /* DTCLocalDatabase.swift in Sources */,
-				6842249404754F7095C2D4A8 /* AILogAnalyzer.swift in Sources */,
-				ACDFC068BA9549059204A50B /* ChargingTrackingManager.swift in Sources */,
-				C6B35E25F7634A24B2C8AB5F /* DTCScannerService.swift in Sources */,
-				DBD9F4249F2F48B4A0DB543C /* TripTrackingManager.swift in Sources */,
-				6761A1A2A34D46038292A142 /* VehicleDataManager.swift in Sources */,
-				6CFF735513EC4763B9B1932E /* ChargingLiveView.swift in Sources */,
-				8644B8554B43480C8CB7C021 /* ChargingSessionDetailView.swift in Sources */,
-				BC6D475BFBE040809927BD9E /* DashboardCustomizationSheet.swift in Sources */,
-				2BC811CB0BB342F9A9C9F6B3 /* DashboardView.swift in Sources */,
-				6F715B525DBB4F82AEF05B6C /* DashboardWidgetConfig.swift in Sources */,
-				D525E14D39F44A618F01A7C4 /* DashboardWidgetTile.swift in Sources */,
-				A6899206E791448BA0394084 /* HUDModeView.swift in Sources */,
-				291F2674B0204D9DB15B928F /* LiveTelemetryChartView.swift in Sources */,
-				D75BF9B7BD9641E1B9974B7F /* BatteryLevelBar.swift in Sources */,
-				3F40BBAAC50C4FDB84885994 /* MetricBarView.swift in Sources */,
-				B8A1F5C6585347A09812F578 /* MetricDialView.swift in Sources */,
-				3AE1C5D518554A99AE13C583 /* MetricNumericTileView.swift in Sources */,
-				D70D9215F47E4142846746FC /* FloatingConnectionBanner.swift in Sources */,
-				44F1E0ECC3EB4D6D85EA7182 /* Theme.swift in Sources */,
-				E8D14B353B7745C188E40F9A /* DiagnosticsView.swift in Sources */,
-				73E66E9615824F469BEF3556 /* CarPlayTileEditorView.swift in Sources */,
-				2327B01A378A45259F26A7FD /* OBDTerminalView.swift in Sources */,
-				709EC5BF625543ECBEA968D1 /* ProfileMetricStatusView.swift in Sources */,
-				63138F31BB2642F69B988BF7 /* SettingsView.swift in Sources */,
-				E8005D18AD744AFD8EE0202F /* VehicleProfilePickerSheet.swift in Sources */,
-				C687192AFBD045B8B3AAB80B /* TripDetailView.swift in Sources */,
-				62573F94491744029A38AC74 /* TripHistoryView.swift in Sources */
+				A6EEA2D279D04973B8461FA2 /* AppEnvironment.swift in Sources */,
+				F10D03BBEC544B8485B6A93E /* VoltLinkApp.swift in Sources */,
+				1C6B0192E06741CE8635B5B6 /* CarPlayLayoutStore.swift in Sources */,
+				743A18FA1E874E5492F19455 /* CarPlaySceneDelegate.swift in Sources */,
+				CC0F4143C1C84ADAA2F50D22 /* BLEConstants.swift in Sources */,
+				C857639974DA42EF9E7AA49C /* BluetoothManager.swift in Sources */,
+				C6098E45FE784D3FA8F7E68F /* MockDrivingSimulation.swift in Sources */,
+				6A3AB986CF21420485C8955D /* MockOBDAdapter.swift in Sources */,
+				D55DD302FD674A5B9B295B7A /* TripLocationManager.swift in Sources */,
+				CDFAEE41371C4B3998022DA7 /* DTCCode.swift in Sources */,
+				0C71DD50C62942889236BADC /* ISO15765Parser.swift in Sources */,
+				8936662439664CBEA4E57A4A /* OBDConnectionProtocol.swift in Sources */,
+				E84B2BF4AABC4D9682B84758 /* ChargingSessionTracker.swift in Sources */,
+				81AB936060ED41CD85FD06E1 /* TelemetryMetric.swift in Sources */,
+				6A47275E97C44115AA6944F3 /* ABRPProfileLoader.swift in Sources */,
+				6EE10A9B63C64ED8A97E6964 /* GenericEVProfile.swift in Sources */,
+				C0892FC63258497CBAF559F0 /* GenericOBD2Profile.swift in Sources */,
+				1A4C2701B1144F0CB3B9D721 /* HyundaiKiaEGMPProfile.swift in Sources */,
+				E5FCA839F0B14F4A929ECE37 /* MercedesEQA250Profile.swift in Sources */,
+				C20AD50CF3ED46DEA8D81AB2 /* NissanLeafZE1Profile.swift in Sources */,
+				BE5E1C02ACD44AA4BA964106 /* VehicleCatalog.swift in Sources */,
+				9C258EBFC324494999C660A6 /* VehicleProfile.swift in Sources */,
+				3D7833F030E84DBAA8BE9B97 /* VehicleProfileRegistry.swift in Sources */,
+				9485A1CDA7B24741BDFCFDBF /* VolkswagenMEBProfile.swift in Sources */,
+				AB35FBE1045542C4B621DC26 /* ChargingSessionModel.swift in Sources */,
+				9657D43CBE254E71B5FFB118 /* TripModel.swift in Sources */,
+				D855450E0A3B4EBFA3231588 /* DTCLocalDatabase.swift in Sources */,
+				74C78306E98F4794B959BDAB /* AILogAnalyzer.swift in Sources */,
+				D6499A85FF084961A557011A /* ChargingTrackingManager.swift in Sources */,
+				6CC1B3199BEE469B90281A53 /* DTCScannerService.swift in Sources */,
+				CA9C4434DCDF40A3B45D29B8 /* TripTrackingManager.swift in Sources */,
+				57DDA5009E60475C93E2F510 /* VehicleDataManager.swift in Sources */,
+				59C211CAE635418797902BBF /* ChargingLiveView.swift in Sources */,
+				8C8C17397B434E2698FB9552 /* ChargingSessionDetailView.swift in Sources */,
+				A497003552064F5ABF7EA383 /* DashboardCustomizationSheet.swift in Sources */,
+				964FDC52BC634227BEE0B44B /* DashboardView.swift in Sources */,
+				4587EEFFA6BF4E7CAC0C10FE /* DashboardWidgetConfig.swift in Sources */,
+				EA46FF65E8FF41AA85DE5DC0 /* DashboardWidgetTile.swift in Sources */,
+				6AF5E3ABB18A4ABD832DDBB5 /* HUDModeView.swift in Sources */,
+				523ADDA0525147069DFAA894 /* LiveTelemetryChartView.swift in Sources */,
+				0DB8105049F64B6298236589 /* BatteryLevelBar.swift in Sources */,
+				C490CEE3CC3249A8AA8821D6 /* MetricBarView.swift in Sources */,
+				132DBA011FE4410CB6DBC02E /* MetricDialView.swift in Sources */,
+				C81AC087618845778F577E1D /* MetricNumericTileView.swift in Sources */,
+				59D4168F54764DE98260A0CE /* FloatingConnectionBanner.swift in Sources */,
+				F19AB1B2BF0B4827B6F2A55B /* Theme.swift in Sources */,
+				5B734DE92F8A4930BF182AC1 /* DiagnosticsView.swift in Sources */,
+				5F07AA9626A94049912963B1 /* CarPlayTileEditorView.swift in Sources */,
+				4AA0F18E421947948EA36E9D /* OBDTerminalView.swift in Sources */,
+				A1EFB3221E1340FB92DBE64B /* ProfileMetricStatusView.swift in Sources */,
+				5017816AF1784C12BB838936 /* SettingsView.swift in Sources */,
+				423BCFE8053241509C6142AD /* VehicleProfilePickerSheet.swift in Sources */,
+				691B9166856D4695A9B164A7 /* TripDetailView.swift in Sources */,
+				701BF5CF1EDE4184A4F0D369 /* TripHistoryView.swift in Sources */
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		F687D0B499D94F60A8B2A5D3 /* Debug */ = {
+		19BC446E22D74927932FE91C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -632,7 +632,7 @@
 			};
 			name = Debug;
 		};
-		5951C2B276164C74B53D0992 /* Release */ = {
+		365E0B76AB7F44EB9220A40B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -652,7 +652,7 @@
 			};
 			name = Release;
 		};
-		092E007A3DBB4C1BAB8D4AC8 /* Debug */ = {
+		F7C8D43848234BAC94C15925 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -674,7 +674,7 @@
 			};
 			name = Debug;
 		};
-		79F23AF515BA40CDBD0896F4 /* Release */ = {
+		B2B455E3B9654C4B962DFF45 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -699,25 +699,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		EB49287BE7054AFF9DDDB3A0 /* Build configuration list for PBXProject "VoltLink" */ = {
+		6BEF87C6067345A987A8435D /* Build configuration list for PBXProject "VoltLink" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F687D0B499D94F60A8B2A5D3 /* Debug */,
-				5951C2B276164C74B53D0992 /* Release */,
+				19BC446E22D74927932FE91C /* Debug */,
+				365E0B76AB7F44EB9220A40B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		01F514E71BC2448A95FBA787 /* Build configuration list for PBXNativeTarget "VoltLink" */ = {
+		E24C1899AC7A4A8F9867C14B /* Build configuration list for PBXNativeTarget "VoltLink" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				092E007A3DBB4C1BAB8D4AC8 /* Debug */,
-				79F23AF515BA40CDBD0896F4 /* Release */,
+				F7C8D43848234BAC94C15925 /* Debug */,
+				B2B455E3B9654C4B962DFF45 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 7C23D6ADE721497FADA48E2C /* Project Object */;
+	rootObject = 5547BA1B617040CB84AA7316 /* Project Object */;
 }

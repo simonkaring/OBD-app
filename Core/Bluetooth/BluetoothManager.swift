@@ -13,6 +13,14 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     @Published public private(set) var state: BLEConnectionState = .disconnected
     @Published public private(set) var discoveredDevices: [CBPeripheral] = []
     @Published public private(set) var log: [OBDLogEntry] = []
+    @Published public private(set) var isCapturing = false
+    @Published public private(set) var captureFileURL: URL?
+    @Published public private(set) var captureError: String?
+
+    private var captureDestination = URL.documentsDirectory.appendingPathComponent("VoltLink-OBD-Capture.txt")
+    private var captureHandle: FileHandle?
+    private var openCaptureFile: (URL) throws -> FileHandle = { try FileHandle(forWritingTo: $0) }
+    private static let captureDateFormat = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
 
     public weak var delegate: OBDConnectionDelegate?
 
@@ -42,19 +50,100 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         DispatchQueue.main.asyncAfter(deadline: .now() + BLEConstants.staleResponseDrainDelay, execute: $0)
     }
 
-    private static let maxLogEntries = 500
+    public static let maxLogEntries = 500
 
     public override init() {
         super.init()
+        if FileManager.default.fileExists(atPath: captureDestination.path) {
+            captureFileURL = captureDestination
+        }
         self.centralManager = CBCentralManager(delegate: self, queue: .main)
     }
 
     // Exercise the command queue without creating a CoreBluetooth connection.
-    init(commandWriter: @escaping (Data) -> Void, scheduleRecovery: @escaping (DispatchWorkItem) -> Void) {
+    init(
+        commandWriter: @escaping (Data) -> Void,
+        scheduleRecovery: @escaping (DispatchWorkItem) -> Void,
+        captureDirectory: URL = .documentsDirectory,
+        openCaptureFile: @escaping (URL) throws -> FileHandle = { try FileHandle(forWritingTo: $0) }
+    ) {
         self.commandWriter = commandWriter
         self.scheduleRecovery = scheduleRecovery
+        self.captureDestination = captureDirectory.appendingPathComponent("VoltLink-OBD-Capture.txt")
+        self.openCaptureFile = openCaptureFile
         super.init()
+        if FileManager.default.fileExists(atPath: captureDestination.path) {
+            captureFileURL = captureDestination
+        }
         state = .ready(deviceName: "Test Adapter")
+    }
+
+    deinit {
+        do {
+            try captureHandle?.close()
+        } catch {
+            NSLog("OBD capture close failed; file may be partial: %@", error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    public func startCapture(vehicleContext: String) {
+        guard !isCapturing else { return }
+        captureError = nil
+        let files = FileManager.default
+        let directory = captureDestination.deletingLastPathComponent()
+        let stagingURL = directory.appendingPathComponent(".OBD-Capture-\(UUID().uuidString).tmp")
+        var handle: FileHandle?
+        do {
+            try files.createDirectory(at: directory, withIntermediateDirectories: true)
+            let header = """
+            # VoltLink OBD diagnostic capture
+            # Vehicle: \(vehicleContext)
+            # Started: \(Date().formatted(Self.captureDateFormat))
+            # Start-forward only; previous live history is not included.
+            # Timestamps are command completion times (UTC, milliseconds).
+            # Raw responses follow each TX line; original line endings are preserved.
+
+
+            """
+            // Prepare and flush the new file before touching the previous capture.
+            try Data(header.utf8).write(to: stagingURL, options: .atomic)
+            let opened = try openCaptureFile(stagingURL)
+            handle = opened
+            try opened.seekToEnd()
+            try opened.synchronize()
+            if files.fileExists(atPath: captureDestination.path) {
+                _ = try files.replaceItemAt(captureDestination, withItemAt: stagingURL)
+            } else {
+                try files.moveItem(at: stagingURL, to: captureDestination)
+            }
+            captureHandle = opened
+            captureFileURL = captureDestination
+            isCapturing = true
+        } catch {
+            try? handle?.close()
+            try? files.removeItem(at: stagingURL)
+            captureError = "Could not start capture: \(error.localizedDescription)"
+                + (captureFileURL == nil ? "" : " The previous capture is still available to export.")
+        }
+    }
+
+    public func stopCapture() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard let handle = captureHandle else { return }
+        captureHandle = nil
+        var failures: [String] = []
+        do { try handle.synchronize() } catch { failures.append(error.localizedDescription) }
+        do { try handle.close() } catch { failures.append(error.localizedDescription) }
+        isCapturing = false
+        if !failures.isEmpty {
+            captureError = "Capture stopped: \(failures.joined(separator: "; ")). Export the capture file to recover partial data."
+        }
+    }
+
+    @MainActor
+    public func clearLog() {
+        log.removeAll()
     }
 
     public func connect(peripheralName: String? = nil) {
@@ -226,7 +315,18 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     }
 
     private func appendLog(sent: String, response: String) {
-        log.append(OBDLogEntry(timestamp: Date(), sent: sent, response: response))
+        let entry = OBDLogEntry(timestamp: Date(), sent: sent, response: response)
+        if let handle = captureHandle {
+            do {
+                let record = "[\(entry.timestamp.formatted(Self.captureDateFormat))] TX: \(sent)\n\(response)\n\n"
+                // ponytail: synchronous per-record I/O; use a bounded writer queue if OBD rates outgrow this.
+                try handle.write(contentsOf: Data(record.utf8))
+            } catch {
+                stopCapture()
+                captureError = "Capture stopped: \(error.localizedDescription). Export the capture file to recover partial data; the last record may be incomplete."
+            }
+        }
+        log.append(entry)
         if log.count > Self.maxLogEntries {
             log.removeFirst(log.count - Self.maxLogEntries)
         }

@@ -204,6 +204,43 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertNotNil(manager.latestTelemetry.socUpdatedAt)
     }
 
+    func testEQAFullBatteryCaptureDoesNotInventChargingPower() throws {
+        // 2026-09-06, 13:24:12-13:25:03 UTC: dashboard 100%, AC cable connected.
+        // All 125 replies per DID were identical. Neither DID measures charging power.
+        let profile = MercedesEQA250Profile()
+        let voltage = try XCTUnwrap(profile.parseResponse(
+            command: "22010A",
+            rawResponse: "18 DA F1 59 05 62 01 0A 0D 77 \r\r>"
+        ))
+        let captureUpdates = profile.parseResponses(
+            command: "220210",
+            rawResponse: "18 DA F1 59 10 0B 62 02 10 04 00 00 \r18 DA F1 59 21 40 D0 00 00 00 AA AA \r\r>"
+        )
+        XCTAssertTrue(captureUpdates.isEmpty, "A full-charge match does not validate the SOC formula")
+        let manager = VehicleDataManager()
+        let recorder = ChargingTrackingManager()
+        let start = Date.now
+        for index in 0..<125 {
+            // Approximate cadence; the export timestamps have whole-second precision.
+            let timestamp = start.addingTimeInterval(Double(index) * 51 / 124)
+            manager.applyUpdate(voltage, timestamp: timestamp)
+            for update in captureUpdates {
+                manager.applyUpdate(update, timestamp: timestamp)
+            }
+            recorder.processTelemetrySnapshot(manager.latestTelemetry)
+        }
+
+        XCTAssertEqual(manager.latestTelemetry.voltageV, 344.7, accuracy: 0.01)
+        XCTAssertNil(manager.latestTelemetry.socUpdatedAt)
+        XCTAssertFalse(manager.liveMetrics.contains(.soc))
+        XCTAssertTrue(manager.liveMetrics.contains(.packVoltage))
+        XCTAssertFalse(manager.hasChargePower, "Unmeasured power must not become a measured zero")
+        XCTAssertNil(manager.latestTelemetry.chargePowerSource)
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertFalse(manager.chargingSession.isCharging)
+        XCTAssertFalse(recorder.isRecordingSession)
+    }
+
     func testSustainedHighResolutionSOCEstimatesChargingPower() {
         let manager = VehicleDataManager()
         let startedAt = Date.now

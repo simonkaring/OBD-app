@@ -251,28 +251,27 @@ final class OBDParserTests: XCTestCase {
         XCTAssertNil(update)
     }
 
-    func testMercedesEQA250CustomerSOCParsing() {
+    func testMercedesEQA250DoesNotPublishDisprovenSOCFromDriveCapture() {
         let profile = MercedesEQA250Profile()
-        // 0x3990 / 250 = 58.944 kWh remaining from 66.5 kWh usable.
-        let rawResponse = "18 DA F1 59 10 0B 62 02 10 04 00 00\r\n18 DA F1 59 21 39 90 00 00 00 AA AA\r\n>"
-        let update = profile.parseResponse(command: "220210", rawResponse: rawResponse)
-
-        if case .soc(let soc) = update {
-            XCTAssertEqual(soc, 88.64, accuracy: 0.1)
-        } else {
-            XCTFail("Expected SOC update")
+        // 2026-09-06 post-drive capture: car dashboard 81%, old formula ~96.6%.
+        for (status, value) in [("04", "3E BC"), ("02", "3E CC"), ("00", "3E D0")] {
+            let raw = "18 DA F1 59 10 0B 62 02 10 \(status) 00 00\r18 DA F1 59 21 \(value) 00 00 00 AA AA\r>"
+            XCTAssertFalse(ISO15765Parser().assembleISOTPPayload(raw).isEmpty)
+            for command in ["220210", "22 02 10"] {
+                XCTAssertNil(profile.parseResponse(command: command, rawResponse: raw))
+                XCTAssertTrue(profile.parseResponses(command: command, rawResponse: raw).isEmpty)
+            }
         }
+        XCTAssertFalse(profile.supportedMetrics.contains(.soc))
+        XCTAssertTrue(profile.pollingCommands.contains("220210"), "Keep the raw DID available for capture")
     }
 
-    func testMercedesEQA250FullChargeCaptureReports100Percent() {
+    func testMercedesEQA250FullChargeMatchDoesNotValidateSOC() {
         let profile = MercedesEQA250Profile()
         // Real ECU 0x59 capture while the dashboard displayed 100% during AC charging.
         let rawResponse = "18 DA F1 59 10 0B 62 02 10 04 00 00\r\n18 DA F1 59 21 40 F4 00 00 00 AA AA\r\n>"
 
-        guard case .soc(let soc)? = profile.parseResponse(command: "220210", rawResponse: rawResponse) else {
-            return XCTFail("Expected SOC update")
-        }
-        XCTAssertEqual(soc, 100.0, accuracy: 0.01)
+        XCTAssertNil(profile.parseResponse(command: "220210", rawResponse: rawResponse))
     }
 
     func testMercedesEQA250TruncatedReplyDoesNotDecodeSOC() {
@@ -280,6 +279,7 @@ final class OBDParserTests: XCTestCase {
         // Enough bytes for the SOC formula, but fewer than the declared 11-byte payload.
         for header in ["18 DA F1 59", "18DAF159"] {
             let raw = "\(header) 10 0B 62 02 10 04 00 00\r\(header) 21 39 90\r>"
+            XCTAssertTrue(ISO15765Parser().assembleISOTPPayload(raw).isEmpty)
             XCTAssertNil(profile.parseResponse(command: "220210", rawResponse: raw))
         }
     }

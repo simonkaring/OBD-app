@@ -27,7 +27,7 @@ struct LiveDataView: View {
                 GroupBox("Telemetry") {
                     Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 10) {
                         row("State of charge", percent(probe.telemetry.stateOfChargePct, updated: probe.telemetry.socUpdatedAt))
-                        row("Remaining usable energy", energy(probe.remainingEnergyKWh))
+                        row("Remaining energy candidate (unverified)", energy(probe.remainingEnergyKWh))
                         row("Pack voltage", voltage(probe.telemetry.voltageV))
                         row("Pack current", current(probe.telemetry.currentA))
                         row("Calculated pack power", power(probe.telemetry.powerKW))

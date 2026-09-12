@@ -264,8 +264,10 @@ public struct TripHistoryView: View {
                         .swipeActions(edge: .leading) {
                             if index + 1 < displayedTrips.count,
                                tripTracker.canMerge(trip, into: displayedTrips[index + 1]) {
+                                let previousTrip = displayedTrips[index + 1]
                                 Button {
-                                    tripTracker.merge(trip, into: displayedTrips[index + 1])
+                                    guard !trip.isDeleted, !previousTrip.isDeleted else { return }
+                                    tripTracker.merge(trip, into: previousTrip)
                                 } label: {
                                     Label("Merge with previous", systemImage: "arrow.triangle.merge")
                                 }
@@ -390,17 +392,19 @@ public struct TripHistoryView: View {
     }
 
     private func performDeleteTrip(_ trip: TripModel) {
-        tripTracker.deleteTrip(trip)
+        let tripID = trip.id
         if vehicleData.isDemoMode {
-            sampleTrips.removeAll { $0.id == trip.id }
+            sampleTrips.removeAll { $0.id == tripID }
         }
+        tripTracker.deleteTrip(trip)
     }
 
     private func performDeleteCharge(_ session: ChargingSessionModel) {
-        chargingTracker.deleteSession(session)
+        let sessionID = session.id
         if vehicleData.isDemoMode {
-            sampleCharges.removeAll { $0.id == session.id }
+            sampleCharges.removeAll { $0.id == sessionID }
         }
+        chargingTracker.deleteSession(session)
     }
 
     private func updateSampleHistory() {
