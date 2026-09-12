@@ -11,14 +11,15 @@ public struct SettingsView: View {
     @State private var showVehiclePicker = false
 
     @AppStorage("developerModeEnabled") private var developerModeEnabled: Bool = false
-    @AppStorage("aiApiKey") private var aiApiKey: String = ""
+    @ObservedObject private var keyStore = AIAPIKeyStore.shared
+    @State private var aiApiKey = ""
 
     @State private var targetSpeed: Double = 50.0
     @State private var regenLevel: Double = 0.5
 
-    public init(vehicleData: VehicleDataManager, tripTracker: TripTrackingManager = AppEnvironment.shared.tripTracker) {
+    public init(vehicleData: VehicleDataManager, tripTracker: TripTrackingManager? = nil) {
         self.vehicleData = vehicleData
-        self.tripTracker = tripTracker
+        self.tripTracker = tripTracker ?? AppEnvironment.shared.tripTracker
     }
 
     private var mockEngine: MockDrivingSimulation? {
@@ -33,6 +34,7 @@ public struct SettingsView: View {
                         get: { vehicleData.isDemoMode },
                         set: { vehicleData.toggleDemoMode($0) }
                     ))
+                    .disabled(vehicleData.isCommandSessionActive)
                 }
 
                 if vehicleData.isDemoMode, let engine = mockEngine {
@@ -248,9 +250,13 @@ public struct SettingsView: View {
                                 #if os(iOS)
                                 .textInputAutocapitalization(.never)
                                 #endif
+                            Button("Save API Key") { keyStore.save(aiApiKey) }
+                            if let error = keyStore.errorMessage {
+                                Text(error).font(.caption).foregroundStyle(Theme.criticalRed)
+                            }
                         }
 
-                        Text("Supports Google Gemini or OpenAI API keys stored locally on-device. If left blank, you can still export formatted traces for AI using the Share button.")
+                        Text("API keys are stored in the device Keychain. Save an empty key to remove it. You can also export traces without an API key.")
                             .font(.caption2)
                             .foregroundColor(Theme.textSecondary)
                     }
@@ -272,6 +278,7 @@ public struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .onAppear { aiApiKey = keyStore.value }
             .inlineTitleDisplayMode()
             .sheet(isPresented: $showVehiclePicker) {
                 VehicleProfilePickerSheet(vehicleData: vehicleData)

@@ -160,7 +160,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
 
         let start = Date.now.addingTimeInterval(-30)
         for seconds in stride(from: 0, through: 30, by: 10) {
-            manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
+            manager.applyUpdates([.speed(0), .soc(50 + Double(seconds) * 0.004)], timestamp: start.addingTimeInterval(Double(seconds)))
         }
         XCTAssertTrue(manager.chargingSession.isCharging)
         mock.responses["03221E3B55555555"] = .success("NO DATA\r>")

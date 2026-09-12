@@ -4,6 +4,72 @@ import Combine
 
 final class TripAndTelemetryTests: XCTestCase {
 
+    func testBatchPublishesOneSnapshotAndUnchangedValidityDoesNotPublish() {
+        let manager = VehicleDataManager()
+        var snapshots: [TelemetrySnapshot] = []
+        var validityChanges = 0
+        let snapshotsSubscription = manager.$latestTelemetry.dropFirst().sink { snapshots.append($0) }
+        let validitySubscription = manager.$liveMetrics.dropFirst().sink { _ in validityChanges += 1 }
+        manager.applyUpdates([.packVoltage(400), .packCurrent(10)], timestamp: .now)
+        XCTAssertEqual(snapshots.count, 1)
+        XCTAssertEqual(snapshots.last?.powerKW, 4)
+        let initialChanges = validityChanges
+        manager.applyUpdates([.packVoltage(401), .packCurrent(11)], timestamp: .now)
+        XCTAssertEqual(snapshots.count, 2)
+        XCTAssertEqual(validityChanges, initialChanges)
+        withExtendedLifetime((snapshotsSubscription, validitySubscription)) {}
+    }
+
+    func testUnknownOrStaleSpeedCannotTurnRegenIntoCharging() {
+        let manager = VehicleDataManager()
+        let recorder = ChargingTrackingManager()
+        let now = Date.now
+        manager.applyUpdates([.packVoltage(400), .packCurrent(-50)], timestamp: now)
+        recorder.processTelemetrySnapshot(manager.latestTelemetry)
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        XCTAssertFalse(recorder.isRecordingSession)
+        manager.applyUpdate(.speed(0), timestamp: now)
+        manager.applyUpdate(.packCurrent(-50), timestamp: now.addingTimeInterval(16))
+        XCTAssertFalse(manager.latestTelemetry.isCharging)
+        manager.applyUpdate(.chargingStats(kwRate: nil, acOrDc: "DC"), timestamp: now.addingTimeInterval(17))
+        manager.applyUpdate(.packCurrent(-50), timestamp: now.addingTimeInterval(17))
+        XCTAssertTrue(manager.latestTelemetry.isCharging, "Explicit charging status works without a speed PID")
+        manager.applyUpdate(.chargingStats(kwRate: 0, acOrDc: "DC"), timestamp: now.addingTimeInterval(18))
+        manager.applyUpdate(.speed(0), timestamp: now.addingTimeInterval(18))
+        manager.applyUpdate(.packCurrent(-50), timestamp: now.addingTimeInterval(18))
+        XCTAssertFalse(manager.latestTelemetry.isCharging, "Explicit non-charging status overrides current inference")
+        recorder.processTelemetrySnapshot(manager.latestTelemetry)
+        XCTAssertFalse(recorder.isRecordingSession)
+    }
+
+    func testTripSamplingIsBoundedWithoutDroppingEnergy() {
+        let tracker = TripTrackingManager()
+        tracker.startTrip()
+        var snapshot = TelemetrySnapshot()
+        snapshot.powerKW = 36
+        let start = Date.now
+        for tick in 0...100 {
+            tracker.recordSnapshot(snapshot, at: start.addingTimeInterval(Double(tick) / 10))
+        }
+        XCTAssertEqual(tracker.currentTrip?.samples.count, 11)
+        XCTAssertEqual(tracker.currentTrip!.totalKWhUsed, 0.1, accuracy: 0.000001)
+        tracker.stopTrip()
+    }
+
+    func testDisablingAutoTripCancelsArmedCountdown() {
+        let tracker = TripTrackingManager()
+        tracker.isAutoTripEnabled = true
+        tracker.autoStopDelaySeconds = 30
+        tracker.startTrip()
+        tracker.processTelemetrySnapshot(TelemetrySnapshot())
+        XCTAssertNotNil(tracker.stationarySecondsRemaining)
+        tracker.isAutoTripEnabled = false
+        XCTAssertNil(tracker.stationarySecondsRemaining)
+        tracker.processTelemetrySnapshot(TelemetrySnapshot())
+        XCTAssertTrue(tracker.isRecordingTrip)
+        tracker.stopTrip()
+    }
+
     func testSimulationStepPublishesOneTelemetrySnapshot() {
         let simulation = MockDrivingSimulation()
         var publishedSnapshots = 0
@@ -244,10 +310,10 @@ final class TripAndTelemetryTests: XCTestCase {
     func testSustainedHighResolutionSOCEstimatesChargingPower() {
         let manager = VehicleDataManager()
         let startedAt = Date.now
-        manager.applyUpdate(.soc(62.000), timestamp: startedAt)
-        manager.applyUpdate(.soc(62.046), timestamp: startedAt.addingTimeInterval(10))
-        manager.applyUpdate(.soc(62.091), timestamp: startedAt.addingTimeInterval(20))
-        manager.applyUpdate(.soc(62.137), timestamp: startedAt.addingTimeInterval(30))
+        manager.applyUpdates([.speed(0), .soc(62.000)], timestamp: startedAt)
+        manager.applyUpdates([.speed(0), .soc(62.046)], timestamp: startedAt.addingTimeInterval(10))
+        manager.applyUpdates([.speed(0), .soc(62.091)], timestamp: startedAt.addingTimeInterval(20))
+        manager.applyUpdates([.speed(0), .soc(62.137)], timestamp: startedAt.addingTimeInterval(30))
 
         XCTAssertTrue(manager.latestTelemetry.isCharging)
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 10.93, accuracy: 0.2)
@@ -265,10 +331,10 @@ final class TripAndTelemetryTests: XCTestCase {
         manager.selectVehicle(ioniq)
 
         let startedAt = Date.now
-        manager.applyUpdate(.soc(62.000), timestamp: startedAt)
-        manager.applyUpdate(.soc(62.046), timestamp: startedAt.addingTimeInterval(10))
-        manager.applyUpdate(.soc(62.091), timestamp: startedAt.addingTimeInterval(20))
-        manager.applyUpdate(.soc(62.137), timestamp: startedAt.addingTimeInterval(30))
+        manager.applyUpdates([.speed(0), .soc(62.000)], timestamp: startedAt)
+        manager.applyUpdates([.speed(0), .soc(62.046)], timestamp: startedAt.addingTimeInterval(10))
+        manager.applyUpdates([.speed(0), .soc(62.091)], timestamp: startedAt.addingTimeInterval(20))
+        manager.applyUpdates([.speed(0), .soc(62.137)], timestamp: startedAt.addingTimeInterval(30))
 
         XCTAssertTrue(manager.vehicleName.localizedCaseInsensitiveContains("Ioniq 5"))
         XCTAssertGreaterThan(manager.usableBatteryCapacityKWh, 70.0)
@@ -280,6 +346,7 @@ final class TripAndTelemetryTests: XCTestCase {
         let manager = VehicleDataManager()
         let startedAt = Date.now
         manager.applyUpdate(.soc(50.0), timestamp: startedAt)
+        manager.applyUpdate(.speed(0), timestamp: startedAt.addingTimeInterval(30))
         manager.applyUpdate(.power(voltage: 400, current: -25, powerKW: -10), timestamp: startedAt.addingTimeInterval(30))
         manager.applyUpdate(.soc(50.2), timestamp: startedAt.addingTimeInterval(31))
 
@@ -292,12 +359,14 @@ final class TripAndTelemetryTests: XCTestCase {
         let tracker = ChargingTrackingManager()
         let start = Date.now
         for seconds in stride(from: 0, through: 30, by: 10) {
+            manager.applyUpdate(.speed(0), timestamp: start.addingTimeInterval(Double(seconds)))
             manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
         }
         tracker.processTelemetrySnapshot(manager.latestTelemetry)
         XCTAssertTrue(tracker.isRecordingSession)
 
         for seconds in stride(from: 40, through: 150, by: 10) {
+            manager.applyUpdate(.speed(0), timestamp: start.addingTimeInterval(Double(seconds)))
             manager.applyUpdate(.soc(50.12), timestamp: start.addingTimeInterval(Double(seconds)))
             tracker.processTelemetrySnapshot(manager.latestTelemetry)
         }
@@ -312,6 +381,7 @@ final class TripAndTelemetryTests: XCTestCase {
         let manager = VehicleDataManager()
         let start = Date.now
         for seconds in stride(from: 0, through: 30, by: 10) {
+            manager.applyUpdate(.speed(0), timestamp: start.addingTimeInterval(Double(seconds)))
             manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
         }
         XCTAssertTrue(manager.hasChargePower)
@@ -339,6 +409,7 @@ final class TripAndTelemetryTests: XCTestCase {
         let manager = VehicleDataManager()
         let start = Date.now
         for seconds in stride(from: 0, through: 30, by: 10) {
+            manager.applyUpdate(.speed(0), timestamp: start.addingTimeInterval(Double(seconds)))
             manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
         }
         XCTAssertTrue(manager.hasChargePower)
@@ -355,6 +426,7 @@ final class TripAndTelemetryTests: XCTestCase {
         let manager = VehicleDataManager()
         let start = Date.now
         for seconds in stride(from: 0, through: 90, by: 10) {
+            manager.applyUpdate(.speed(0), timestamp: start.addingTimeInterval(Double(seconds)))
             let soc = 50 + (0.8 / 66.5 * 100 * Double(seconds) / 3600)
             manager.applyUpdate(.soc(soc), timestamp: start.addingTimeInterval(Double(seconds)))
         }

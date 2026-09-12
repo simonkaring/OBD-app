@@ -8,6 +8,10 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     public var interfaceController: CPInterfaceController?
     private var cancellables = Set<AnyCancellable>()
     private var tabBarTemplate: CPTabBarTemplate?
+    private var drivingTemplate: CPGridTemplate?
+    private var chargingTemplate: CPInformationTemplate?
+    private var diagnosticsTemplate: CPInformationTemplate?
+    private var healthImageCache: (status: String, image: UIImage)?
 
     /// `CarPlayLayout.load()` decodes JSON out of `UserDefaults` — cache it and only reload
     /// when the tile selection actually changes (edited on the phone side), not on every
@@ -26,14 +30,14 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         cachedLayout = CarPlayLayout.load()
         rebuildInterface()
 
-        AppEnvironment.shared.vehicleData.$latestTelemetry
+        // All telemetry/validity and diagnostic changes share one refresh budget.
+        let env = AppEnvironment.shared
+        Publishers.MergeMany([env.vehicleData.objectWillChange.eraseToAnyPublisher(),
+                              env.dtcService.objectWillChange.eraseToAnyPublisher(),
+                              env.tripTracker.objectWillChange.eraseToAnyPublisher(),
+                              env.chargingTracker.objectWillChange.eraseToAnyPublisher()])
             .receive(on: DispatchQueue.main)
             .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
-            .sink { [weak self] _ in self?.rebuildInterface() }
-            .store(in: &cancellables)
-
-        AppEnvironment.shared.vehicleData.$liveMetrics
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.rebuildInterface() }
             .store(in: &cancellables)
 
@@ -58,6 +62,10 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         cancellables.removeAll()
         self.interfaceController = nil
         self.tabBarTemplate = nil
+        self.drivingTemplate = nil
+        self.chargingTemplate = nil
+        self.diagnosticsTemplate = nil
+        self.healthImageCache = nil
         self.dialImageCache.removeAll()
     }
 
@@ -70,6 +78,12 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         // 1. Driving Mode Template
         let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
             gridButton(for: tile, supportedMetrics: vehicleData.supportedMetrics, liveMetrics: vehicleData.liveMetrics, snapshot: snapshot, dtcService: dtcService, isDemoMode: vehicleData.isDemoMode)
+        }
+        if let drivingTemplate, let chargingTemplate, let diagnosticsTemplate {
+            drivingTemplate.updateGridButtons(buttons)
+            chargingTemplate.items = buildChargingItems(snapshot: snapshot)
+            diagnosticsTemplate.items = buildHealthItems(dtcService: dtcService)
+            return
         }
         let drivingTemplate = CPGridTemplate(title: "", gridButtons: buttons)
         drivingTemplate.tabTitle = "Driving"
@@ -87,13 +101,12 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         diagnosticsTemplate.tabTitle = "Diagnostics"
         diagnosticsTemplate.tabImage = UIImage(systemName: "stethoscope")
 
-        if let existing = tabBarTemplate {
-            existing.updateTemplates([drivingTemplate, chargingTemplate, diagnosticsTemplate])
-        } else {
-            let tabBar = CPTabBarTemplate(templates: [drivingTemplate, chargingTemplate, diagnosticsTemplate])
-            self.tabBarTemplate = tabBar
-            interfaceController?.setRootTemplate(tabBar, animated: false)
-        }
+        self.drivingTemplate = drivingTemplate
+        self.chargingTemplate = chargingTemplate
+        self.diagnosticsTemplate = diagnosticsTemplate
+        let tabBar = CPTabBarTemplate(templates: [drivingTemplate, chargingTemplate, diagnosticsTemplate])
+        self.tabBarTemplate = tabBar
+        interfaceController?.setRootTemplate(tabBar, animated: false, completion: nil)
     }
 
     private func buildChargingItems(snapshot: TelemetrySnapshot) -> [CPInformationItem] {
@@ -140,22 +153,20 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     }
 
     private func buildHealthItems(dtcService: DTCScannerService) -> [CPInformationItem] {
-        let statusStr: String
-        if dtcService.lastScanDate == nil {
-            statusStr = "Scan Not Performed"
-        } else if dtcService.scannedCodes.isEmpty {
-            statusStr = "OK - No Fault Codes"
-        } else {
-            statusStr = "\(dtcService.scannedCodes.count) Fault Codes"
-        }
+        let statusStr = dtcService.healthSummary
         
         let lastScanStr = dtcService.lastScanDate?.formatted(date: .abbreviated, time: .shortened) ?? "Never"
         
-        return [
+        var items = [
             CPInformationItem(title: "SYSTEM HEALTH", detail: statusStr),
             CPInformationItem(title: "LAST SCAN", detail: lastScanStr),
             CPInformationItem(title: "DIAGNOSTIC FAULTS", detail: "\(dtcService.scannedCodes.count) DTCs")
         ]
+        let env = AppEnvironment.shared
+        if let error = env.storageWarning ?? env.tripTracker.persistenceError ?? env.chargingTracker.persistenceError {
+            items.append(CPInformationItem(title: "HISTORY STORAGE", detail: error))
+        }
+        return items
     }
 
     private func gridButton(for tile: CarPlayTileKind, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, snapshot: TelemetrySnapshot, dtcService: DTCScannerService, isDemoMode: Bool = false) -> CPGridButton? {
@@ -168,15 +179,15 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             return CPGridButton(titleVariants: [metric.displayName.uppercased(), valueStr], image: image) { _ in }
 
         case .health:
-            let statusStr: String
-            if dtcService.lastScanDate == nil {
-                statusStr = "Health: --"
-            } else if dtcService.scannedCodes.isEmpty {
-                statusStr = "Health: OK"
+            let statusStr = dtcService.healthSummary
+            let image: UIImage
+            if let cached = healthImageCache, cached.status == statusStr {
+                image = cached.image
             } else {
-                statusStr = "Health: \(dtcService.scannedCodes.count) Faults"
+                image = renderHealthImage(scannedCodesCount: dtcService.scannedCodes.count,
+                                          isScanned: dtcService.scanSucceeded && !dtcService.isScanning)
+                healthImageCache = (statusStr, image)
             }
-            let image = renderHealthImage(scannedCodesCount: dtcService.scannedCodes.count, isScanned: dtcService.lastScanDate != nil)
             return CPGridButton(titleVariants: ["SYSTEM HEALTH", statusStr], image: image) { _ in }
         }
     }

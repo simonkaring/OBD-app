@@ -30,7 +30,7 @@ private struct OBDTerminalContent: View {
     @ObservedObject var vehicleData: VehicleDataManager
     let bluetoothManager: BluetoothManager?
     let bluetoothLogs: [OBDLogEntry]
-    @AppStorage("aiApiKey") private var aiApiKey: String = ""
+    @ObservedObject private var keyStore = AIAPIKeyStore.shared
 
     @State private var commandText = ""
     @State private var commandError: String?
@@ -99,7 +99,7 @@ private struct OBDTerminalContent: View {
                 AIAnalysisSheet(
                     logs: combinedLogs,
                     vehicleContext: vehicleData.vehicleName,
-                    apiKey: aiApiKey
+                    apiKey: keyStore.value
                 )
             }
     }
@@ -223,9 +223,11 @@ private struct OBDTerminalContent: View {
     private func sendManualCommand() {
         let cmd = commandText.trimmingCharacters(in: .whitespaces)
         guard !cmd.isEmpty else { return }
+        guard vehicleData.beginCommandSession() else { commandError = "Scanner is busy or disconnected."; return }
         commandText = ""
         commandError = nil
         Task {
+            defer { vehicleData.endCommandSession() }
             let response = await sendCommandAsync(cmd)
             commandError = response.hasPrefix("ERROR:") ? response : nil
         }
@@ -254,11 +256,17 @@ private struct OBDTerminalContent: View {
     }
 
     private func runSupportedPIDScan() {
+        guard vehicleData.beginCommandSession() else { return }
         isScanningPIDs = true
         supportedPIDs = []
-        vehicleData.stopPolling()
         Task {
-            _ = await sendCommandAsync("AT SH 7DF")
+            defer { vehicleData.endCommandSession(); isScanningPIDs = false }
+            let ready = await withCheckedContinuation { continuation in
+                vehicleData.obdConnection.sendSetupCommands(BluetoothManager.diagnosticSetupCommands(for: vehicleData.selectedProfile.initializationCommands)) {
+                    continuation.resume(returning: $0)
+                }
+            }
+            guard ready else { commandError = "Diagnostic adapter setup failed."; return }
             let queries = ["0100", "0120", "0140", "0160"]
             var found: [String] = []
             for query in queries {
@@ -269,7 +277,6 @@ private struct OBDTerminalContent: View {
             await MainActor.run {
                 supportedPIDs = found
                 isScanningPIDs = false
-                vehicleData.startPolling()
             }
         }
     }
@@ -290,11 +297,12 @@ private struct OBDTerminalContent: View {
     }
 
     private func runDIDSweep() {
+        guard vehicleData.beginCommandSession() else { return }
         sweepResults = []
         sweepProgress = 0
         isSweepingDIDs = true
-        vehicleData.stopPolling()
         sweepTask = Task {
+            defer { vehicleData.endCommandSession(); isSweepingDIDs = false }
             _ = await sendCommandAsync("AT SP 7")
             let headers = [
                 ("18DA59F1", "BMS (0x59)"),
@@ -327,10 +335,8 @@ private struct OBDTerminalContent: View {
                     await MainActor.run { sweepProgress = progress }
                 }
             }
-            vehicleData.selectProfile(vehicleData.selectedProfileID)
             await MainActor.run {
                 isSweepingDIDs = false
-                vehicleData.startPolling()
             }
         }
     }
@@ -341,8 +347,6 @@ private struct OBDTerminalContent: View {
 
     private func cancelSweep() {
         sweepTask?.cancel()
-        isSweepingDIDs = false
-        vehicleData.startPolling()
     }
 
     private static let probeMatrix: [(protocol: String, headers: [String])] = [
@@ -364,11 +368,12 @@ private struct OBDTerminalContent: View {
     }
 
     private func runBusProbe() {
+        guard vehicleData.beginCommandSession() else { return }
         probeResults = []
         probeProgress = 0
         isProbing = true
-        vehicleData.stopPolling()
         Task {
+            defer { vehicleData.endCommandSession(); isProbing = false }
             let matrix = Self.probeMatrix
             let totalHeaders = matrix.reduce(0) { $0 + $1.headers.count }
             var done = 0
@@ -409,11 +414,9 @@ private struct OBDTerminalContent: View {
                 }
             }
 
-            vehicleData.selectProfile(vehicleData.selectedProfileID)
 
             await MainActor.run {
                 isProbing = false
-                vehicleData.startPolling()
             }
         }
     }

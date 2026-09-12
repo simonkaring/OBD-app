@@ -37,6 +37,11 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var id = UUID()
     public var timestamp: Date = Date()
     public var speedKmH: Double = 0.0
+    public var speedUpdatedAt: Date?
+
+    public var hasFreshSpeed: Bool {
+        speedUpdatedAt.map { abs(timestamp.timeIntervalSince($0)) <= 15 } ?? false
+    }
     public var powerKW: Double = 0.0
     public var voltageV: Double = 0.0
     public var currentA: Double = 0.0
@@ -80,4 +85,45 @@ public protocol OBDConnectionProtocol: AnyObject {
     func connect(peripheralName: String?)
     func disconnect()
     func sendCommand(_ command: String, completion: ((Result<String, Error>) -> Void)?)
+}
+
+extension OBDConnectionProtocol {
+    /// Reset restores automatic functional addressing for both 11- and 29-bit OBD.
+    /// It also removes profile-specific receive filters, priority and raw CAN formatting.
+    public static var diagnosticSetupCommands: [String] {
+        ["AT Z", "AT E0", "AT L0", "AT S1", "AT H1", "AT CAF 1", "AT SP 0"]
+    }
+
+    public static func diagnosticSetupCommands(for profileCommands: [String]) -> [String] {
+        var commands = diagnosticSetupCommands
+        // Retain the known bus protocol, but use the ELM's default functional header
+        // and priority after reset (7DF for 11-bit, 18DB33F1 for 29-bit CAN).
+        if let selectProtocol = profileCommands.last(where: {
+            $0.replacingOccurrences(of: " ", with: "").uppercased().hasPrefix("ATSP")
+        }) {
+            commands[commands.count - 1] = selectProtocol
+        }
+        return commands
+    }
+
+    func sendSetupCommands(_ commands: [String], completion: @escaping (Bool) -> Void) {
+        guard let command = commands.first else { completion(true); return }
+        sendCommand(command) { [weak self] result in
+            guard let self, case .success(let raw) = result else { completion(false); return }
+            let request = command.replacingOccurrences(of: " ", with: "").uppercased()
+            let lines = ISO15765Parser().cleanELMResponse(raw).uppercased().components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+            let accepted: Bool
+            if request == "ATZ" {
+                accepted = lines.contains { $0.contains("ELM") || $0.contains("OBD") || $0.contains("STN") }
+            } else if request.hasPrefix("AT") {
+                accepted = lines.contains("OK")
+            } else {
+                let expected = request.hasPrefix("10") ? "50" + request.suffix(2) : ""
+                accepted = !expected.isEmpty && ISO15765Parser().assembleISOTPPayloads(raw).contains { $0.payload.hasPrefix(expected) }
+            }
+            guard accepted else { completion(false); return }
+            self.sendSetupCommands(Array(commands.dropFirst()), completion: completion)
+        }
+    }
 }

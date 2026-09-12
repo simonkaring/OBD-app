@@ -4,6 +4,79 @@ import Combine
 @testable import VoltLinkEngine
 
 final class TripPersistenceTests: XCTestCase {
+
+    @MainActor
+    func testDemoRecordsAreTransientAndWipedOnExitWithoutDeletingRealHistory() throws {
+        let env = AppEnvironment(modelContainer: container)
+        env.tripTracker.isAutoTripEnabled = false
+        env.tripTracker.startTrip(startSoc: 80)
+        let realTripID = try XCTUnwrap(env.tripTracker.currentTrip?.id)
+        env.chargingTracker.startSession(startSoc: 20)
+        let realChargeID = try XCTUnwrap(env.chargingTracker.currentSession?.id)
+        env.vehicleData.toggleDemoMode(true)
+        (env.vehicleData.obdConnection as? MockOBDAdapter)?.simulationEngine.stop()
+
+        env.tripTracker.startTrip(startSoc: 70)
+        env.tripTracker.stopTrip(endSoc: 60)
+        env.chargingTracker.startSession(startSoc: 30)
+        env.chargingTracker.stopSession(endSoc: 50)
+        XCTAssertEqual(env.tripTracker.demoTrips.count, 1)
+        XCTAssertEqual(env.chargingTracker.demoSessions.count, 1)
+        env.tripTracker.clearAllTrips()
+        env.chargingTracker.clearAllSessions()
+        XCTAssertEqual(try ModelContext(container).fetch(FetchDescriptor<TripModel>()).map(\.id), [realTripID])
+        XCTAssertEqual(try ModelContext(container).fetch(FetchDescriptor<ChargingSessionModel>()).map(\.id), [realChargeID])
+
+        env.tripTracker.startTrip()
+        env.tripTracker.stopTrip()
+        env.chargingTracker.startSession()
+        env.chargingTracker.stopSession()
+        env.tripTracker.startTrip() // Also discard active demo records on exit.
+        env.chargingTracker.startSession()
+        env.vehicleData.toggleDemoMode(false)
+        XCTAssertTrue(env.tripTracker.demoTrips.isEmpty)
+        XCTAssertTrue(env.chargingTracker.demoSessions.isEmpty)
+        XCTAssertNil(env.tripTracker.currentTrip)
+        XCTAssertNil(env.chargingTracker.currentSession)
+        XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<TripModel>()), 1)
+        XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<ChargingSessionModel>()), 1)
+    }
+
+    @MainActor
+    func testFailedSaveRetainsRecordingAndBlocksDemoSwitch() throws {
+        let configuration = ModelConfiguration(schema: container.schema,
+            url: storeDirectory.appendingPathComponent("trips.store"), allowsSave: false)
+        let readOnly = try ModelContainer(for: container.schema, configurations: configuration)
+        let env = AppEnvironment(modelContainer: readOnly)
+        env.tripTracker.isAutoTripEnabled = false
+        env.tripTracker.startTrip()
+        let trip = try XCTUnwrap(env.tripTracker.currentTrip)
+        XCTAssertNotNil(env.tripTracker.persistenceError)
+        XCTAssertFalse(env.tripTracker.stopTrip())
+        XCTAssertTrue(env.tripTracker.currentTrip === trip)
+        env.vehicleData.toggleDemoMode(true)
+        XCTAssertFalse(env.vehicleData.isDemoMode)
+        XCTAssertFalse(env.tripTracker.isDemoMode)
+        XCTAssertFalse(env.chargingTracker.isDemoMode)
+        XCTAssertFalse(env.tripTracker.locationManager.tripTrackingRequested)
+
+        env.chargingTracker.startSession()
+        let session = try XCTUnwrap(env.chargingTracker.currentSession)
+        XCTAssertFalse(env.chargingTracker.stopSession())
+        XCTAssertTrue(env.chargingTracker.currentSession === session)
+        XCTAssertNotNil(env.chargingTracker.persistenceError)
+    }
+
+    func testDeletingOrClearingActiveTripReleasesGPSRequest() throws {
+        let tracker = TripTrackingManager()
+        tracker.startTrip()
+        XCTAssertTrue(tracker.locationManager.tripTrackingRequested)
+        tracker.deleteTrip(try XCTUnwrap(tracker.currentTrip))
+        XCTAssertFalse(tracker.locationManager.tripTrackingRequested)
+        tracker.startTrip()
+        tracker.clearAllTrips()
+        XCTAssertFalse(tracker.locationManager.tripTrackingRequested)
+    }
     private var storeDirectory: URL!
     private var container: ModelContainer!
 

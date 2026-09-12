@@ -6,10 +6,15 @@ import CoreLocation
 public final class TripTrackingManager: ObservableObject {
     @Published public private(set) var currentTrip: TripModel?
     @Published public private(set) var isRecordingTrip: Bool = false
+    @Published public private(set) var demoTrips: [TripModel] = []
+    @Published public private(set) var persistenceError: String?
+    public private(set) var isDemoMode = false
+    private var context: ModelContext? { isDemoMode ? nil : modelContext }
 
     @Published public var isAutoTripEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isAutoTripEnabled, forKey: "isAutoTripEnabled")
+            if !isAutoTripEnabled { resetStationaryTimer() }
         }
     }
 
@@ -35,6 +40,8 @@ public final class TripTrackingManager: ObservableObject {
     /// Timestamp of the previous recorded sample, used to integrate energy over the real
     /// elapsed interval instead of an assumed fixed polling period.
     private var lastSampleTime: Date? = nil
+    private var lastStoredSampleTime: Date?
+    private var lastSaveTime: Date?
     /// Most recent SoC seen by `processTelemetrySnapshot`, so the auto-stop timer can read
     /// the value at fire time rather than the one captured when the countdown started.
     private var latestSoc: Double = 0.0
@@ -61,57 +68,96 @@ public final class TripTrackingManager: ObservableObject {
     }
 
     public func startTrip(startSoc: Double = 80.0, vehicleName: String = "Mercedes EQA 250") {
+        guard currentTrip == nil else { return }
         let trip = TripModel(startTime: Date(), distanceKm: 0.0, startSocPct: startSoc, vehicleName: vehicleName)
         self.currentTrip = trip
         self.isRecordingTrip = true
         self.lastSampleTime = nil
+        self.lastStoredSampleTime = nil
+        self.lastSaveTime = Date()
         resetStationaryTimer()
-        locationManager.startTracking()
-        modelContext?.insert(trip)
-        try? modelContext?.save()
+        if !isDemoMode { locationManager.startTracking() }
+        context?.insert(trip)
+        save()
     }
 
-    public func stopTrip(endSoc: Double = 75.0) {
-        guard let trip = currentTrip else { return }
-        trip.endTime = Date()
-        trip.endSocPct = endSoc
+    @discardableResult
+    public func stopTrip(endSoc: Double = 75.0) -> Bool {
+        guard let trip = currentTrip else { return true }
+        if trip.endTime == nil {
+            trip.endTime = Date()
+            trip.endSocPct = endSoc
+        }
         locationManager.stopTracking()
-        try? modelContext?.save()
+        resetStationaryTimer()
+        guard save() else { return false }
+        if isDemoMode { demoTrips.insert(trip, at: 0) }
 
         self.currentTrip = nil
         self.isRecordingTrip = false
         self.lastSampleTime = nil
         resetStationaryTimer()
+        return true
+    }
+
+    @discardableResult
+    public func setDemoMode(_ enabled: Bool, endSoc: Double) -> Bool {
+        guard enabled != isDemoMode else { return true }
+        guard stopTrip(endSoc: endSoc) else { return false }
+        demoTrips.removeAll()
+        isDemoMode = enabled
+        return true
+    }
+
+    @discardableResult
+    public func save() -> Bool {
+        do {
+            try context?.save()
+            persistenceError = nil
+            return true
+        } catch {
+            persistenceError = "Trip history could not be saved: \(error.localizedDescription). Your pending changes are still in memory; retry saving before closing VoltLink."
+            return false
+        }
+    }
+
+    public func retrySaving() {
+        if let trip = currentTrip, trip.endTime != nil { stopTrip(endSoc: trip.endSocPct) }
+        else { save() }
     }
 
     public func deleteTrip(_ trip: TripModel) {
         let tripID = trip.id
         if currentTrip?.id == tripID {
+            locationManager.stopTracking()
+            lastSampleTime = nil
             self.currentTrip = nil
             self.isRecordingTrip = false
             resetStationaryTimer()
         }
-        modelContext?.delete(trip)
-        do {
-            try modelContext?.save()
-        } catch {
-            print("Failed to delete trip: \(error)")
-            return
-        }
+        demoTrips.removeAll { $0.id == tripID }
+        context?.delete(trip)
+        guard save() else { return }
         NotificationCenter.default.post(name: Notification.Name("DeleteTripNotification"), object: tripID)
     }
 
     public func clearAllTrips() {
+        locationManager.stopTracking()
+        lastSampleTime = nil
+        demoTrips.removeAll()
         self.currentTrip = nil
         self.isRecordingTrip = false
         resetStationaryTimer()
 
-        if let context = modelContext {
-            if let allTrips = try? context.fetch(FetchDescriptor<TripModel>()) {
+        if let context {
+            do {
+                let allTrips = try context.fetch(FetchDescriptor<TripModel>())
                 for trip in allTrips {
                     context.delete(trip)
                 }
-                try? context.save()
+                save()
+            } catch {
+                persistenceError = "Could not load trips for deletion: \(error.localizedDescription)"
             }
         }
         NotificationCenter.default.post(name: Notification.Name("ClearSampleTrips"), object: nil)
@@ -128,7 +174,7 @@ public final class TripTrackingManager: ObservableObject {
     public func merge(_ newer: TripModel, into older: TripModel) {
         guard canMerge(newer, into: older) else { return }
 
-        let context = modelContext
+        let context = self.context
         // Flush earlier edits before grouping so a failed merge only undoes itself.
         context?.processPendingChanges()
         let previousUndoManager = context?.undoManager
@@ -171,6 +217,7 @@ public final class TripTrackingManager: ObservableObject {
                 try context.save()
             } else {
                 applyMerge()
+                demoTrips.removeAll { $0.id == newer.id }
             }
         } catch {
             if previousUndoManager != nil { undoManager.disableUndoRegistration() }
@@ -179,7 +226,7 @@ public final class TripTrackingManager: ObservableObject {
             context?.insert(newer)
             context?.processPendingChanges()
             if previousUndoManager != nil { undoManager.enableUndoRegistration() }
-            print("Failed to merge trips: \(error)")
+            persistenceError = "Failed to merge trips: \(error.localizedDescription)"
         }
     }
 
@@ -200,7 +247,7 @@ public final class TripTrackingManager: ObservableObject {
 
         if stationaryTimer == nil {
             stationaryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                guard let self = self, let start = self.stationaryStartDate, self.isRecordingTrip else { return }
+                guard let self = self, let start = self.stationaryStartDate, self.isRecordingTrip, self.isAutoTripEnabled else { return }
                 let currentElapsed = Int(Date().timeIntervalSince(start))
                 let remaining = max(0, self.autoStopDelaySeconds - currentElapsed)
                 self.stationarySecondsRemaining = remaining
@@ -240,19 +287,41 @@ public final class TripTrackingManager: ObservableObject {
         }
     }
 
-    public func recordSnapshot(_ telemetry: TelemetrySnapshot) {
-        guard let trip = currentTrip else { return }
+    public func recordSnapshot(_ telemetry: TelemetrySnapshot, at now: Date = .now) {
+        guard let trip = currentTrip, trip.endTime == nil else { return }
+        // Integrate every update, but persist route/chart points at one-second resolution.
+        // This keeps energy independent of the number of PIDs returned by a response.
+        if let last = lastSampleTime {
+            let interval = now.timeIntervalSince(last)
+            if interval > 0, interval < 300 {
+                if telemetry.powerKW > 0 {
+                    trip.totalKWhUsed += telemetry.powerKW * interval / 3600
+                }
+                if isDemoMode { trip.distanceKm += telemetry.speedKmH * interval / 3600 }
+            }
+        }
+        lastSampleTime = now
+        if !isDemoMode { trip.distanceKm = locationManager.totalDistanceMeters / 1000 }
+        trip.endSocPct = telemetry.stateOfChargePct
+        trip.maxPowerKW = max(trip.maxPowerKW, telemetry.powerKW)
+        trip.maxRegenKW = min(trip.maxRegenKW, telemetry.powerKW)
+        if let lastSaveTime, now.timeIntervalSince(lastSaveTime) >= 30 {
+            save()
+            self.lastSaveTime = now
+        }
+        guard lastStoredSampleTime.map({ now.timeIntervalSince($0) >= 1 }) ?? true else { return }
+        lastStoredSampleTime = now
         // `TelemetryPointModel` stores non-optional coordinates (making them optional is a
         // SwiftData schema change), so (0, 0) stays the "no fix" sentinel — but only write
         // it when there genuinely is no usable fix, and let `hasValidCoordinate` /
         // `routeSamples` filter those points out of the map.
-        let coordinate = locationManager.currentLocation?.coordinate
+        let coordinate = isDemoMode ? nil : locationManager.currentLocation?.coordinate
         let hasFix = coordinate.map { (-90...90).contains($0.latitude) && (-180...180).contains($0.longitude) && !($0.latitude == 0 && $0.longitude == 0) } ?? false
         let lat = hasFix ? coordinate!.latitude : 0.0
         let lon = hasFix ? coordinate!.longitude : 0.0
 
         let sample = TelemetryPointModel(
-            timestamp: Date(),
+            timestamp: now,
             latitude: lat,
             longitude: lon,
             speedKmH: telemetry.speedKmH,
@@ -261,21 +330,5 @@ public final class TripTrackingManager: ObservableObject {
             batteryTempC: telemetry.batteryTempC
         )
         trip.samples.append(sample)
-        trip.distanceKm = locationManager.totalDistanceMeters / 1000.0
-
-        if telemetry.powerKW > trip.maxPowerKW { trip.maxPowerKW = telemetry.powerKW }
-        if telemetry.powerKW < trip.maxRegenKW { trip.maxRegenKW = telemetry.powerKW }
-
-        // Accumulate energy consumption over the *measured* interval. The previous
-        // hardcoded 0.5 s assumption silently mis-scaled every trip's kWh total, since the
-        // poll loop's real cadence depends on adapter latency and command round-robin.
-        let now = sample.timestamp
-        if let last = lastSampleTime {
-            let interval = now.timeIntervalSince(last)
-            if interval > 0, interval < 300, telemetry.powerKW > 0 {
-                trip.totalKWhUsed += telemetry.powerKW * (interval / 3600.0)
-            }
-        }
-        lastSampleTime = now
     }
 }

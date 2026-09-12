@@ -1,4 +1,77 @@
 import Foundation
+import Combine
+import Security
+
+@MainActor
+final class AIAPIKeyStore: ObservableObject {
+    static let shared = AIAPIKeyStore()
+    @Published private(set) var value = ""
+    @Published private(set) var errorMessage: String?
+    private let defaults: UserDefaults
+    private let write: (String) throws -> Void
+
+    init(defaults: UserDefaults = .standard, read: (() throws -> String)? = nil, write: ((String) throws -> Void)? = nil) {
+        self.defaults = defaults
+        self.write = write ?? Self.writeKeychain
+        do {
+            value = try (read ?? Self.readKeychain)()
+            if value.isEmpty, let legacy = defaults.string(forKey: "aiApiKey"), !legacy.isEmpty {
+                save(legacy)
+            } else {
+                defaults.removeObject(forKey: "aiApiKey")
+            }
+        } catch {
+            errorMessage = "Could not read the API key: \(error.localizedDescription)"
+        }
+    }
+
+    func save(_ key: String) {
+        do {
+            let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+            try write(trimmed)
+            value = trimmed
+            defaults.removeObject(forKey: "aiApiKey")
+            errorMessage = nil
+        } catch {
+            errorMessage = "Could not save the API key: \(error.localizedDescription)"
+        }
+    }
+
+    private static var query: [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: "VoltLink.AILogAnalyzer",
+         kSecAttrAccount as String: "apiKey"]
+    }
+
+    private static func readKeychain() throws -> String {
+        var request = query
+        request[kSecReturnData as String] = true
+        request[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(request as CFDictionary, &result)
+        if status == errSecItemNotFound { return "" }
+        guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
+        return (result as? Data).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+    }
+
+    private static func writeKeychain(_ key: String) throws {
+        let status: OSStatus
+        if key.isEmpty {
+            let result = SecItemDelete(query as CFDictionary)
+            status = result == errSecItemNotFound ? errSecSuccess : result
+        } else {
+            let attributes = [kSecValueData as String: Data(key.utf8),
+                              kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly] as [String: Any]
+            let result = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+            if result == errSecItemNotFound {
+                status = SecItemAdd(query.merging(attributes) { _, new in new } as CFDictionary, nil)
+            } else {
+                status = result
+            }
+        }
+        guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
+    }
+}
 
 public enum AILogAnalyzerError: LocalizedError, Sendable {
     case missingAPIKey

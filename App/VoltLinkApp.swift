@@ -33,6 +33,7 @@ struct VoltLinkApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .environmentObject(env)
                 .environmentObject(env.vehicleData)
                 .environmentObject(env.tripTracker)
                 .environmentObject(env.chargingTracker)
@@ -46,6 +47,7 @@ struct VoltLinkApp: App {
 #endif
 
 struct MainTabView: View {
+    @EnvironmentObject private var env: AppEnvironment
     @EnvironmentObject private var vehicleData: VehicleDataManager
     @EnvironmentObject private var tripTracker: TripTrackingManager
     @EnvironmentObject private var chargingTracker: ChargingTrackingManager
@@ -123,6 +125,23 @@ struct MainTabView: View {
             .tag(4)
         }
         .accentColor(Theme.electricCyan)
+        .safeAreaInset(edge: .top) {
+            if let error = env.storageWarning ?? tripTracker.persistenceError ?? chargingTracker.persistenceError {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                    if env.storageWarning == nil {
+                        Button("Retry Saving History") {
+                            tripTracker.retrySaving()
+                            chargingTracker.retrySaving()
+                        }
+                    }
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.highPowerAmber.opacity(0.2))
+            }
+        }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isDisconnectedBannerActive)
         .onChange(of: vehicleData.isDemoMode) { _, _ in
             isBannerDismissedManually = false

@@ -305,7 +305,13 @@ public struct DashboardView: View {
                     telemetryHistory.removeFirst()
                 }
             }
-            .onReceive(vehicleData.$liveMetrics) { _ in
+            .onChange(of: vehicleData.selectedVehicle.id) { _, _ in
+                telemetryHistory.removeAll()
+            }
+            .onChange(of: vehicleData.isDemoMode) { _, _ in
+                telemetryHistory.removeAll()
+            }
+            .onChange(of: vehicleData.connectionState.isConnected) { _, _ in
                 telemetryHistory.removeAll()
             }
             #if os(iOS)

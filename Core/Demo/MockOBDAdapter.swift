@@ -141,6 +141,12 @@ public final class MockOBDAdapter: ObservableObject, OBDConnectionProtocol {
                 } else {
                     mockHex = "43 00 00 00 00 00\r\n>"
                 }
+            case "07":
+                mockHex = "47 00\r\n>"
+            case "04":
+                self.simulationEngine.injectedFaultCode = nil
+                if self.simulationEngine.scenario == .faultInjection { self.simulationEngine.scenario = .cityDriving }
+                mockHex = "44\r\n>"
             default:
                 mockHex = "OK\r\n>"
             }

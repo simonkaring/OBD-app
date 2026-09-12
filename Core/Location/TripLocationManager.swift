@@ -28,7 +28,7 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
 
     private let locationManager = CLLocationManager()
     private var previousLocation: CLLocation?
-    private var tripTrackingRequested = false
+    private(set) var tripTrackingRequested = false
     private var speedMonitoringRequested = false
 
     private static let maximumLocationAge: TimeInterval = 15

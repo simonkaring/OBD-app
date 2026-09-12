@@ -14,8 +14,6 @@ public struct TripHistoryView: View {
     @EnvironmentObject private var chargingTracker: ChargingTrackingManager
 
     @State private var selectedLogType: HistoryLogType = .trips
-    @State private var sampleTrips: [TripModel] = []
-    @State private var sampleCharges: [ChargingSessionModel] = []
 
     @State private var showClearAllConfirmation = false
     @State private var tripToDelete: TripModel?
@@ -28,11 +26,11 @@ public struct TripHistoryView: View {
     private var persistedCharges: [ChargingSessionModel]
 
     private var displayedTrips: [TripModel] {
-        vehicleData.isDemoMode ? sampleTrips : persistedTrips
+        vehicleData.isDemoMode ? tripTracker.demoTrips : persistedTrips
     }
 
     private var displayedCharges: [ChargingSessionModel] {
-        vehicleData.isDemoMode ? sampleCharges : persistedCharges
+        vehicleData.isDemoMode ? chargingTracker.demoSessions : persistedCharges
     }
 
     public init(tripTracker: TripTrackingManager) {
@@ -95,10 +93,8 @@ public struct TripHistoryView: View {
             ) {
                 Button(selectedLogType == .trips ? "Clear All Trips" : "Clear All Sessions", role: .destructive) {
                     if selectedLogType == .trips {
-                        sampleTrips.removeAll()
                         tripTracker.clearAllTrips()
                     } else {
-                        sampleCharges.removeAll()
                         chargingTracker.clearAllSessions()
                     }
                 }
@@ -148,29 +144,8 @@ public struct TripHistoryView: View {
             } message: {
                 Text("Are you sure you want to delete this charging session record?")
             }
-            .onAppear {
-                updateSampleHistory()
-            }
-            .onChange(of: vehicleData.isDemoMode) { _, _ in
-                updateSampleHistory()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ClearSampleTrips"))) { _ in
-                sampleTrips.removeAll()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ClearSampleChargingSessions"))) { _ in
-                sampleCharges.removeAll()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DeleteTripNotification"))) { note in
-                if let tripID = note.object as? UUID {
-                    sampleTrips.removeAll { $0.id == tripID }
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DeleteChargingSessionNotification"))) { note in
-                if let sessionID = note.object as? UUID {
-                    sampleCharges.removeAll { $0.id == sessionID }
-                }
-            }
         }
+        .id(vehicleData.isDemoMode)
     }
 
     // MARK: - Trips View Content
@@ -392,68 +367,11 @@ public struct TripHistoryView: View {
     }
 
     private func performDeleteTrip(_ trip: TripModel) {
-        let tripID = trip.id
-        if vehicleData.isDemoMode {
-            sampleTrips.removeAll { $0.id == tripID }
-        }
         tripTracker.deleteTrip(trip)
     }
 
     private func performDeleteCharge(_ session: ChargingSessionModel) {
-        let sessionID = session.id
-        if vehicleData.isDemoMode {
-            sampleCharges.removeAll { $0.id == sessionID }
-        }
         chargingTracker.deleteSession(session)
-    }
-
-    private func updateSampleHistory() {
-        if vehicleData.isDemoMode {
-            if sampleTrips.isEmpty {
-                let t1 = TripModel(startTime: Date().addingTimeInterval(-86400), distanceKm: 24.8, startSocPct: 85.0, vehicleName: "Mercedes EQA 250")
-                t1.endSocPct = 78.0
-                t1.totalKWhUsed = 4.8
-                
-                let t2 = TripModel(startTime: Date().addingTimeInterval(-172800), distanceKm: 68.2, startSocPct: 92.0, vehicleName: "Mercedes EQA 250")
-                t2.endSocPct = 72.0
-                t2.totalKWhUsed = 13.2
-
-                sampleTrips = [t1, t2]
-            }
-
-            if sampleCharges.isEmpty {
-                let c1 = ChargingSessionModel(
-                    startTime: Date().addingTimeInterval(-43200),
-                    startSocPct: 22.0,
-                    locationName: "Ionity High Power Charger, Berlin",
-                    latitude: 52.5200,
-                    longitude: 13.4050
-                )
-                c1.endTime = Date().addingTimeInterval(-41400)
-                c1.endSocPct = 80.0
-                c1.totalKWhDelivered = 38.6
-                c1.peakPowerKW = 100.2
-                c1.averagePowerKW = 77.2
-
-                let c2 = ChargingSessionModel(
-                    startTime: Date().addingTimeInterval(-129600),
-                    startSocPct: 45.0,
-                    locationName: "Supercharger / Fastned, Hamburg",
-                    latitude: 53.5511,
-                    longitude: 9.9937
-                )
-                c2.endTime = Date().addingTimeInterval(-127800)
-                c2.endSocPct = 85.0
-                c2.totalKWhDelivered = 26.8
-                c2.peakPowerKW = 88.5
-                c2.averagePowerKW = 53.6
-
-                sampleCharges = [c1, c2]
-            }
-        } else {
-            sampleTrips.removeAll()
-            sampleCharges.removeAll()
-        }
     }
 }
 

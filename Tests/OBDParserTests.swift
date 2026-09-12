@@ -7,17 +7,25 @@ private final class ScriptedConnection: OBDConnectionProtocol {
     weak var delegate: OBDConnectionDelegate?
     private(set) var sentCommands: [String] = []
     private let response: Result<String, Error>
+    var responses: [String: Result<String, Error>] = [:]
+    var heldCommand: String?
+    var heldCompletion: ((Result<String, Error>) -> Void)?
 
     init(response: Result<String, Error>) {
         self.response = response
     }
 
     func connect(peripheralName: String?) {}
-    func disconnect() {}
+    func disconnect() { state = .disconnected }
 
     func sendCommand(_ command: String, completion: ((Result<String, Error>) -> Void)?) {
         sentCommands.append(command)
-        completion?(response)
+        if command == heldCommand { heldCompletion = completion; return }
+        if let result = responses[command] { completion?(result) }
+        else if command == "AT Z" { completion?(.success("ELM327 v2.2\r\n>")) }
+        else if command.hasPrefix("AT") { completion?(.success("OK\r\n>")) }
+        else if command == "07" { completion?(.success("47 00\r\n>")) }
+        else { completion?(response) }
     }
 }
 
@@ -478,8 +486,74 @@ final class OBDParserTests: XCTestCase {
         let connection = ScriptedConnection(response: .success("43 00 00 00 00 00\r\n>"))
         scanner.scanDTCs(connection: connection, isDemo: false, restoreCommands: ["ATCRA 18DAF159", "AT SH 18DA59F1"])
 
-        XCTAssertEqual(connection.sentCommands.prefix(3).map { $0 }, ["AT CRA", "AT SH 7DF", "03"])
+        XCTAssertEqual(Array(connection.sentCommands.prefix(8)), BluetoothManager.diagnosticSetupCommands + ["03"])
         XCTAssertEqual(connection.sentCommands.suffix(2).map { $0 }, ["ATCRA 18DAF159", "AT SH 18DA59F1"])
+        XCTAssertTrue(scanner.scanSucceeded)
+    }
+
+    func testDiagnosticErrorsNeverBecomeHealthyAndPendingFailureIsPartial() {
+        for raw in ["?\r>", "ERROR\r>", "\r>", "43 02 0A 80\r>", "41 0D 00\r>"] {
+            let scanner = DTCScannerService()
+            scanner.scanDTCs(connection: ScriptedConnection(response: .success(raw)))
+            XCTAssertFalse(scanner.scanSucceeded, raw)
+            XCTAssertNotNil(scanner.scanErrorMessage, raw)
+        }
+        let scanner = DTCScannerService()
+        let connection = ScriptedConnection(response: .success("43 01 0A 80\r>"))
+        connection.responses["07"] = .success("NO DATA\r>")
+        scanner.scanDTCs(connection: connection)
+        XCTAssertEqual(scanner.scannedCodes.map(\.code), ["P0A80"])
+        XCTAssertFalse(scanner.scanSucceeded)
+        XCTAssertTrue(scanner.scanErrorMessage?.contains("Partial") == true)
+    }
+
+    func testScanWaitsForRestorationAndDisconnectsIfItFails() {
+        let scanner = DTCScannerService()
+        let connection = ScriptedConnection(response: .success("43 00\r>"))
+        connection.heldCommand = "AT SH 18DA59F1"
+        var finished = false
+        scanner.scanDTCs(connection: connection, restoreCommands: [connection.heldCommand!]) { finished = true }
+        XCTAssertTrue(scanner.isScanning)
+        XCTAssertFalse(finished)
+        connection.heldCompletion?(.success("?\r>"))
+        XCTAssertTrue(finished)
+        XCTAssertFalse(scanner.isScanning)
+        XCTAssertFalse(scanner.scanSucceeded)
+        XCTAssertEqual(connection.state, .disconnected)
+    }
+
+    func testClearUsesDiagnosticSetupThenRestoresProfileBeforePolling() {
+        let connection = ScriptedConnection(response: .success("7E8 01 44\r>"))
+        let manager = VehicleDataManager(connection: connection)
+        let scanner = DTCScannerService()
+        var cleared = false
+        scanner.clearDTCs(vehicleData: manager) { cleared = $0 }
+        manager.stopPolling()
+        XCTAssertTrue(cleared)
+        XCTAssertFalse(manager.isCommandSessionActive)
+        let expected = BluetoothManager.diagnosticSetupCommands(for: manager.selectedProfile.initializationCommands) + ["04"] + manager.selectedProfile.initializationCommands
+        XCTAssertEqual(Array(connection.sentCommands.prefix(expected.count)), expected)
+        XCTAssertFalse(scanner.scanSucceeded, "Clearing is not a complete diagnostic rescan")
+    }
+
+    func testSetupFailureDoesNotSendDiagnosticService() {
+        let connection = ScriptedConnection(response: .success("43 00\r>"))
+        connection.responses["AT CAF 1"] = .success("?\r>")
+        let scanner = DTCScannerService()
+        scanner.scanDTCs(connection: connection, restoreCommands: ["AT E0"])
+        XCTAssertFalse(connection.sentCommands.contains("03"))
+        XCTAssertFalse(scanner.scanSucceeded)
+        XCTAssertNotNil(scanner.scanErrorMessage)
+    }
+
+    func testDiagnosticSetupRetainsBusProtocolButResetsRawFramingAndAddressing() {
+        for profile in [MercedesEQA250Profile(), VolkswagenMEBProfile()] as [VehicleProfile] {
+            let setup = BluetoothManager.diagnosticSetupCommands(for: profile.initializationCommands)
+            XCTAssertEqual(setup.first, "AT Z")
+            XCTAssertEqual(setup.last, "AT SP 7")
+            XCTAssertTrue(setup.contains("AT CAF 1"))
+            XCTAssertFalse(setup.contains { $0.hasPrefix("AT SH") || $0.hasPrefix("AT CP") || $0.hasPrefix("AT CRA") })
+        }
     }
 
     func testDTCScannerModePendingCodes() {

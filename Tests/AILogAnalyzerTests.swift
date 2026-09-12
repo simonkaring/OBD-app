@@ -2,6 +2,27 @@ import XCTest
 @testable import VoltLinkEngine
 
 final class AILogAnalyzerTests: XCTestCase {
+    @MainActor
+    func testAPIKeyMigrationOnlyRemovesLegacyValueAfterSuccessfulKeychainWrite() throws {
+        let suite = "VoltLinkKeyMigration-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("test-key", forKey: "aiApiKey")
+        let failed = AIAPIKeyStore(defaults: defaults, read: { "" }, write: { _ in
+            throw NSError(domain: "KeychainTest", code: -1)
+        })
+        XCTAssertNotNil(failed.errorMessage)
+        XCTAssertEqual(defaults.string(forKey: "aiApiKey"), "test-key")
+
+        var stored = ""
+        let migrated = AIAPIKeyStore(defaults: defaults, read: { stored }, write: { stored = $0 })
+        XCTAssertEqual(stored, "test-key")
+        XCTAssertEqual(migrated.value, "test-key")
+        XCTAssertNil(defaults.object(forKey: "aiApiKey"))
+        migrated.save("")
+        XCTAssertEqual(stored, "")
+        XCTAssertEqual(migrated.value, "")
+    }
 
     func testPromptConstructionIncludesSentAndResponse() {
         let entries = [

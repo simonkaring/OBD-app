@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import SwiftData
 
+@MainActor
 public final class AppEnvironment: ObservableObject {
     public static let shared = AppEnvironment()
 
@@ -14,21 +15,23 @@ public final class AppEnvironment: ObservableObject {
     /// (no window scene, so `MainTabView.onAppear` never runs) still persists auto-recorded
     /// trips and charging sessions.
     public let modelContainer: ModelContainer
+    @Published public private(set) var storageWarning: String?
 
     private var cancellables = Set<AnyCancellable>()
 
-    private static func makeModelContainer() -> ModelContainer {
+    private static func makeModelContainer() -> (ModelContainer, String?) {
         let schema = Schema([TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, SavedDTCModel.self])
-        if let container = try? ModelContainer(for: schema) {
-            return container
+        do {
+            return (try ModelContainer(for: schema), nil)
+        } catch {
+            let warning = "Persistent history is unavailable: \(error.localizedDescription). New recordings are temporary and will be lost when VoltLink closes."
+            return (try! ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning)
         }
-        // Last resort: run unpersisted rather than crashing on a corrupt/unwritable store.
-        return try! ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true))
     }
 
-    public init() {
-        self.modelContainer = Self.makeModelContainer()
-        let vData = VehicleDataManager()
+    public init(modelContainer: ModelContainer? = nil, connection: OBDConnectionProtocol? = nil) {
+        (self.modelContainer, self.storageWarning) = modelContainer.map { ($0, nil) } ?? Self.makeModelContainer()
+        let vData = VehicleDataManager(connection: connection)
         let locationManager = TripLocationManager()
         let tTracker = TripTrackingManager(locationManager: locationManager)
         let cTracker = ChargingTrackingManager(locationManager: locationManager)
@@ -41,10 +44,15 @@ public final class AppEnvironment: ObservableObject {
 
         // `mainContext` is the same context SwiftUI's `@Query` reads from, so recorded
         // trips/sessions show up in the UI without a second context to reconcile.
-        let container = self.modelContainer
-        DispatchQueue.main.async {
-            tTracker.modelContext = container.mainContext
-            cTracker.modelContext = container.mainContext
+        tTracker.modelContext = self.modelContainer.mainContext
+        cTracker.modelContext = self.modelContainer.mainContext
+
+        vData.prepareDemoModeChange = { [weak vData, weak tTracker, weak cTracker] enabled in
+            guard let vData, let tTracker, let cTracker else { return false }
+            let soc = vData.latestTelemetry.stateOfChargePct
+            // Save both real recordings before switching either manager to transient data.
+            guard tTracker.stopTrip(endSoc: soc), cTracker.stopSession(endSoc: soc) else { return false }
+            return tTracker.setDemoMode(enabled, endSoc: soc) && cTracker.setDemoMode(enabled, endSoc: soc)
         }
 
         vData.$latestTelemetry

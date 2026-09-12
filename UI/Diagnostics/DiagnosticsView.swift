@@ -38,12 +38,7 @@ public struct DiagnosticsView: View {
                             Spacer()
 
                             Button {
-                                vehicleData.stopPolling()
-                                dtcService.scanDTCs(
-                                    connection: vehicleData.obdConnection,
-                                    isDemo: vehicleData.isDemoMode,
-                                    restoreCommands: vehicleData.selectedProfile.initializationCommands
-                                )
+                                dtcService.scanDTCs(vehicleData: vehicleData)
                             } label: {
                                 HStack(spacing: 6) {
                                     if dtcService.isScanning {
@@ -60,7 +55,7 @@ public struct DiagnosticsView: View {
                                 .foregroundColor(.black)
                                 .cornerRadius(10)
                             }
-                            .disabled(dtcService.isScanning)
+                            .disabled(dtcService.isScanning || vehicleData.isCommandSessionActive || !vehicleData.connectionState.isConnected)
                         }
                     }
                     .padding()
@@ -70,13 +65,13 @@ public struct DiagnosticsView: View {
                     if dtcService.scannedCodes.isEmpty && !dtcService.isScanning {
                         VStack(spacing: 12) {
                             Spacer()
-                            Image(systemName: "checkmark.shield.fill")
+                            Image(systemName: dtcService.scanSucceeded ? "checkmark.shield.fill" : "stethoscope")
                                 .font(.system(size: 60))
-                                .foregroundColor(Theme.regenGreen)
-                            Text("All Systems Healthy")
+                                .foregroundColor(dtcService.scanSucceeded ? Theme.regenGreen : Theme.textSecondary)
+                            Text(dtcService.scanSucceeded ? "No Fault Codes Detected" : "Scan Required")
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.textPrimary)
-                            Text("No diagnostic trouble codes detected in vehicle ECUs.")
+                            Text(dtcService.healthSummary)
                                 .font(.system(size: 14, weight: .medium, design: .rounded))
                                 .foregroundColor(Theme.textSecondary)
                                 .multilineTextAlignment(.center)
@@ -133,22 +128,18 @@ public struct DiagnosticsView: View {
                         }
                         .padding(.horizontal)
                         .padding(.bottom, 16)
+                        .disabled(dtcService.isScanning || vehicleData.isCommandSessionActive)
                     }
                 }
             }
             .navigationTitle("Diagnostics")
             .inlineTitleDisplayMode()
-            .onChange(of: dtcService.isScanning) { _, isScanning in
-                if !isScanning {
-                    vehicleData.startPolling()
-                }
-            }
             .sheet(item: $selectedDTC) { dtc in
                 DTCDetailSheet(dtc: dtc)
             }
             .alert("Clear Diagnostic Codes?", isPresented: $showClearConfirmation) {
                 Button("Clear Codes", role: .destructive) {
-                    dtcService.clearDTCs(connection: vehicleData.obdConnection) { success in
+                    dtcService.clearDTCs(vehicleData: vehicleData) { success in
                         if !success {
                             showClearFailedAlert = true
                         }

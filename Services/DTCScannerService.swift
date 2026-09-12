@@ -7,6 +7,14 @@ public final class DTCScannerService: ObservableObject {
     @Published public private(set) var scanProgress: Double = 0.0
     @Published public private(set) var lastScanDate: Date? = nil
     @Published public private(set) var scanErrorMessage: String? = nil
+    @Published public private(set) var scanSucceeded = false
+
+    public var healthSummary: String {
+        if isScanning { return "Diagnostics in progress" }
+        if let scanErrorMessage { return scanErrorMessage }
+        if !scanSucceeded { return "Scan not performed" }
+        return scannedCodes.isEmpty ? "No fault codes detected" : "\(scannedCodes.count) fault codes"
+    }
 
     private let db = DTCLocalDatabase.shared
     private let isoParser = ISO15765Parser()
@@ -17,66 +25,103 @@ public final class DTCScannerService: ObservableObject {
         scanErrorMessage = db.loadError
     }
 
-    /// - Parameter restoreCommands: the active vehicle profile's initialization commands.
-    ///   Mode 03/07 need broadcast addressing, which means clobbering whatever header and
-    ///   receive filter the profile set up; these are replayed afterwards so polling keeps
-    ///   talking to the right ECU (profiles like VW MEB never re-send `AT SH` while polling).
-    public func scanDTCs(connection: OBDConnectionProtocol, isDemo: Bool = false, restoreCommands: [String] = []) {
+    /// Own the adapter until setup, scanning and profile restoration have all completed.
+    public func scanDTCs(vehicleData: VehicleDataManager) {
+        guard !isScanning, vehicleData.beginCommandSession() else { return }
+        scanDTCs(connection: vehicleData.obdConnection, isDemo: vehicleData.isDemoMode,
+                 restoreCommands: vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.initializationCommands) { [weak vehicleData] in
+            vehicleData?.endCommandSession(restoreProfile: false)
+        }
+    }
+
+    public func scanDTCs(connection: OBDConnectionProtocol, isDemo: Bool = false, restoreCommands: [String] = [], completion: @escaping () -> Void = {}) {
         guard !isScanning else { return }
         isScanning = true
         scanProgress = 0.0
         scannedCodes.removeAll()
         scanErrorMessage = nil
+        scanSucceeded = false
 
         if isDemo {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 guard let self = self else { return }
                 connection.sendCommand("03") { result in
-                    self.finishScan(storedResult: result, connection: connection, restoreCommands: [])
+                    self.finishScan(storedResult: result, connection: connection, restoreCommands: [], completion: completion)
                 }
             }
             return
         }
 
-        // Broadcast header so Mode 03/07 reach every ECU, not just whichever module a
-        // vehicle profile last selected (e.g. Mercedes profile leaves the header on 7E4/BMS).
-        // `AT CRA` with no argument resets the receive filter — without it a profile-set
-        // filter (e.g. Mercedes' `ATCRA 18DAF159`) drops every broadcast reply.
-        connection.sendCommand("AT CRA", completion: nil)
-        connection.sendCommand("AT SH 7DF", completion: nil)
-        connection.sendCommand("03") { [weak self] storedResult in
-            self?.finishScan(storedResult: storedResult, connection: connection, restoreCommands: restoreCommands)
+        connection.sendSetupCommands(BluetoothManager.diagnosticSetupCommands(for: restoreCommands)) { [weak self] ready in
+            guard let self else { return }
+            guard ready else {
+                self.scanErrorMessage = "Diagnostic adapter setup failed."
+                self.restoreProfileAddressing(connection: connection, commands: restoreCommands, completion: completion)
+                return
+            }
+            connection.sendCommand("03") { [weak self] storedResult in
+                self?.finishScan(storedResult: storedResult, connection: connection, restoreCommands: restoreCommands, completion: completion)
+            }
         }
     }
 
-    private func finishScan(storedResult: Result<String, Error>, connection: OBDConnectionProtocol, restoreCommands: [String]) {
+    private func finishScan(storedResult: Result<String, Error>, connection: OBDConnectionProtocol, restoreCommands: [String], completion: @escaping () -> Void) {
         guard let storedCodes = codes(from: storedResult, serviceByte: 0x43) else {
-            isScanning = false
             scanProgress = 1.0
             lastScanDate = Date()
             scanErrorMessage = "Scan failed — no response from vehicle ECUs."
-            restoreProfileAddressing(connection: connection, commands: restoreCommands)
+            restoreProfileAddressing(connection: connection, commands: restoreCommands, completion: completion)
             return
         }
 
         connection.sendCommand("07") { [weak self] pendingResult in
             guard let self = self else { return }
-            self.isScanning = false
             self.scanProgress = 1.0
             self.lastScanDate = Date()
-            let pendingCodes = self.codes(from: pendingResult, serviceByte: 0x47) ?? []
+            let pendingResultCodes = self.codes(from: pendingResult, serviceByte: 0x47)
+            let pendingCodes = pendingResultCodes ?? []
+            self.scanSucceeded = pendingResultCodes != nil
+            if pendingResultCodes == nil { self.scanErrorMessage = "Partial scan: pending fault codes could not be read." }
             var combined = storedCodes
             for code in pendingCodes where !combined.contains(where: { $0.code == code.code }) {
                 combined.append(code)
             }
             self.scannedCodes = combined
-            self.restoreProfileAddressing(connection: connection, commands: restoreCommands)
+            self.restoreProfileAddressing(connection: connection, commands: restoreCommands, completion: completion)
         }
     }
 
-    private func restoreProfileAddressing(connection: OBDConnectionProtocol, commands: [String]) {
-        for command in commands {
-            connection.sendCommand(command, completion: nil)
+    private func restoreProfileAddressing(connection: OBDConnectionProtocol, commands: [String], completion: @escaping () -> Void) {
+        connection.sendSetupCommands(commands) { [weak self] restored in
+            if !restored {
+                self?.scanErrorMessage = "Profile restoration failed. Reconnect the scanner."
+                self?.scanSucceeded = false
+                connection.disconnect()
+            }
+            self?.isScanning = false
+            self?.scanProgress = 1
+            completion()
+        }
+    }
+
+    public func clearDTCs(vehicleData: VehicleDataManager, completion: @escaping (Bool) -> Void) {
+        guard !isScanning, vehicleData.beginCommandSession() else { completion(false); return }
+        isScanning = true
+        scanSucceeded = false
+        let connection = vehicleData.obdConnection
+        let restore = vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.initializationCommands
+        let setup = vehicleData.isDemoMode ? [] : BluetoothManager.diagnosticSetupCommands(for: restore)
+        connection.sendSetupCommands(setup) { [weak self, weak vehicleData] ready in
+            guard let self else { return }
+            let finish: (Bool) -> Void = { success in
+                self.scanErrorMessage = success ? nil : "The vehicle did not confirm that codes were cleared."
+                self.restoreProfileAddressing(connection: connection, commands: restore) {
+                    vehicleData?.endCommandSession(restoreProfile: false)
+                    completion(success && self.scanErrorMessage == nil)
+                }
+            }
+            if ready { self.clearDTCs(connection: connection, completion: finish) }
+            else { finish(false) }
         }
     }
 
@@ -93,9 +138,7 @@ public final class DTCScannerService: ObservableObject {
                 completion(false)
                 return
             }
-            let payload = self.isoParser.assembleISOTPPayload(raw)
-            let bytes = Self.hexStringToBytes(payload)
-            let succeeded = bytes.contains(0x44) && !Self.isNegativeOrEmpty(raw)
+            let succeeded = self.isoParser.assembleISOTPPayloads(raw).contains { $0.payload.hasPrefix("44") } && !Self.isNegativeOrEmpty(raw)
             if succeeded {
                 self.scannedCodes.removeAll()
             }
@@ -106,12 +149,15 @@ public final class DTCScannerService: ObservableObject {
     /// Returns decoded codes, or nil if the adapter/ECU reported a failure (as opposed to a clean "0 codes").
     private func codes(from result: Result<String, Error>, serviceByte: UInt8) -> [DTCCode]? {
         guard case .success(let hex) = result, !Self.isNegativeOrEmpty(hex) else { return nil }
+        let payloads = isoParser.assembleISOTPPayloads(hex).map { Self.hexStringToBytes($0.payload) }
+        let responses = payloads.filter { $0.first == serviceByte }
+        guard !responses.isEmpty, responses.allSatisfy({ $0.count >= 2 && $0.count >= 2 + Int($0[1]) * 2 }) else { return nil }
         return parseDTCResponse(hex, serviceByte: serviceByte)
     }
 
     private static func isNegativeOrEmpty(_ raw: String) -> Bool {
         let upper = raw.uppercased()
-        return upper.contains("NO DATA") || upper.contains("BUS ERROR") || upper.contains("UNABLE TO CONNECT") || upper.contains("7F 03") || upper.contains("7F03") || upper.contains("7F 07") || upper.contains("7F07") || upper.contains("7F 04") || upper.contains("7F04")
+        return upper.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || ["NO DATA", "ERROR", "?", "STOPPED", "UNABLE TO CONNECT", "7F 03", "7F03", "7F 07", "7F07", "7F 04", "7F04"].contains { upper.contains($0) }
     }
 
     /// `internal` (not `private`) so unit tests can exercise the decoder directly.
