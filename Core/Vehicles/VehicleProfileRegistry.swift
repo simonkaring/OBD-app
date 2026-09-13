@@ -4,6 +4,7 @@ import Foundation
 /// needed since `VehicleProfile` is a protocol (existential) and can't back a `Picker` selection directly.
 public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Sendable {
     case mercedesEQA250
+    case mercedesEQAOBDb
     case hyundaiKiaEGMP
     case hkmcIoniq5 = "hkmc_Ioniq5"
     case hkmc2019 = "hkmc_hkmc2019"
@@ -35,6 +36,7 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
     public var displayName: String {
         switch self {
         case .mercedesEQA250: return "Mercedes-Benz EQA 250 (2021)"
+        case .mercedesEQAOBDb: return "Mercedes-Benz EQA 250 (OBDb community)"
         case .hyundaiKiaEGMP, .hkmcIoniq5: return "Hyundai/Kia E-GMP (IONIQ 5 / EV6)"
         case .hkmc2019: return "Hyundai / Kia (Kona / Niro EV)"
         case .hkmc2017: return "Hyundai / Kia (IONIQ Electric / Soul EV 2017)"
@@ -64,6 +66,7 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
     public func makeProfile() -> VehicleProfile {
         switch self {
         case .mercedesEQA250: return MercedesEQA250Profile()
+        case .mercedesEQAOBDb: return MercedesEQAOBDbProfile()
         case .hyundaiKiaEGMP, .hkmcIoniq5: return HyundaiKiaEGMPProfile()
         case .hkmc2019:
             return ABRPProfileLoader.loadProfile(filename: "hkmc_hkmc2019.json", name: "Hyundai / Kia (2019+)", capacityKWh: 64.0) ?? GenericEVProfile()

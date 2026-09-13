@@ -175,6 +175,21 @@ public struct VehicleCatalog {
         variantDisplayName: "EQA 250 · 2021"
     )
 
+    public static let eqaOBDbModel = VehicleModelEntry(
+        id: "mb-eqa-250-obdb",
+        brandName: "Mercedes-Benz",
+        modelName: "EQA 250 (OBDb community)",
+        years: "2021 · experimental",
+        powertrain: .ev,
+        batteryCapacityKWh: 66.5,
+        profileID: .mercedesEQAOBDb,
+        telemetrySupport: .community,
+        notes: "Experimental 11-bit OBDb requests. SOC, voltage, current, wheel speed, 12 V and HV coolant temperature. Validate readings and current direction on your car; coolant is not cell temperature.",
+        modelFamilyID: "mercedes_benz-eqa",
+        modelFamilyName: "EQA",
+        variantDisplayName: "EQA 250 · OBDb community (experimental)"
+    )
+
     private static func loadCatalogFromData() -> [VehicleBrand] {
         #if SWIFT_PACKAGE
         let bundle = Bundle.module
@@ -201,9 +216,11 @@ public struct VehicleCatalog {
 
             if !brands.isEmpty {
                 let mapped = brands.map { brand -> VehicleBrand in
-                    guard brand.name == defaultModel.brandName,
-                          !brand.models.contains(where: { $0.id == defaultModel.id }) else { return brand }
-                    let updatedModels = ([defaultModel] + brand.models).sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
+                    guard brand.name == defaultModel.brandName else { return brand }
+                    let additions = [defaultModel, eqaOBDbModel].filter { model in
+                        !brand.models.contains(where: { $0.id == model.id })
+                    }
+                    let updatedModels = (additions + brand.models).sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
                     return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: updatedModels)
                 }
                 return mapped.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
@@ -225,7 +242,7 @@ public struct VehicleCatalog {
                 id: "mercedes",
                 name: "Mercedes-Benz",
                 iconSymbol: "star.circle.fill",
-                models: [defaultModel]
+                models: [defaultModel, eqaOBDbModel]
             )
         ].sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }

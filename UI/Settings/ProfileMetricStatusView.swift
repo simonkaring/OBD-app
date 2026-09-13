@@ -16,6 +16,15 @@ public struct ProfileMetricStatusView: View {
 
     public var body: some View {
         List {
+            if vehicleData.selectedProfileID == .mercedesEQAOBDb {
+                Section("OBDb community profile") {
+                    Text("Experimental definitions: compare readings with your car. Charging assumes negative pack current means charging and requires fresh stationary wheel speed. Coolant temperature is not battery-cell temperature.")
+                    Link("Source: OBDb / Mercedes-Benz EQA contributors", destination: MercedesEQAOBDbProfile.sourceURL)
+                    Link("Adapted under CC BY-SA 4.0", destination: MercedesEQAOBDbProfile.licenseURL)
+                    Text("Adapted to Swift with explicit adapter routing and validity checks. Provided as-is, without warranties.")
+                        .font(.caption)
+                }
+            }
             Section {
                 ForEach(metrics) { metric in
                     HStack {
