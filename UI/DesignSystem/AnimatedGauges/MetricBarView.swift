@@ -7,10 +7,10 @@ public struct MetricBarView: View {
     public var range: ClosedRange<Double>
     public var unit: String
     public var label: String
-    public var color: Color = Theme.electricCyan
+    public var color: Color = Theme.textPrimary
     public var isUnavailable: Bool = false
 
-    public init(value: Double, range: ClosedRange<Double>, unit: String, label: String, color: Color = Theme.electricCyan, isUnavailable: Bool = false) {
+    public init(value: Double, range: ClosedRange<Double>, unit: String, label: String, color: Color = Theme.textPrimary, isUnavailable: Bool = false) {
         self.value = value
         self.range = range
         self.unit = unit
@@ -28,44 +28,30 @@ public struct MetricBarView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(label.uppercased())
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                Text(label)
+                    .font(.subheadline)
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
                 Text(isUnavailable ? "--" : String(format: "%.0f %@", value, unit))
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
                     .foregroundColor(Theme.textPrimary)
             }
 
-            HStack(spacing: 8) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Theme.trackBackground)
-                            .frame(height: 20)
-
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(
-                                LinearGradient(colors: [color.opacity(0.7), color], startPoint: .leading, endPoint: .trailing)
-                            )
-                            .frame(width: max(0, geo.size.width * progress), height: 20)
-                            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: value)
-                    }
-                }
-                .frame(height: 20)
-            }
+            ProgressView(value: isUnavailable ? 0 : progress)
+                .tint(color)
 
             HStack {
                 Text(String(format: "Min: %.0f%@", range.lowerBound, unit))
                 Spacer()
                 Text(String(format: "Max: %.0f%@", range.upperBound, unit))
             }
-            .font(.system(size: 10, weight: .medium, design: .rounded))
-            .foregroundColor(Theme.textSecondary.opacity(0.7))
+            .font(.caption)
+            .foregroundColor(Theme.textSecondary)
         }
         .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .glassCard()
-        .opacity(isUnavailable ? 0.4 : 1.0)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(isUnavailable ? "Unavailable" : String(format: "%.0f %@", value, unit))

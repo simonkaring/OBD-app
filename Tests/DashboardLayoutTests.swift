@@ -3,6 +3,21 @@ import XCTest
 
 final class DashboardLayoutTests: XCTestCase {
 
+    func testSavedLayoutUsesContentSizedRowsWithoutChangingWidgets() throws {
+        let saved = DashboardLayout(widgets: [
+            DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
+            DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
+            DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .medium),
+            DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large)
+        ])
+        let restored = try XCTUnwrap(DashboardLayout(rawValue: saved.rawValue))
+        XCTAssertEqual(restored.widgets, saved.widgets)
+        let heights = restored.widgets.map(\.preferredHeight)
+        XCTAssertLessThan(heights[1], heights[0], "A bar must not reserve a dial-sized row")
+        XCTAssertLessThan(heights[2], heights[0], "A number must not reserve a dial-sized row")
+        XCTAssertGreaterThanOrEqual(heights[3], 190, "Keep enough room for chart axes and header")
+    }
+
     func testRawValueRoundTrip() {
         let layout = DashboardLayout.default
         let encoded = layout.rawValue

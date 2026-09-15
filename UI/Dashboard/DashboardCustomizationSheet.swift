@@ -56,7 +56,7 @@ public struct DashboardCustomizationSheet: View {
     private func widgetRow(for widget: Binding<DashboardWidgetConfig>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(widgetTitle(widget.wrappedValue))
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .font(.subheadline.weight(.semibold))
 
             HStack {
                 if case .metric = widget.wrappedValue.kind {
@@ -129,7 +129,7 @@ public struct AddDashboardWidgetSheet: View {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(Theme.textSecondary)
                                 TextField("Search widgets", text: $searchText)
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                                    .font(.subheadline)
                                     .foregroundColor(Theme.textPrimary)
                                 if !searchText.isEmpty {
                                     Button {
@@ -166,7 +166,7 @@ public struct AddDashboardWidgetSheet: View {
                         // Metric Widget Cards (iOS Widget Gallery Style)
                         VStack(alignment: .leading, spacing: 14) {
                             Text("TELEMETRY METRICS")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.caption.weight(.semibold))
                                 .foregroundColor(Theme.electricCyan)
                                 .padding(.horizontal)
 
@@ -178,7 +178,7 @@ public struct AddDashboardWidgetSheet: View {
                         // Chart Widget Section
                         VStack(alignment: .leading, spacing: 14) {
                             Text("LIVE TELEMETRY CHART")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.caption.weight(.semibold))
                                 .foregroundColor(Theme.electricCyan)
                                 .padding(.horizontal)
 
@@ -193,7 +193,7 @@ public struct AddDashboardWidgetSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .font(.subheadline.weight(.semibold))
                 }
             }
         }
@@ -214,10 +214,10 @@ public struct AddDashboardWidgetSheet: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(metric.displayName)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.headline)
                         .foregroundColor(Theme.textPrimary)
                     Text("Unit: \(metric.unitSymbol) • Display as \(selectedStyle.displayName)")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(.caption)
                         .foregroundColor(Theme.textSecondary)
                 }
 
@@ -231,7 +231,7 @@ public struct AddDashboardWidgetSheet: View {
                         Image(systemName: "plus")
                             .font(.system(size: 12, weight: .bold))
                         Text("Add")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.subheadline.weight(.semibold))
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -253,10 +253,10 @@ public struct AddDashboardWidgetSheet: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(selectedSize.rawValue.uppercased() + " PREVIEW")
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .font(.caption2.weight(.semibold))
                             .foregroundColor(Theme.electricCyan)
                         Text(metric.displayName)
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundColor(Theme.textPrimary)
                     }
                     Spacer()
@@ -288,10 +288,10 @@ public struct AddDashboardWidgetSheet: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Live Telemetry Chart")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.headline)
                         .foregroundColor(Theme.textPrimary)
                     Text("Plot up to 2 telemetry metrics over time")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(.caption)
                         .foregroundColor(Theme.textSecondary)
                 }
 
@@ -305,7 +305,7 @@ public struct AddDashboardWidgetSheet: View {
                         Image(systemName: "plus")
                             .font(.system(size: 12, weight: .bold))
                         Text("Add")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.subheadline.weight(.semibold))
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -318,7 +318,7 @@ public struct AddDashboardWidgetSheet: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Select Series Metrics:")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.caption.weight(.semibold))
                     .foregroundColor(Theme.textSecondary)
 
                 HStack(spacing: 8) {
@@ -331,7 +331,7 @@ public struct AddDashboardWidgetSheet: View {
                             }
                         } label: {
                             Text(metric.displayName)
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .background(chartSeries.contains(metric) ? Theme.highPowerAmber.opacity(0.3) : Color.white.opacity(0.08))

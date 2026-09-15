@@ -51,7 +51,7 @@ public struct SettingsView: View {
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Simulated Speed: \(Int(targetSpeed)) km/h")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .font(.subheadline)
                             Slider(value: $targetSpeed, in: 0...160, step: 5) { _ in
                                 engine.userSpeedOverride = targetSpeed
                             }
@@ -59,7 +59,7 @@ public struct SettingsView: View {
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Regen Braking Force: \(Int(regenLevel * 100))%")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .font(.subheadline)
                             Slider(value: $regenLevel, in: 0...1.0) { _ in
                                 engine.userRegenOverride = regenLevel
                             }
@@ -79,7 +79,7 @@ public struct SettingsView: View {
                                 engine.scenario = .faultInjection
                                 engine.injectedFaultCode = "P0A80"
                             }
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .font(.subheadline)
                             .foregroundColor(.orange)
 
                             Spacer()
@@ -88,7 +88,7 @@ public struct SettingsView: View {
                                 engine.injectedFaultCode = nil
                                 engine.scenario = .cityDriving
                             }
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .font(.subheadline)
                             .foregroundColor(.green)
                         }
                     }

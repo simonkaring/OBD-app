@@ -29,15 +29,15 @@ public struct ChargingLiveView: View {
 
     private var chargingStatusText: String {
         if !isConnected {
-            return "SCANNER DISCONNECTED"
+            return "Scanner disconnected"
         }
         if !hasChargePower {
-            return "CHARGE DATA UNAVAILABLE"
+            return "Charge data unavailable"
         }
         if !isCharging {
-            return "NOT CHARGING"
+            return "Not charging"
         }
-        return vehicleData.latestTelemetry.chargePowerSource == .socEstimate ? "CHARGING (ESTIMATED)" : "CHARGING"
+        return vehicleData.latestTelemetry.chargePowerSource == .socEstimate ? "Charging (estimated)" : "Charging"
     }
 
     private var usableCapacityKWh: Double {
@@ -83,11 +83,12 @@ public struct ChargingLiveView: View {
                                 .symbolEffect(.bounce, value: isCharging)
 
                             Text(chargingStatusText)
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .font(.headline)
                                 .foregroundColor(isCharging ? Theme.regenGreen : Theme.textSecondary)
 
                             Text(hasChargePower ? String(format: "%.1f kW", vehicleData.latestTelemetry.chargePowerKW) : "— kW")
-                                .font(.system(size: 48, weight: .black, design: .rounded))
+                                .font(.system(size: 48, weight: .semibold))
+                                .monospacedDigit()
                                 .foregroundColor(isCharging ? Theme.regenGreen : Theme.textPrimary)
 
                             if vehicleData.latestTelemetry.chargePowerSource == .socEstimate {
@@ -112,8 +113,8 @@ public struct ChargingLiveView: View {
 
                         // Battery Specifications & Usable Capacity Section
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("BATTERY SPECIFICATIONS & CAPACITY")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                            Text("Battery capacity")
+                                .font(.headline)
                                 .foregroundColor(Theme.textSecondary)
                                 .padding(.horizontal)
 
@@ -123,15 +124,15 @@ public struct ChargingLiveView: View {
                                         Text("Usable Capacity")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
                                         Text(String(format: "%.1f kWh", usableCapacityKWh))
-                                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                                            .foregroundColor(Theme.electricCyan)
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundColor(Theme.textPrimary)
                                     }
                                     Spacer()
                                     VStack(alignment: .trailing, spacing: 4) {
                                         Text("Current Stored Energy")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
                                         Text(hasSOC ? String(format: "%.1f kWh", storedEnergyKWh) : "— kWh")
-                                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                                            .font(.title3.weight(.semibold))
                                             .foregroundColor(Theme.textPrimary)
                                     }
                                 }
@@ -143,7 +144,7 @@ public struct ChargingLiveView: View {
                                         Text("Energy Needed to 100%")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
                                         Text(hasSOC ? String(format: "%.1f kWh", energyNeededToFullKWh) : "— kWh")
-                                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                                            .font(.headline)
                                             .foregroundColor(Theme.highPowerAmber)
                                     }
                                     Spacer()
@@ -151,7 +152,7 @@ public struct ChargingLiveView: View {
                                         Text("Vehicle Profile")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
                                         Text(vehicleData.vehicleName)
-                                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                            .font(.subheadline)
                                             .foregroundColor(Theme.textSecondary)
                                     }
                                 }
@@ -164,21 +165,21 @@ public struct ChargingLiveView: View {
                         // Time to 80% / 100% Countdown & Health
                         HStack(spacing: 16) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("ESTIMATED TO 80%")
-                                    .font(.caption).fontWeight(.bold).foregroundColor(Theme.textSecondary)
+                                Text("Estimated to 80%")
+                                    .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(hasSOC && isCharging ? "\(timeTo80Min) min" : "—")
-                                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                                    .foregroundColor(Theme.electricCyan)
+                                    .font(.title2.weight(.semibold))
+                                    .foregroundColor(Theme.textPrimary)
                             }
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .glassCard()
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("BATTERY SOH HEALTH")
-                                    .font(.caption).fontWeight(.bold).foregroundColor(Theme.textSecondary)
+                                Text("Battery health")
+                                    .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(isConnected && vehicleData.latestTelemetry.stateOfHealthPct > 0 ? String(format: "%.1f%%", vehicleData.latestTelemetry.stateOfHealthPct) : "--%")
-                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.regenGreen)
                             }
                             .padding()
@@ -194,7 +195,7 @@ public struct ChargingLiveView: View {
                                 }
                             } label: {
                                 Label("Simulate DC Fast Charging (100 kW)", systemImage: "bolt.fill")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .font(.subheadline.weight(.semibold))
                                     .padding()
                                     .frame(maxWidth: .infinity)
                                     .background(Theme.regenGreen)

@@ -48,8 +48,9 @@ public struct DashboardWidgetTile: View {
                 MetricNumericTileView(value: value, unit: metric.unitSymbol, label: metric.displayName, decimalPlaces: metric.decimalPlaces, isUnavailable: !isAvailable)
             case .dial:
                 MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable, estimatedFullRangeKm: estimatedFullRangeKm ?? profile.estimatedFullRangeKm)
+                    .frame(height: config.preferredHeight)
             case .bar:
-                MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
+                MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, color: metric == .soc ? (value < 20 ? Theme.highPowerAmber : Theme.regenGreen) : Theme.textPrimary, isUnavailable: !isAvailable)
             }
         }
         .overlay(alignment: .topTrailing) {

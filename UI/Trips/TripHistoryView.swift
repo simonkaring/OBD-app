@@ -158,7 +158,7 @@ public struct TripHistoryView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("CURRENT ACTIVE TRIP")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.caption.weight(.semibold))
                                 .foregroundColor(Theme.regenGreen)
                             Spacer()
                             ProgressView().tint(Theme.regenGreen)
@@ -169,7 +169,7 @@ public struct TripHistoryView: View {
                                 Text("Distance")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.1f km", active.distanceKm))
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.textPrimary)
                             }
 
@@ -177,7 +177,7 @@ public struct TripHistoryView: View {
                                 Text("Energy Used")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", active.totalKWhUsed))
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.textPrimary)
                             }
 
@@ -185,7 +185,7 @@ public struct TripHistoryView: View {
                                 Text("SOC Delta")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "-%.1f%%", max(0, active.startSocPct - active.endSocPct)))
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.electricCyan)
                             }
                         }
@@ -203,7 +203,7 @@ public struct TripHistoryView: View {
                         .font(.system(size: 50))
                         .foregroundColor(Theme.textSecondary)
                     Text("No Past Trips Recorded")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.headline)
                     Text("Start a trip on the Dashboard to record GPS route, speed curve, and energy consumption.")
                         .font(.system(size: 14))
                         .foregroundColor(Theme.textSecondary)
@@ -221,7 +221,7 @@ public struct TripHistoryView: View {
                                         .font(.system(size: 14, weight: .bold))
                                     Spacer()
                                     Text(String(format: "%.1f km", trip.distanceKm))
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                                        .font(.headline)
                                         .foregroundColor(Theme.electricCyan)
                                 }
                                 HStack {
@@ -267,7 +267,7 @@ public struct TripHistoryView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("CURRENT CHARGING SESSION")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.caption.weight(.semibold))
                                 .foregroundColor(Theme.regenGreen)
                             Spacer()
                             ProgressView().tint(Theme.regenGreen)
@@ -278,7 +278,7 @@ public struct TripHistoryView: View {
                                 Text("Energy Added")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", active.totalKWhDelivered))
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.regenGreen)
                             }
 
@@ -286,7 +286,7 @@ public struct TripHistoryView: View {
                                 Text("Peak Power")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.1f kW", active.peakPowerKW))
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.highPowerAmber)
                             }
 
@@ -294,7 +294,7 @@ public struct TripHistoryView: View {
                                 Text("SOC Gained")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "+%.1f%%", max(0, active.endSocPct - active.startSocPct)))
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.electricCyan)
                             }
                         }
@@ -312,7 +312,7 @@ public struct TripHistoryView: View {
                         .font(.system(size: 50))
                         .foregroundColor(Theme.textSecondary)
                     Text("No Past Charging Sessions")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.headline)
                     Text("Plug in to charge or simulate DC fast charging to record sessions with location and power curves.")
                         .font(.system(size: 14))
                         .foregroundColor(Theme.textSecondary)
@@ -330,7 +330,7 @@ public struct TripHistoryView: View {
                                         .font(.system(size: 14, weight: .bold))
                                     Spacer()
                                     Text(String(format: "+%.2f kWh", session.totalKWhDelivered))
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                                        .font(.headline)
                                         .foregroundColor(Theme.regenGreen)
                                 }
                                 HStack {

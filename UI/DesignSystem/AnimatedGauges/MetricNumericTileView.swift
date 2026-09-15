@@ -7,10 +7,10 @@ public struct MetricNumericTileView: View {
     public var unit: String
     public var label: String
     public var decimalPlaces: Int = 0
-    public var accentColor: Color = Theme.electricCyan
+    public var accentColor: Color = Theme.textSecondary
     public var isUnavailable: Bool = false
 
-    public init(value: Double, unit: String, label: String, decimalPlaces: Int = 0, accentColor: Color = Theme.electricCyan, isUnavailable: Bool = false) {
+    public init(value: Double, unit: String, label: String, decimalPlaces: Int = 0, accentColor: Color = Theme.textSecondary, isUnavailable: Bool = false) {
         self.value = value
         self.unit = unit
         self.label = label
@@ -20,26 +20,26 @@ public struct MetricNumericTileView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 2) {
-            Text(label.uppercased())
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.subheadline)
                 .foregroundColor(Theme.textSecondary)
-                .tracking(1)
 
             Text(isUnavailable ? "--" : String(format: "%.\(decimalPlaces)f", value))
-                .font(.system(size: 54, weight: .black, design: .rounded))
+                .font(.system(size: 36, weight: .semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .foregroundColor(Theme.textPrimary)
                 .contentTransition(.numericText())
 
-            Text(unit.uppercased())
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+            Text(unit)
+                .font(.subheadline)
                 .foregroundColor(accentColor)
-                .tracking(2)
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 28)
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .glassCard()
-        .opacity(isUnavailable ? 0.4 : 1.0)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(isUnavailable ? "Unavailable" : "\(String(format: "%.\(decimalPlaces)f", value)) \(unit)")

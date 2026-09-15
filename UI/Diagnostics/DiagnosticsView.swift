@@ -23,15 +23,15 @@ public struct DiagnosticsView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("VEHICLE DIAGNOSTICS SCANNER")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundColor(Theme.electricCyan)
+                                Text("Vehicle diagnostics")
+                                    .font(.subheadline)
+                                    .foregroundColor(Theme.textSecondary)
                                 Text(dtcService.lastScanDate == nil ? "Not Scanned Yet" : "Last Scan: \(dtcService.lastScanDate!.formatted(date: .numeric, time: .shortened))")
-                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .font(.headline)
                                     .foregroundColor(Theme.textPrimary)
                                 if let error = dtcService.scanErrorMessage {
                                     Text(error)
-                                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                                        .font(.subheadline)
                                         .foregroundColor(Theme.criticalRed)
                                 }
                             }
@@ -48,7 +48,7 @@ public struct DiagnosticsView: View {
                                     }
                                     Text(dtcService.isScanning ? "Scanning..." : "Scan DTCs")
                                 }
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .font(.subheadline.weight(.semibold))
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
                                 .background(Theme.electricCyan)
@@ -69,10 +69,10 @@ public struct DiagnosticsView: View {
                                 .font(.system(size: 60))
                                 .foregroundColor(dtcService.scanSucceeded ? Theme.regenGreen : Theme.textSecondary)
                             Text(dtcService.scanSucceeded ? "No Fault Codes Detected" : "Scan Required")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .font(.title3.weight(.semibold))
                                 .foregroundColor(Theme.textPrimary)
                             Text(dtcService.healthSummary)
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .font(.subheadline)
                                 .foregroundColor(Theme.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 30)
@@ -92,7 +92,7 @@ public struct DiagnosticsView: View {
                                                     .foregroundColor(Theme.criticalRed)
 
                                                 Text(code.severity.rawValue)
-                                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                                    .font(.caption)
                                                     .padding(.horizontal, 6)
                                                     .padding(.vertical, 2)
                                                     .background(Theme.criticalRed.opacity(0.2))
@@ -101,7 +101,7 @@ public struct DiagnosticsView: View {
                                             }
 
                                             Text(code.title)
-                                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                                .font(.headline)
                                                 .foregroundColor(Theme.textPrimary)
                                         }
 
@@ -120,7 +120,7 @@ public struct DiagnosticsView: View {
                             showClearConfirmation = true
                         } label: {
                             Text("Clear Diagnostic Trouble Codes")
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundColor(Theme.criticalRed)
                                 .padding()
                                 .frame(maxWidth: .infinity)
@@ -172,7 +172,7 @@ public struct DTCDetailSheet: View {
                             .foregroundColor(Theme.criticalRed)
                         Spacer()
                         Text(dtc.category)
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
                             .background(Theme.electricCyan.opacity(0.2))
@@ -181,7 +181,7 @@ public struct DTCDetailSheet: View {
                     }
 
                     Text(dtc.title)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.title3.weight(.semibold))
 
                     Divider()
 

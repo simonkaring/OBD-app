@@ -17,11 +17,11 @@ public struct FloatingConnectionBanner: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("OBD Scanner Disconnected")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(Theme.textPrimary)
 
                 Text("Tap to connect BLE scanner or set up vehicle")
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .font(.caption)
                     .foregroundColor(Theme.textSecondary)
             }
 
@@ -29,15 +29,9 @@ public struct FloatingConnectionBanner: View {
 
             Button(action: onConnectTap) {
                 Text("Connect")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(Theme.electricCyan)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(Theme.electricCyan.opacity(0.4), lineWidth: 1)
-                    )
+                    .frame(minHeight: 44)
             }
             .buttonStyle(.plain)
 
@@ -45,31 +39,14 @@ public struct FloatingConnectionBanner: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(Theme.textSecondary)
-                    .frame(width: 26, height: 26)
-                    .background(.ultraThinMaterial, in: Circle())
+                    .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Dismiss Warning")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(
-            Capsule()
-                .fill(Theme.cardBackground)
-                .background(.ultraThinMaterial, in: Capsule())
-        )
-        .overlay(
-            Capsule()
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.35), Theme.highPowerAmber.opacity(0.4), Color.white.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-        .shadow(color: Color.black.opacity(0.35), radius: 12, x: 0, y: 6)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
     }

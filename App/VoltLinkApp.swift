@@ -124,7 +124,7 @@ struct MainTabView: View {
             }
             .tag(4)
         }
-        .accentColor(Theme.electricCyan)
+        .tint(Theme.electricCyan)
         .safeAreaInset(edge: .top) {
             if let error = env.storageWarning ?? tripTracker.persistenceError ?? chargingTracker.persistenceError {
                 VStack(alignment: .leading, spacing: 6) {

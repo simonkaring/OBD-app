@@ -66,19 +66,19 @@ public struct TripDetailView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(trip.vehicleName.uppercased())
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.caption.weight(.semibold))
                                     .foregroundColor(Theme.electricCyan)
                                 Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.system(size: 20, weight: .black, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.textPrimary)
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("DURATION")
-                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .font(.caption.weight(.semibold))
                                     .foregroundColor(Theme.textSecondary)
                                 Text(durationText)
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .font(.headline)
                                     .foregroundColor(Theme.regenGreen)
                             }
                         }
@@ -89,7 +89,7 @@ public struct TripDetailView: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(Theme.textSecondary)
                                 Text("Time Range: \(trip.startTime.formatted(date: .omitted, time: .standard)) - \(end.formatted(date: .omitted, time: .standard))")
-                                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }
@@ -102,7 +102,7 @@ public struct TripDetailView: View {
                                 Text("Distance")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.1f km", trip.distanceKm))
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.electricCyan)
                             }
 
@@ -112,7 +112,7 @@ public struct TripDetailView: View {
                                 Text("Energy Used")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", trip.totalKWhUsed))
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.textPrimary)
                             }
 
@@ -122,7 +122,7 @@ public struct TripDetailView: View {
                                 Text("Avg Efficiency")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.1f", trip.efficiencyKWhPer100Km))
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.regenGreen) +
                                 Text(" kWh/100km").font(.caption).foregroundColor(Theme.textSecondary)
                             }
@@ -134,7 +134,7 @@ public struct TripDetailView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("DRIVEN ROUTE")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal)
 
@@ -184,7 +184,7 @@ public struct TripDetailView: View {
                     // Secondary Performance Grid
                     VStack(alignment: .leading, spacing: 12) {
                         Text("PERFORMANCE METRICS")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.caption.weight(.semibold))
                             .foregroundColor(Theme.textSecondary)
                             .padding(.horizontal)
 
@@ -224,7 +224,7 @@ public struct TripDetailView: View {
                     if !chartSamples.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("SPEED & POWER CURVES")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.caption.weight(.semibold))
                                 .foregroundColor(Theme.textSecondary)
                                 .padding(.horizontal)
 
@@ -279,7 +279,7 @@ public struct TripDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("TELEMETRY LOG (\(samples.count) SAMPLES)")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.caption.weight(.semibold))
                                 .foregroundColor(Theme.textSecondary)
                             Spacer()
                         }
@@ -291,7 +291,7 @@ public struct TripDetailView: View {
                                     .font(.system(size: 36))
                                     .foregroundColor(Theme.textSecondary)
                                 Text("No Telemetry Samples Recorded")
-                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .font(.subheadline.weight(.semibold))
                                     .foregroundColor(Theme.textSecondary)
                             }
                             .padding()
@@ -312,7 +312,7 @@ public struct TripDetailView: View {
                                     Spacer()
                                     Text("TEMP").frame(width: 55, alignment: .trailing)
                                 }
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .font(.caption.weight(.semibold))
                                 .foregroundColor(Theme.textSecondary)
                                 .padding(.horizontal)
                                 .padding(.vertical, 8)
@@ -330,28 +330,28 @@ public struct TripDetailView: View {
                                         Spacer()
 
                                         Text(String(format: "%.0f km/h", sample.speedKmH))
-                                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                                            .font(.caption.weight(.semibold))
                                             .foregroundColor(Theme.electricCyan)
                                             .frame(width: 65, alignment: .trailing)
 
                                         Spacer()
 
                                         Text(String(format: "%.1f kW", sample.powerKW))
-                                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                                            .font(.caption.weight(.semibold))
                                             .foregroundColor(sample.powerKW < 0 ? Theme.regenGreen : Theme.textPrimary)
                                             .frame(width: 65, alignment: .trailing)
 
                                         Spacer()
 
                                         Text(String(format: "%.1f%%", sample.socPct))
-                                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                            .font(.caption.weight(.semibold))
                                             .foregroundColor(Theme.textPrimary)
                                             .frame(width: 50, alignment: .trailing)
 
                                         Spacer()
 
                                         Text(String(format: "%.0f°C", sample.batteryTempC))
-                                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                                            .font(.caption)
                                             .foregroundColor(Theme.textSecondary)
                                             .frame(width: 55, alignment: .trailing)
                                     }
@@ -433,13 +433,13 @@ private struct TripStatTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .font(.caption.weight(.semibold))
                 .foregroundColor(Theme.textSecondary)
             Text(value)
-                .font(.system(size: 18, weight: .black, design: .rounded))
+                .font(.headline)
                 .foregroundColor(accentColor)
             Text(subtitle)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .font(.caption)
                 .foregroundColor(Theme.textSecondary)
         }
         .padding()

@@ -23,6 +23,7 @@ public struct MetricDialView: View {
     public var estimatedFullRangeKm: Double = 400.0
 
     @State private var showEstimatedRange: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil, isUnavailable: Bool = false, estimatedFullRangeKm: Double = 400.0) {
         self.value = value
@@ -72,13 +73,14 @@ public struct MetricDialView: View {
     }
 
     private var statusText: String {
+        if isUnavailable { return label }
         if metric == .soc {
-            return showEstimatedRange ? "EST. RANGE" : "STATE OF CHARGE"
+            return showEstimatedRange ? "Est. range" : "State of charge"
         }
-        guard case .bidirectional = mode else { return label.uppercased() }
-        if value < -0.5 { return "REGEN" }
-        if value > 5.0 { return "DRAW" }
-        return "IDLE"
+        guard case .bidirectional = mode else { return label }
+        if value < -0.5 { return "Regen" }
+        if value > 5.0 { return "Draw" }
+        return "Idle"
     }
 
     private var displayValueAndUnit: (displayVal: String, displayUnit: String) {
@@ -94,12 +96,12 @@ public struct MetricDialView: View {
     public var body: some View {
         GeometryReader { geo in
             let minDimension = min(geo.size.width, geo.size.height)
-            let strokeWidth: CGFloat = max(6, minDimension * 0.09)
+            let strokeWidth: CGFloat = max(6, minDimension * 0.045)
             let inset = strokeWidth / 2.0 + 2.0
             let dialDiameter = max(10, minDimension - (inset * 2.0))
             let valueFontSize: CGFloat = max(18, minDimension * 0.22)
             let unitFontSize: CGFloat = max(10, minDimension * 0.09)
-            let labelFontSize: CGFloat = max(8, minDimension * 0.065)
+            let labelFontSize: CGFloat = max(12, minDimension * 0.065)
 
             ZStack {
                 Circle()
@@ -108,49 +110,49 @@ public struct MetricDialView: View {
                     .rotationEffect(.degrees(90))
                     .frame(width: dialDiameter, height: dialDiameter)
 
-                switch mode {
-                case .bidirectional:
-                    if isNegativeArc {
+                if !isUnavailable {
+                    switch mode {
+                    case .bidirectional:
+                        if isNegativeArc {
+                            Circle()
+                                .trim(from: 0.5 + (normalizedProgress * 0.35), to: 0.5)
+                                .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                                .rotationEffect(.degrees(90))
+                                .frame(width: dialDiameter, height: dialDiameter)
+                        } else {
+                            Circle()
+                                .trim(from: 0.5, to: 0.5 + (normalizedProgress * 0.35))
+                                .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                                .rotationEffect(.degrees(90))
+                                .frame(width: dialDiameter, height: dialDiameter)
+                        }
+                    case .unidirectional:
                         Circle()
-                            .trim(from: 0.5 + (normalizedProgress * 0.35), to: 0.5)
+                            .trim(from: 0.15, to: 0.15 + (normalizedProgress * 0.70))
                             .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                             .rotationEffect(.degrees(90))
                             .frame(width: dialDiameter, height: dialDiameter)
-                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
-                    } else {
-                        Circle()
-                            .trim(from: 0.5, to: 0.5 + (normalizedProgress * 0.35))
-                            .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                            .rotationEffect(.degrees(90))
-                            .frame(width: dialDiameter, height: dialDiameter)
-                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                     }
-                case .unidirectional:
-                    Circle()
-                        .trim(from: 0.15, to: 0.15 + (normalizedProgress * 0.70))
-                        .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                        .rotationEffect(.degrees(90))
-                        .frame(width: dialDiameter, height: dialDiameter)
-                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
                 }
 
                 VStack(spacing: minDimension * 0.02) {
                     let valAndUnit = displayValueAndUnit
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text(isUnavailable ? "--" : valAndUnit.displayVal)
-                            .font(.system(size: valueFontSize, weight: .bold, design: .rounded))
+                            .font(.system(size: valueFontSize, weight: .semibold))
+                            .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                             .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.textPrimary)
                         Text(valAndUnit.displayUnit)
-                            .font(.system(size: unitFontSize, weight: .semibold, design: .rounded))
+                            .font(.system(size: unitFontSize))
                             .lineLimit(1)
                             .foregroundColor(Theme.textSecondary)
                     }
 
                     HStack(spacing: 3) {
                         Text(statusText)
-                            .font(.system(size: labelFontSize, weight: .bold, design: .rounded))
+                            .font(.system(size: labelFontSize))
                             .lineLimit(1)
 
                         if metric == .soc {
@@ -158,19 +160,12 @@ public struct MetricDialView: View {
                                 .font(.system(size: labelFontSize * 0.9))
                         }
                     }
-                    .padding(.horizontal, max(4, minDimension * 0.04))
-                    .padding(.vertical, max(2, minDimension * 0.015))
-                    .background(
-                        metric == .soc ? Theme.regenGreen.opacity(0.2) : (isNegativeArc ? Theme.regenGreen.opacity(0.2) : Theme.electricCyan.opacity(0.2))
-                    )
-                    .foregroundColor(
-                        metric == .soc ? Theme.regenGreen : (isNegativeArc ? Theme.regenGreen : Theme.electricCyan)
-                    )
-                    .cornerRadius(6)
+                    .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.textSecondary)
                 }
                 .padding(.horizontal, strokeWidth + 4)
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: value)
             .contentShape(Rectangle())
             .onTapGesture {
                 if metric == .soc {
@@ -180,7 +175,6 @@ public struct MetricDialView: View {
                 }
             }
         }
-        .opacity(isUnavailable ? 0.4 : 1.0)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(isUnavailable ? "Unavailable" : "\(displayValueAndUnit.displayVal) \(displayValueAndUnit.displayUnit)")

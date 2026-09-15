@@ -42,19 +42,19 @@ public struct ChargingSessionDetailView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(session.locationName.uppercased())
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.caption.weight(.semibold))
                                     .foregroundColor(Theme.regenGreen)
                                 Text(session.startTime.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.system(size: 20, weight: .black, design: .rounded))
+                                    .font(.title3.weight(.semibold))
                                     .foregroundColor(Theme.textPrimary)
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("DURATION")
-                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .font(.caption.weight(.semibold))
                                     .foregroundColor(Theme.textSecondary)
                                 Text(durationText)
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .font(.headline)
                                     .foregroundColor(Theme.electricCyan)
                             }
                         }
@@ -65,7 +65,7 @@ public struct ChargingSessionDetailView: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(Theme.textSecondary)
                                 Text("Time Range: \(session.startTime.formatted(date: .omitted, time: .standard)) - \(end.formatted(date: .omitted, time: .standard))")
-                                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }
@@ -78,7 +78,7 @@ public struct ChargingSessionDetailView: View {
                                 Text("Energy Added")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", session.totalKWhDelivered))
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.regenGreen)
                             }
 
@@ -88,7 +88,7 @@ public struct ChargingSessionDetailView: View {
                                 Text("Peak Power")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.1f kW", session.peakPowerKW))
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.highPowerAmber)
                             }
 
@@ -98,7 +98,7 @@ public struct ChargingSessionDetailView: View {
                                 Text("Avg Power")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
                                 Text(String(format: "%.1f kW", session.averagePowerKW))
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.electricCyan)
                             }
                         }
@@ -110,7 +110,7 @@ public struct ChargingSessionDetailView: View {
                     // Location Map
                     VStack(alignment: .leading, spacing: 12) {
                         Text("CHARGING LOCATION")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal)
 
@@ -149,7 +149,7 @@ public struct ChargingSessionDetailView: View {
                     // Performance Grid
                     VStack(alignment: .leading, spacing: 12) {
                         Text("BATTERY & CHARGE STATS")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.caption.weight(.semibold))
                             .foregroundColor(Theme.textSecondary)
                             .padding(.horizontal)
 
@@ -232,13 +232,13 @@ private struct StatTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .font(.caption.weight(.semibold))
                 .foregroundColor(Theme.textSecondary)
             Text(value)
-                .font(.system(size: 18, weight: .black, design: .rounded))
+                .font(.headline)
                 .foregroundColor(accentColor)
             Text(subtitle)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .font(.caption)
                 .foregroundColor(Theme.textSecondary)
         }
         .padding()

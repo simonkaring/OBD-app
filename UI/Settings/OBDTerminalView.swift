@@ -561,7 +561,7 @@ public struct AIAnalysisSheet: View {
                         .glassCard()
                     } else if let result = analysisResult {
                         Text(result)
-                            .font(.system(.body, design: .rounded))
+                            .font(.body)
                             .textSelection(.enabled)
                             .padding()
                             .glassCard()

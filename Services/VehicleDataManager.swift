@@ -325,13 +325,16 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                     self.connectionState = .error("Adapter routing failed at \(cmd). Reconnect the scanner.")
                     return
                 }
-                self.scheduleNextPoll(generation: generation)
+                self.scheduleNextPoll(generation: generation, delay: 0.01)
                 return
             }
+            var nextDelay: TimeInterval = 0.05
             if case .success(let raw) = result {
                 let updates = self.selectedProfile.parseResponses(command: cmd, rawResponse: raw)
                 let applied = self.applyUpdates(updates, timestamp: .now, sourceCommand: cmd)
-                if !applied {
+                if applied {
+                    nextDelay = 0.01
+                } else {
                     self.recordMiss(for: cmd)
                 }
             } else {
@@ -339,7 +342,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             }
             self.expireExternalSpeed()
             self.expireEstimatedChargingPower(at: .now)
-            self.scheduleNextPoll(generation: generation)
+            // The adapter has finished this reply before we enqueue another request.
+            // Keep a short settling gap for BLE adapters, and back off on missing data.
+            self.scheduleNextPoll(generation: generation, delay: nextDelay)
         }
     }
 

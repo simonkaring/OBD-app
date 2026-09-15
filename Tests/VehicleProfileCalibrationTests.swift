@@ -36,6 +36,44 @@ private final class CalibrationMockAdapter: OBDConnectionProtocol {
 final class VehicleProfileCalibrationTests: XCTestCase {
 
     @MainActor
+    func testFastPollingWaitsForReplyAndPreservesEQARoutingAcrossCycles() async {
+        let mock = CalibrationMockAdapter()
+        mock.state = .disconnected
+        mock.deferredCommand = "222001"
+        let manager = VehicleDataManager(connection: mock)
+        manager.selectProfile(.mercedesEQAOBDb)
+        defer { manager.stopPolling() }
+        mock.connect(peripheralName: nil)
+        for _ in 0..<50 {
+            if mock.pendingCompletion != nil { break }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertNotNil(mock.pendingCompletion)
+        let initialCommands = mock.sentCommands
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(mock.sentCommands, initialCommands, "Never overlap requests")
+
+        let completion = mock.pendingCompletion
+        mock.pendingCompletion = nil
+        completion?(.success("7EA 05 62 20 01 00 00\r>"))
+        for _ in 0..<100 {
+            if mock.pendingCompletion != nil { break }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertNotNil(mock.pendingCompletion)
+        let profile = MercedesEQAOBDbProfile()
+        XCTAssertEqual(Array(mock.sentCommands.dropFirst(profile.initializationCommands.count)),
+                       profile.pollingCommands + Array(profile.pollingCommands.prefix(3)))
+
+        manager.stopPolling()
+        let stoppedCommands = mock.sentCommands
+        mock.pendingCompletion?(.success("7EA 05 62 20 01 01 00\r>"))
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(mock.sentCommands, stoppedCommands)
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 0, "Ignore replies from a stopped poll")
+    }
+
+    @MainActor
     func testStartupWaitsForRequiredAcknowledgementsBeforePolling() async {
         let mock = CalibrationMockAdapter()
         mock.deferredCommand = "AT SP 7"

@@ -1,81 +1,70 @@
 import SwiftUI
 
 public enum Theme {
-    public static let backgroundDark = Color(red: 0.05, green: 0.07, blue: 0.10)
-    public static let cardBackground = Color(red: 0.10, green: 0.13, blue: 0.18).opacity(0.7)
+    #if os(iOS)
+    public static let backgroundDark = Color(uiColor: UIColor.systemGroupedBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)))
+    public static let cardBackground = Color(uiColor: UIColor.secondarySystemGroupedBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)))
+    #else
+    public static let backgroundDark = Color(white: 0.0)
+    public static let cardBackground = Color(white: 0.11)
+    #endif
     
-    public static let electricCyan = Color(red: 0.0, green: 0.94, blue: 1.0)
-    public static let regenGreen = Color(red: 0.0, green: 0.90, blue: 0.46)
-    public static let highPowerAmber = Color(red: 1.0, green: 0.57, blue: 0.0)
-    public static let criticalRed = Color(red: 1.0, green: 0.23, blue: 0.19)
+    public static let electricCyan = Color.blue
+    public static let regenGreen = Color.green
+    public static let highPowerAmber = Color.orange
+    public static let criticalRed = Color.red
     public static let textPrimary = Color.white
     public static let textSecondary = Color.white.opacity(0.7)
 
-    /// Hairline separators over the dark background (glassmorphism dividers).
+    /// Hairline separators over the dark background.
     public static let divider = Color.white.opacity(0.15)
-    /// Legible text/icon color drawn on top of an accent-colored fill (e.g. a cyan button).
+    /// Legible text/icon color drawn on top of an accent-colored fill.
     public static let onAccent = Color.black
     /// Unfilled track color behind dial/bar gauges.
     public static let trackBackground = Color.white.opacity(0.1)
 
-    private static let brightBlue = Color(red: 0.0, green: 0.45, blue: 1.0)
-
     public static let powerGradient = LinearGradient(
-        colors: [electricCyan, highPowerAmber, criticalRed],
+        colors: [textPrimary, textPrimary],
         startPoint: .leading,
         endPoint: .trailing
     )
 
     public static let regenGradient = LinearGradient(
-        colors: [brightBlue, regenGreen],
+        colors: [regenGreen, regenGreen],
         startPoint: .leading,
         endPoint: .trailing
     )
 
     public static let speedGradient = LinearGradient(
-        colors: [electricCyan, brightBlue],
+        colors: [textPrimary, textPrimary],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     public static let socGradient = LinearGradient(
-        colors: [regenGreen, electricCyan],
+        colors: [regenGreen, regenGreen],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     public static let socLowGradient = LinearGradient(
-        colors: [highPowerAmber, criticalRed],
+        colors: [highPowerAmber, highPowerAmber],
         startPoint: .leading,
         endPoint: .trailing
     )
 }
 
 public struct GlassCardModifier: ViewModifier {
-    public var cornerRadius: CGFloat = 20
+    public var cornerRadius: CGFloat = 16
 
     public func body(content: Content) -> some View {
         content
-            .background(.ultraThinMaterial)
-            .background(Theme.cardBackground)
-            .cornerRadius(cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
-            .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
+            .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
     }
 }
 
 extension View {
-    public func glassCard(cornerRadius: CGFloat = 20) -> some View {
+    public func glassCard(cornerRadius: CGFloat = 16) -> some View {
         self.modifier(GlassCardModifier(cornerRadius: cornerRadius))
     }
 

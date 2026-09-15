@@ -4,11 +4,6 @@ public enum WidgetSize: String, Codable, CaseIterable, Identifiable, Sendable {
     case medium, large
     public var id: String { rawValue }
 
-    /// Rendered height for medium (half-width side-by-side) and large (full-width single-row) widgets.
-    public var height: Double {
-        return 240
-    }
-
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let raw = try container.decode(String.self)
@@ -85,6 +80,16 @@ public struct DashboardWidgetConfig: Codable, Identifiable, Hashable, Sendable {
         self.style = style
         self.size = size
     }
+
+    /// Width is customizable independently of the space each visualization needs.
+    public var preferredHeight: Double {
+        if kind.isChart { return 200 }
+        switch style {
+        case .numeric: return 132
+        case .bar: return 104
+        case .dial: return size == .medium ? 180 : 220
+        }
+    }
 }
 
 /// Not itself `Codable` — deliberately encodes/decodes only `widgets` (see below),
@@ -121,11 +126,11 @@ extension DashboardLayout: RawRepresentable {
 }
 
 extension DashboardLayout {
-    /// Default layout: Speed and Power medium dials paired side-by-side, followed by SoC large dial taking a row by itself.
+    /// Speed and power dials, a compact full-width charge bar, then supporting metrics.
     public static let `default` = DashboardLayout(widgets: [
         DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
-        DashboardWidgetConfig(kind: .metric(.soc), style: .dial, size: .large),
+        DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
         DashboardWidgetConfig(kind: .metric(.packVoltage), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .metric(.batteryTemp), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large)

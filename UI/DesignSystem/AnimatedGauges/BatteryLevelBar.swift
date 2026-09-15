@@ -16,7 +16,7 @@ public struct BatteryLevelBar: View {
         if isCharging { return Theme.regenGreen }
         if socPct < 20.0 { return Theme.criticalRed }
         if socPct < 40.0 { return Theme.highPowerAmber }
-        return Theme.electricCyan
+        return Theme.regenGreen
     }
 
     public var body: some View {
@@ -24,7 +24,7 @@ public struct BatteryLevelBar: View {
             HStack {
                 Label {
                     Text("High Voltage Battery")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundColor(Theme.textSecondary)
                 } icon: {
                     Image(systemName: isCharging ? "bolt.batteryblock.fill" : "batteryblock.fill")
@@ -36,39 +36,23 @@ public struct BatteryLevelBar: View {
                 if let batteryTempC {
                     HStack(spacing: 4) {
                         Image(systemName: "thermometer.medium")
-                            .foregroundColor(batteryTempC > 38.0 ? Theme.criticalRed : Theme.electricCyan)
+                            .foregroundColor(batteryTempC > 38.0 ? Theme.criticalRed : Theme.textSecondary)
                         Text(String(format: "HV: %.1f°C", batteryTempC))
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundColor(Theme.textPrimary)
                     }
                 }
             }
 
             HStack(spacing: 8) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Theme.trackBackground)
-                            .frame(height: 20)
-
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(
-                                LinearGradient(
-                                    colors: [barColor.opacity(0.7), barColor],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: max(0, min(geo.size.width, geo.size.width * ((socPct ?? 0) / 100.0))), height: 20)
-                            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: socPct)
-                    }
-                }
-                .frame(height: 20)
+                ProgressView(value: min(100, max(0, socPct ?? 0)), total: 100)
+                    .tint(barColor)
 
                 Text(socPct.map { String(format: "%.0f%%", $0) } ?? "—")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.headline)
+                    .monospacedDigit()
                     .foregroundColor(Theme.textPrimary)
-                    .frame(width: 50, alignment: .trailing)
+                    .fixedSize()
             }
         }
         .padding(16)

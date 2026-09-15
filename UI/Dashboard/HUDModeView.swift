@@ -31,7 +31,8 @@ public struct HUDModeView: View {
 
                 VStack(spacing: 10) {
                     Text(String(format: "%.0f", speedKmH))
-                        .font(.system(size: 110, weight: .black, design: .rounded))
+                        .font(.system(size: 110, weight: .semibold))
+                        .monospacedDigit()
                         .foregroundColor(Theme.regenGreen)
 
                     Text("KM/H")
@@ -43,7 +44,8 @@ public struct HUDModeView: View {
                 HStack(spacing: 40) {
                     VStack {
                         Text(socPct.map { "\(Int($0))%" } ?? "--%")
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .font(.system(size: 40, weight: .semibold))
+                            .monospacedDigit()
                             .foregroundColor(Theme.electricCyan)
                         Text("BATTERY")
                             .font(.caption)
@@ -52,7 +54,8 @@ public struct HUDModeView: View {
 
                     VStack {
                         Text(String(format: "%.1f kW", powerKW))
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .font(.system(size: 40, weight: .semibold))
+                            .monospacedDigit()
                             .foregroundColor(powerKW < 0 ? Theme.regenGreen : Theme.highPowerAmber)
                         Text("POWER")
                             .font(.caption)

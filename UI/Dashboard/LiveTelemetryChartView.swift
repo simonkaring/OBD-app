@@ -21,26 +21,22 @@ public struct LiveTelemetryChartView: View {
 
     private func color(for metric: TelemetryMetric, value: Double, seriesIndex: Int) -> Color {
         if metric == .power {
-            return value < 0 ? Theme.regenGreen : Theme.electricCyan
+            return value < 0 ? Theme.regenGreen : Theme.textPrimary
         }
-        return seriesIndex == 0 ? Theme.electricCyan : Theme.highPowerAmber
+        return seriesIndex == 0 ? Theme.textPrimary : Theme.highPowerAmber
     }
 
     public var body: some View {
         let activeMetrics = isDemoMode ? seriesMetrics : seriesMetrics.filter(liveMetrics.contains)
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label("Live \(headerTitle) Stream", systemImage: "chart.xyaxis.line")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                Label(headerTitle, systemImage: "chart.xyaxis.line")
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
-                Text(activeMetrics.isEmpty ? "WAITING" : "REALTIME")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Theme.electricCyan.opacity(0.2))
-                    .foregroundColor(Theme.electricCyan)
-                    .cornerRadius(4)
+                Text(activeMetrics.isEmpty ? "Waiting" : "Live")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
             }
 
             Chart {

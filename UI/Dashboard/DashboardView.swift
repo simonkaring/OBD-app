@@ -11,6 +11,7 @@ public struct DashboardView: View {
     @State private var showAddWidgetSheet = false
     @State private var draggedWidget: DashboardWidgetConfig?
     @AppStorage("dashboardLayout") private var layout: DashboardLayout = .default
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(vehicleData: VehicleDataManager, tripTracker: TripTrackingManager) {
         self.vehicleData = vehicleData
@@ -23,78 +24,22 @@ public struct DashboardView: View {
                 Theme.backgroundDark.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 12) {
                         // Connection Header Bar
-                        HStack {
-                            HStack(spacing: 8) {
-                                Circle()
-                                    .fill(vehicleData.isDemoMode ? Theme.electricCyan : (vehicleData.connectionState.isConnected ? Theme.regenGreen : Theme.criticalRed))
-                                    .frame(width: 10, height: 10)
-                                Text(vehicleData.isDemoMode ? "DEMO MODE (\(vehicleData.vehicleName))" : (vehicleData.connectionState.isConnected ? "CONNECTED (\(vehicleData.vehicleName))" : "DISCONNECTED (OBD-II Scanner)"))
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(vehicleData.isDemoMode ? Theme.electricCyan : (vehicleData.connectionState.isConnected ? Theme.regenGreen : Theme.criticalRed))
+                                .frame(width: 10, height: 10)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(vehicleData.isDemoMode ? "Demo mode" : (vehicleData.connectionState.isConnected ? "Connected" : "Disconnected"))
+                                    .font(.subheadline.weight(.semibold))
                                     .foregroundColor(Theme.textPrimary)
-                            }
-                            Spacer()
-
-                            if #available(iOS 26.0, macOS 26.0, *) {
-                                Button {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                        isEditMode.toggle()
-                                    }
-                                } label: {
-                                    Image(systemName: isEditMode ? "checkmark" : "pencil")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .frame(width: 32, height: 32)
-                                }
-                                .buttonStyle(.glass)
-                                .buttonBorderShape(.circle)
-                                .controlSize(.regular)
-                                .buttonSizing(.fitted)
-                                .tint(isEditMode ? Theme.regenGreen : nil)
-                                .frame(width: 44, height: 44)
-                                .accessibilityLabel(isEditMode ? "Done Editing" : "Edit Dashboard")
-
-                                Button {
-                                    showHUDMode = true
-                                } label: {
-                                    Image(systemName: "sunglasses.fill")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .frame(width: 32, height: 32)
-                                }
-                                .buttonStyle(.glass)
-                                .buttonBorderShape(.circle)
-                                .controlSize(.regular)
-                                .buttonSizing(.fitted)
-                                .frame(width: 44, height: 44)
-                                .accessibilityLabel("Heads-Up Display")
-                            } else {
-                                Button {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                        isEditMode.toggle()
-                                    }
-                                } label: {
-                                    Image(systemName: isEditMode ? "checkmark" : "pencil")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(isEditMode ? Theme.regenGreen : Theme.textPrimary)
-                                        .frame(width: 36, height: 36)
-                                        .background(.ultraThinMaterial, in: Circle())
-                                }
-                                .frame(width: 44, height: 44)
-                                .accessibilityLabel(isEditMode ? "Done Editing" : "Edit Dashboard")
-
-                                Button {
-                                    showHUDMode = true
-                                } label: {
-                                    Image(systemName: "sunglasses.fill")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(Theme.textPrimary)
-                                        .frame(width: 36, height: 36)
-                                        .background(.ultraThinMaterial, in: Circle())
-                                }
-                                .frame(width: 44, height: 44)
-                                .accessibilityLabel("Heads-Up Display")
+                                Text(vehicleData.vehicleName)
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
 
                         if vehicleData.isCalibrating {
@@ -104,7 +49,7 @@ public struct DashboardView: View {
                                     .tint(Theme.electricCyan)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Calibrating live telemetry metrics (\(Int(vehicleData.calibrationProgress * 100))%)")
-                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .font(.subheadline.weight(.semibold))
                                         .foregroundColor(Theme.electricCyan)
                                     Text("Verifying supported vehicle sensors...")
                                         .font(.caption2)
@@ -121,14 +66,14 @@ public struct DashboardView: View {
                         if isEditMode {
                             HStack {
                                 Text("Edit Dashboard")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .font(.headline)
                                     .foregroundColor(Theme.electricCyan)
                                 Spacer()
                                 Button {
                                     showAddWidgetSheet = true
                                 } label: {
                                     Label("Add Widget", systemImage: "plus.circle.fill")
-                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .font(.subheadline.weight(.semibold))
                                         .foregroundColor(Theme.onAccent)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 5)
@@ -139,7 +84,7 @@ public struct DashboardView: View {
                                     showCustomization = true
                                 } label: {
                                     Label("List Edit", systemImage: "list.bullet")
-                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .font(.subheadline)
                                         .foregroundColor(Theme.textSecondary)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 5)
@@ -158,7 +103,7 @@ public struct DashboardView: View {
                                     .font(.system(size: 40))
                                     .foregroundColor(Theme.textSecondary)
                                 Text("No Widgets Yet")
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .font(.headline)
                                     .foregroundColor(Theme.textPrimary)
                                 Text("Tap Edit, then Add Widget to build your dashboard.")
                                     .font(.system(size: 13))
@@ -171,7 +116,7 @@ public struct DashboardView: View {
                                     showAddWidgetSheet = true
                                 } label: {
                                     Label("Add Widget", systemImage: "plus.circle.fill")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .font(.subheadline.weight(.semibold))
                                         .foregroundColor(Theme.onAccent)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
@@ -186,8 +131,8 @@ public struct DashboardView: View {
                             .padding(.horizontal)
                         }
 
-                        ForEach(packDashboardWidgetsIntoRows(layout.widgets), id: \.first!.id) { row in
-                            HStack(spacing: 12) {
+                        ForEach(dynamicTypeSize.isAccessibilitySize ? layout.widgets.map { [$0] } : packDashboardWidgetsIntoRows(layout.widgets), id: \.first!.id) { row in
+                            HStack(alignment: .top, spacing: 12) {
                                 ForEach(row) { widget in
                                     WidgetTileWrapper(
                                         widget: widget,
@@ -233,10 +178,10 @@ public struct DashboardView: View {
                                     }
                                     .onDrop(of: [.text], delegate: WidgetDropDelegate(item: widget, layout: $layout, draggedItem: $draggedWidget))
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: widget.size.height)
+                                    .frame(minHeight: widget.preferredHeight)
                                 }
 
-                                if row.count == 1 && row[0].size == .medium {
+                                if row.count == 1 && row[0].size == .medium && !dynamicTypeSize.isAccessibilitySize {
                                     Spacer()
                                         .frame(maxWidth: .infinity)
                                 }
@@ -248,13 +193,13 @@ public struct DashboardView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
-                                    Text(tripTracker.isRecordingTrip ? "TRIP RECORDING ACTIVE" : "TRIP READY")
-                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    Text(tripTracker.isRecordingTrip ? "Recording trip" : "Ready to record")
+                                        .font(.subheadline)
                                         .foregroundColor(tripTracker.isRecordingTrip ? Theme.regenGreen : Theme.textSecondary)
 
                                     if tripTracker.isAutoTripEnabled {
-                                        Text("AUTO")
-                                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                                        Text("Auto")
+                                            .font(.caption)
                                             .padding(.horizontal, 5)
                                             .padding(.vertical, 2)
                                             .background(Theme.electricCyan.opacity(0.2))
@@ -265,11 +210,12 @@ public struct DashboardView: View {
 
                                 if let remaining = tripTracker.stationarySecondsRemaining, remaining > 0 {
                                     Text(String(format: "Stationary • Auto-stop in %ds", remaining))
-                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                        .font(.subheadline)
                                         .foregroundColor(Theme.highPowerAmber)
                                 } else {
                                     Text(String(format: "%.1f km logged", tripTracker.currentTrip?.distanceKm ?? 0.0))
-                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                        .font(.headline)
+                                        .monospacedDigit()
                                         .foregroundColor(Theme.textPrimary)
                                 }
                             }
@@ -284,7 +230,7 @@ public struct DashboardView: View {
                                 }
                             } label: {
                                 Text(tripTracker.isRecordingTrip ? "Stop Trip" : "Start Trip")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .font(.subheadline.weight(.semibold))
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 10)
                                     .background(tripTracker.isRecordingTrip ? Theme.criticalRed : Theme.electricCyan)
@@ -296,6 +242,19 @@ public struct DashboardView: View {
                         .glassCard()
                         .padding(.horizontal)
                         .padding(.bottom, 20)
+                    }
+                }
+            }
+            .navigationTitle("Telemetry")
+            .inlineTitleDisplayMode()
+            .toolbar {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    Button(isEditMode ? "Done" : "Edit", systemImage: isEditMode ? "checkmark" : "pencil") {
+                        withAnimation { isEditMode.toggle() }
+                    }
+                    .accessibilityLabel(isEditMode ? "Done Editing" : "Edit Dashboard")
+                    Button("Heads-Up Display", systemImage: "sunglasses") {
+                        showHUDMode = true
                     }
                 }
             }
@@ -447,8 +406,8 @@ private struct WidgetTileWrapper: View {
                         .disabled(widget.size == .medium)
                         .accessibilityLabel("Decrease widget size")
 
-                        Text(widget.size == .medium ? "HALF (MED)" : "FULL (LRG)")
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                        Text(widget.size == .medium ? "Half" : "Full")
+                            .font(.caption)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background(Theme.electricCyan.opacity(0.3))
