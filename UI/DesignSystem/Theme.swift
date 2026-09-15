@@ -22,33 +22,35 @@ public enum Theme {
     public static let onAccent = Color.black
     /// Unfilled track color behind dial/bar gauges.
     public static let trackBackground = Color.white.opacity(0.1)
+    public static let gaugeCyan = Color(red: 0.0, green: 0.94, blue: 1.0)
+    private static let gaugeBlue = Color(red: 0.0, green: 0.45, blue: 1.0)
 
     public static let powerGradient = LinearGradient(
-        colors: [textPrimary, textPrimary],
+        colors: [gaugeCyan, highPowerAmber, criticalRed],
         startPoint: .leading,
         endPoint: .trailing
     )
 
     public static let regenGradient = LinearGradient(
-        colors: [regenGreen, regenGreen],
+        colors: [gaugeBlue, regenGreen],
         startPoint: .leading,
         endPoint: .trailing
     )
 
     public static let speedGradient = LinearGradient(
-        colors: [textPrimary, textPrimary],
+        colors: [gaugeCyan, gaugeBlue],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     public static let socGradient = LinearGradient(
-        colors: [regenGreen, regenGreen],
+        colors: [regenGreen, gaugeCyan],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     public static let socLowGradient = LinearGradient(
-        colors: [highPowerAmber, highPowerAmber],
+        colors: [highPowerAmber, criticalRed],
         startPoint: .leading,
         endPoint: .trailing
     )

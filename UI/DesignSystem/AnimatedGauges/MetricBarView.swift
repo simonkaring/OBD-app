@@ -7,10 +7,10 @@ public struct MetricBarView: View {
     public var range: ClosedRange<Double>
     public var unit: String
     public var label: String
-    public var color: Color = Theme.textPrimary
+    public var color: Color = Theme.gaugeCyan
     public var isUnavailable: Bool = false
 
-    public init(value: Double, range: ClosedRange<Double>, unit: String, label: String, color: Color = Theme.textPrimary, isUnavailable: Bool = false) {
+    public init(value: Double, range: ClosedRange<Double>, unit: String, label: String, color: Color = Theme.gaugeCyan, isUnavailable: Bool = false) {
         self.value = value
         self.range = range
         self.unit = unit
@@ -39,7 +39,7 @@ public struct MetricBarView: View {
             }
 
             ProgressView(value: isUnavailable ? 0 : progress)
-                .tint(color)
+                .progressViewStyle(TelemetryBarStyle(color: color))
 
             HStack {
                 Text(String(format: "Min: %.0f%@", range.lowerBound, unit))
@@ -55,5 +55,24 @@ public struct MetricBarView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(isUnavailable ? "Unavailable" : String(format: "%.0f %@", value, unit))
+    }
+}
+
+/// The dashboard and charging screen share the same rounded gradient fill.
+struct TelemetryBarStyle: ProgressViewStyle {
+    let color: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Theme.trackBackground)
+                Capsule()
+                    .fill(LinearGradient(colors: [color.opacity(0.7), color], startPoint: .leading, endPoint: .trailing))
+                    .frame(width: geometry.size.width * (configuration.fractionCompleted ?? 0))
+            }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: configuration.fractionCompleted)
+        }
+        .frame(height: 20)
     }
 }

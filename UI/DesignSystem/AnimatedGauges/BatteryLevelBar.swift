@@ -16,7 +16,7 @@ public struct BatteryLevelBar: View {
         if isCharging { return Theme.regenGreen }
         if socPct < 20.0 { return Theme.criticalRed }
         if socPct < 40.0 { return Theme.highPowerAmber }
-        return Theme.regenGreen
+        return Theme.gaugeCyan
     }
 
     public var body: some View {
@@ -46,7 +46,7 @@ public struct BatteryLevelBar: View {
 
             HStack(spacing: 8) {
                 ProgressView(value: min(100, max(0, socPct ?? 0)), total: 100)
-                    .tint(barColor)
+                    .progressViewStyle(TelemetryBarStyle(color: barColor))
 
                 Text(socPct.map { String(format: "%.0f%%", $0) } ?? "—")
                     .font(.headline)

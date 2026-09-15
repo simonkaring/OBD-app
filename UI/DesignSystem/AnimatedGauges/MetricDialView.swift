@@ -96,7 +96,7 @@ public struct MetricDialView: View {
     public var body: some View {
         GeometryReader { geo in
             let minDimension = min(geo.size.width, geo.size.height)
-            let strokeWidth: CGFloat = max(6, minDimension * 0.045)
+            let strokeWidth: CGFloat = max(6, minDimension * 0.09)
             let inset = strokeWidth / 2.0 + 2.0
             let dialDiameter = max(10, minDimension - (inset * 2.0))
             let valueFontSize: CGFloat = max(18, minDimension * 0.22)
@@ -152,7 +152,7 @@ public struct MetricDialView: View {
 
                     HStack(spacing: 3) {
                         Text(statusText)
-                            .font(.system(size: labelFontSize))
+                            .font(.system(size: labelFontSize, weight: .semibold))
                             .lineLimit(1)
 
                         if metric == .soc {
@@ -160,7 +160,10 @@ public struct MetricDialView: View {
                                 .font(.system(size: labelFontSize * 0.9))
                         }
                     }
-                    .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.textSecondary)
+                    .padding(.horizontal, max(4, minDimension * 0.04))
+                    .padding(.vertical, max(2, minDimension * 0.015))
+                    .foregroundColor(metric == .soc || isNegativeArc ? Theme.regenGreen : Theme.gaugeCyan)
+                    .background((metric == .soc || isNegativeArc ? Theme.regenGreen : Theme.gaugeCyan).opacity(0.2), in: RoundedRectangle(cornerRadius: 6))
                 }
                 .padding(.horizontal, strokeWidth + 4)
             }

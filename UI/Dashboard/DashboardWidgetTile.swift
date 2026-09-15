@@ -50,7 +50,7 @@ public struct DashboardWidgetTile: View {
                 MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable, estimatedFullRangeKm: estimatedFullRangeKm ?? profile.estimatedFullRangeKm)
                     .frame(height: config.preferredHeight)
             case .bar:
-                MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, color: metric == .soc ? (value < 20 ? Theme.highPowerAmber : Theme.regenGreen) : Theme.textPrimary, isUnavailable: !isAvailable)
+                MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
             }
         }
         .overlay(alignment: .topTrailing) {
