@@ -5,11 +5,11 @@ import Foundation
 /// https://creativecommons.org/licenses/by-sa/4.0/
 /// Source: https://github.com/OBDb/Mercedes-Benz-EQA/blob/main/signalsets/v3/default.json
 /// Provided as-is, without warranties; see Section 5 of the license.
-/// Changes: Swift decoding of a telemetry subset, explicit ELM routing and SOC
-/// validation. Other physical bounds are enforced by the telemetry manager instead
-/// of upstream display maxima (which cap HV voltage at 100 V).
-/// Upstream marks these commands dbg:true. Addressing and current polarity still
-/// need vehicle validation; VoltLink interprets negative current as energy entering the pack.
+/// Changes: Swift decoding of a telemetry subset, explicit ELM routing, current-sign
+/// normalization and SOC validation. Other physical bounds are enforced by the telemetry
+/// manager instead of upstream display maxima (which cap HV voltage at 100 V).
+/// Upstream marks these commands dbg:true. The 2026-09-13 EQA drive capture confirms
+/// negative ECU current during discharge; VoltLink uses negative for energy entering the pack.
 public struct MercedesEQAOBDbProfile: VehicleProfile {
     public let vehicleName = "Mercedes-Benz EQA 250 (OBDb community)"
     public let isElectricVehicle = true
@@ -54,7 +54,7 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
         case "222001": return .speed(Double(raw) * 0.05625) // Front-left wheel
         case "226050": return raw <= 10_000 ? .soc(Double(raw) / 100) : nil
         case "226075": return .packVoltage(Double(raw) * 0.025)
-        case "226053": return .packCurrent(Double(Int16(bitPattern: raw)) / 10)
+        case "226053": return .packCurrent(-Double(Int16(bitPattern: raw)) / 10)
         case "222526": return .coolantTemp(Double(Int16(bitPattern: raw)) * 0.125)
         default: return nil
         }
