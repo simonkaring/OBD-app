@@ -4,6 +4,7 @@ public enum DTCSeverity: String, Codable, Sendable {
     case critical = "Critical"
     case warning = "Warning"
     case advisory = "Advisory"
+    case unknown = "Unknown"
 }
 
 public struct DTCCode: Codable, Sendable, Identifiable, Hashable {
@@ -17,9 +18,10 @@ public struct DTCCode: Codable, Sendable, Identifiable, Hashable {
     public let possibleFixes: [String]
     public var freezeFrameData: [String: String]?
     public var timestamp: Date
+    public var definitionSource: String?
 
     enum CodingKeys: String, CodingKey {
-        case code, title, category, severity, description, symptoms, possibleFixes, freezeFrameData, timestamp
+        case code, title, category, severity, description, symptoms, possibleFixes, freezeFrameData, timestamp, definitionSource
     }
 
     public init(from decoder: Decoder) throws {
@@ -33,6 +35,7 @@ public struct DTCCode: Codable, Sendable, Identifiable, Hashable {
         self.possibleFixes = try container.decodeIfPresent([String].self, forKey: .possibleFixes) ?? []
         self.freezeFrameData = try container.decodeIfPresent([String: String].self, forKey: .freezeFrameData)
         self.timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
+        self.definitionSource = try container.decodeIfPresent(String.self, forKey: .definitionSource)
     }
 
     public init(

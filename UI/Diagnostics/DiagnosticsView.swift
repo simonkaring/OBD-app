@@ -183,6 +183,12 @@ public struct DTCDetailSheet: View {
                     Text(dtc.title)
                         .font(.title3.weight(.semibold))
 
+                    if let source = dtc.definitionSource {
+                        Text(source)
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary)
+                    }
+
                     Divider()
 
                     VStack(alignment: .leading, spacing: 6) {

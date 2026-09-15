@@ -432,6 +432,41 @@ final class OBDParserTests: XCTestCase {
         XCTAssertTrue(code.title.contains("Replace Hybrid/EV Battery Pack"))
     }
 
+    func testImportedDTCDefinitionsAndManufacturerIsolation() throws {
+        let db = DTCLocalDatabase.shared
+        XCTAssertNil(db.loadError)
+        let generic = db.lookup(code: " p0301 ", manufacturer: "Audi")
+        XCTAssertEqual(generic.title, "Cylinder 1 Misfire Detected")
+        XCTAssertEqual(generic.severity, .unknown)
+        XCTAssertTrue(generic.symptoms.isEmpty)
+        XCTAssertTrue(generic.possibleFixes.isEmpty)
+        XCTAssertTrue(generic.definitionSource?.contains("Wal33D") == true)
+        let decoded = try JSONDecoder().decode(DTCCode.self, from: JSONEncoder().encode(generic))
+        XCTAssertEqual(decoded.definitionSource, generic.definitionSource)
+        XCTAssertEqual(db.lookup(code: "P1105", manufacturer: "Mercedes-Benz").title,
+                       "Atmospheric Pressure Sensor In Control Module")
+        XCTAssertEqual(db.lookup(code: "P1105", manufacturer: "Ford").title,
+                       "Dual Alternator Upper Fault")
+        for manufacturer in [nil, "Unknown brand", "GENERIC"] as [String?] {
+            XCTAssertEqual(db.lookup(code: "P1105", manufacturer: manufacturer).title,
+                           "Diagnostic Code P1105")
+        }
+        XCTAssertEqual(db.lookup(code: "P1000").title, "Diagnostic Code P1000",
+                       "Manufacturer-controlled placeholders must not look like definitions")
+    }
+
+    func testDTCScanUsesManufacturerForStoredAndPendingAndResetsContext() {
+        let scanner = DTCScannerService()
+        let connection = ScriptedConnection(response: .success("43 01 11 05\r>"))
+        connection.responses["07"] = .success("47 01 14 81\r>")
+        scanner.scanDTCs(connection: connection, manufacturer: "Mercedes-Benz")
+        XCTAssertTrue(scanner.scanSucceeded)
+        XCTAssertEqual(scanner.scannedCodes.map(\.title),
+                       ["Atmospheric Pressure Sensor In Control Module", "Glow Plug Failure"])
+        scanner.scanDTCs(connection: connection)
+        XCTAssertEqual(scanner.scannedCodes.first?.title, "Diagnostic Code P1105")
+    }
+
     func testDTCScannerSingleFrameDecodesCorrectCode() {
         let scanner = DTCScannerService()
         // 43 (Mode 03 response) 01 (count = 1) 0A 80 (DTC bytes) 00 00 (padding)

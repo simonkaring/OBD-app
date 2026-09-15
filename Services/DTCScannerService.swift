@@ -18,6 +18,7 @@ public final class DTCScannerService: ObservableObject {
 
     private let db = DTCLocalDatabase.shared
     private let isoParser = ISO15765Parser()
+    private var scanManufacturer: String?
 
     public init() {
         // Surface a bad/missing DTC definitions bundle immediately rather than only on next
@@ -29,13 +30,15 @@ public final class DTCScannerService: ObservableObject {
     public func scanDTCs(vehicleData: VehicleDataManager) {
         guard !isScanning, vehicleData.beginCommandSession() else { return }
         scanDTCs(connection: vehicleData.obdConnection, isDemo: vehicleData.isDemoMode,
-                 restoreCommands: vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.initializationCommands) { [weak vehicleData] in
+                 restoreCommands: vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.initializationCommands,
+                 manufacturer: vehicleData.selectedVehicle.brandName) { [weak vehicleData] in
             vehicleData?.endCommandSession(restoreProfile: false)
         }
     }
 
-    public func scanDTCs(connection: OBDConnectionProtocol, isDemo: Bool = false, restoreCommands: [String] = [], completion: @escaping () -> Void = {}) {
+    public func scanDTCs(connection: OBDConnectionProtocol, isDemo: Bool = false, restoreCommands: [String] = [], manufacturer: String? = nil, completion: @escaping () -> Void = {}) {
         guard !isScanning else { return }
+        scanManufacturer = manufacturer
         isScanning = true
         scanProgress = 0.0
         scannedCodes.removeAll()
@@ -81,7 +84,7 @@ public final class DTCScannerService: ObservableObject {
             let pendingResultCodes = self.codes(from: pendingResult, serviceByte: 0x47)
             let pendingCodes = pendingResultCodes ?? []
             self.scanSucceeded = pendingResultCodes != nil
-            if pendingResultCodes == nil { self.scanErrorMessage = "Partial scan: pending fault codes could not be read." }
+            self.scanErrorMessage = pendingResultCodes == nil ? "Partial scan: pending fault codes could not be read." : self.db.loadError
             var combined = storedCodes
             for code in pendingCodes where !combined.contains(where: { $0.code == code.code }) {
                 combined.append(code)
@@ -152,7 +155,7 @@ public final class DTCScannerService: ObservableObject {
         let payloads = isoParser.assembleISOTPPayloads(hex).map { Self.hexStringToBytes($0.payload) }
         let responses = payloads.filter { $0.first == serviceByte }
         guard !responses.isEmpty, responses.allSatisfy({ $0.count >= 2 && $0.count >= 2 + Int($0[1]) * 2 }) else { return nil }
-        return parseDTCResponse(hex, serviceByte: serviceByte)
+        return parseDTCResponse(hex, serviceByte: serviceByte, manufacturer: scanManufacturer)
     }
 
     private static func isNegativeOrEmpty(_ raw: String) -> Bool {
@@ -164,10 +167,10 @@ public final class DTCScannerService: ObservableObject {
     /// Merges DTCs from every responding ECU's ISO-TP bucket (deduped by `.code`, preserving
     /// arrival order) so a broadcast scan where one module reports "no codes" doesn't hide
     /// another module's codes.
-    func parseDTCResponse(_ hex: String, serviceByte: UInt8) -> [DTCCode] {
+    func parseDTCResponse(_ hex: String, serviceByte: UInt8, manufacturer: String? = nil) -> [DTCCode] {
         var results: [DTCCode] = []
         for (_, payload) in isoParser.assembleISOTPPayloads(hex) {
-            for code in decodeDTCs(fromPayload: payload, serviceByte: serviceByte)
+            for code in decodeDTCs(fromPayload: payload, serviceByte: serviceByte, manufacturer: manufacturer)
             where !results.contains(where: { $0.code == code.code }) {
                 results.append(code)
             }
@@ -175,7 +178,7 @@ public final class DTCScannerService: ObservableObject {
         return results
     }
 
-    private func decodeDTCs(fromPayload payload: String, serviceByte: UInt8) -> [DTCCode] {
+    private func decodeDTCs(fromPayload payload: String, serviceByte: UInt8, manufacturer: String?) -> [DTCCode] {
         let bytes = Self.hexStringToBytes(payload)
 
         guard let serviceIndex = bytes.firstIndex(of: serviceByte), serviceIndex + 1 < bytes.count else { return [] }
@@ -206,7 +209,7 @@ public final class DTCScannerService: ObservableObject {
             let digit3 = (secondByte & 0xF0) >> 4
             let digit4 = secondByte & 0x0F
             let codeStr = String(format: "%@%X%X%X%X", typePrefix, digit1, digit2, digit3, digit4)
-            results.append(db.lookup(code: codeStr))
+            results.append(db.lookup(code: codeStr, manufacturer: manufacturer))
         }
         return results
     }

@@ -4,21 +4,30 @@ public final class DTCLocalDatabase {
     public static let shared = DTCLocalDatabase()
 
     private var database: [String: DTCCode] = [:]
+    private var definitions: [String: [String: String]] = [:]
 
-    /// Set when the bundled `dtc_definitions.json` is missing or fails to decode. Non-nil means
-    /// `lookup(code:)` is only returning generic category fallbacks, not real DTC descriptions —
-    /// callers (e.g. `DTCScannerService`) surface this to the user instead of failing silently.
+    private struct ImportedDatabase: Decodable {
+        let definitions: [String: [String: String]]
+    }
+
+    /// A missing or invalid resource reduces lookup coverage; scanning can still proceed.
     public private(set) var loadError: String?
 
     private init() {
         loadBundleDatabase()
+        do {
+            guard let url = Self.bundle.url(forResource: "wal33d_dtc", withExtension: "json") else {
+                throw CocoaError(.fileNoSuchFile)
+            }
+            definitions = try JSONDecoder().decode(ImportedDatabase.self, from: Data(contentsOf: url)).definitions
+        } catch {
+            loadError = [loadError, "Wal33D DTC definitions could not be loaded — code descriptions are limited."]
+                .compactMap { $0 }.joined(separator: " ")
+        }
     }
 
-    public func lookup(code: String) -> DTCCode {
+    public func lookup(code: String, manufacturer: String? = nil) -> DTCCode {
         let upperCode = code.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        if let found = database[upperCode] {
-            return found
-        }
 
         // Generic fallback description generator if code not in database
         let category: String
@@ -31,25 +40,43 @@ public final class DTCLocalDatabase {
         default: category = "General System"
         }
 
+        let brand = manufacturer?.uppercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let aliases = ["MERCEDES-BENZ": "MERCEDES", "MERCEDES BENZ": "MERCEDES",
+                       "CHEVROLET": "CHEVY", "VW": "VOLKSWAGEN", "GENERAL MOTORS": "GM"]
+        let manufacturerDefinition = brand == "GENERIC" ? nil : definitions[aliases[brand] ?? brand]?[upperCode]
+        // Standard definitions take precedence over brand tables that also repeat SAE codes.
+        if let found = database[upperCode] {
+            return found
+        }
+        if let description = definitions["GENERIC"]?[upperCode] ?? manufacturerDefinition {
+            var result = DTCCode(code: upperCode, title: description, category: category,
+                                 severity: .unknown, description: description)
+            result.definitionSource = "Wal33D/dtc-database (MIT) · Community definition"
+            return result
+        }
+
         return DTCCode(
             code: upperCode,
             title: "Diagnostic Code \(upperCode)",
             category: category,
-            severity: .warning,
+            severity: .unknown,
             description: "Vehicle reported diagnostic trouble code \(upperCode). Consult vehicle technical manual.",
-            symptoms: ["Check engine / EV warning light illuminated"],
+            symptoms: [],
             possibleFixes: ["Perform system scan using professional diagnostic tool"]
         )
     }
 
-    private func loadBundleDatabase() {
+    private static var bundle: Bundle {
         #if SWIFT_PACKAGE
-        let bundle = Bundle.module
+        Bundle.module
         #else
-        let bundle = Bundle.main
+        Bundle.main
         #endif
-        guard let url = bundle.url(forResource: "dtc_definitions", withExtension: "json") else {
-            loadError = "DTC definitions file not found in app bundle — fault codes will show generic descriptions only."
+    }
+
+    private func loadBundleDatabase() {
+        guard let url = Self.bundle.url(forResource: "dtc_definitions", withExtension: "json") else {
+            loadError = "Curated DTC definitions are missing — detailed explanations are limited."
             print("DTC definitions file not found in app bundle.")
             return
         }
@@ -60,7 +87,7 @@ public final class DTCLocalDatabase {
                 database[item.code.uppercased()] = item
             }
         } catch {
-            loadError = "Failed to load DTC definitions — fault codes will show generic descriptions only."
+            loadError = "Curated DTC definitions could not be loaded — detailed explanations are limited."
             print("Failed to decode DTC definitions JSON: \(error)")
         }
     }
