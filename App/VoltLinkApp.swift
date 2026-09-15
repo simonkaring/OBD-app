@@ -54,6 +54,7 @@ struct MainTabView: View {
     @EnvironmentObject private var dtcService: DTCScannerService
     @State private var selectedTab: Int = 0
     @State private var isBannerDismissedManually: Bool = false
+    @State private var showFirstRunPicker = false
 
     private var isDisconnectedBannerActive: Bool {
         !vehicleData.isDemoMode && !vehicleData.connectionState.isConnected && !isBannerDismissedManually
@@ -83,70 +84,74 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            withBannerInset {
-                DashboardView(vehicleData: vehicleData, tripTracker: tripTracker)
-            }
-            .tabItem {
-                Label("Telemetry", systemImage: "gauge.with.dots.needle.bottom.50percent")
-            }
-            .tag(0)
+        if vehicleData.hasSelectedVehicle {
+            TabView(selection: $selectedTab) {
+                withBannerInset {
+                    DashboardView(vehicleData: vehicleData, tripTracker: tripTracker)
+                }
+                .tabItem {
+                    Label("Telemetry", systemImage: "gauge.with.dots.needle.bottom.50percent")
+                }
+                .tag(0)
 
-            withBannerInset {
-                TripHistoryView(tripTracker: tripTracker)
-            }
-            .tabItem {
-                Label("Log", systemImage: "clock.arrow.circlepath")
-            }
-            .tag(1)
+                withBannerInset {
+                    TripHistoryView(tripTracker: tripTracker)
+                }
+                .tabItem {
+                    Label("Log", systemImage: "clock.arrow.circlepath")
+                }
+                .tag(1)
 
-            withBannerInset {
-                ChargingLiveView(vehicleData: vehicleData)
-            }
-            .tabItem {
-                Label("Charging", systemImage: "bolt.batteryblock")
-            }
-            .tag(2)
+                withBannerInset {
+                    ChargingLiveView(vehicleData: vehicleData)
+                }
+                .tabItem {
+                    Label("Charging", systemImage: "bolt.batteryblock")
+                }
+                .tag(2)
 
-            withBannerInset {
-                DiagnosticsView(dtcService: dtcService, vehicleData: vehicleData)
-            }
-            .tabItem {
-                Label("Diagnostics", systemImage: "stethoscope")
-            }
-            .tag(3)
+                withBannerInset {
+                    DiagnosticsView(dtcService: dtcService, vehicleData: vehicleData)
+                }
+                .tabItem {
+                    Label("Diagnostics", systemImage: "stethoscope")
+                }
+                .tag(3)
 
-            withBannerInset {
-                SettingsView(vehicleData: vehicleData, tripTracker: tripTracker)
+                withBannerInset {
+                    SettingsView(vehicleData: vehicleData, tripTracker: tripTracker)
+                }
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape")
+                }
+                .tag(4)
             }
-            .tabItem {
-                Label("Settings", systemImage: "gearshape")
-            }
-            .tag(4)
-        }
-        .tint(Theme.electricCyan)
-        .safeAreaInset(edge: .top) {
-            if let error = env.storageWarning ?? tripTracker.persistenceError ?? chargingTracker.persistenceError {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label(error, systemImage: "exclamationmark.triangle")
-                        .font(.caption)
-                    if env.storageWarning == nil {
-                        Button("Retry Saving History") {
-                            tripTracker.retrySaving()
-                            chargingTracker.retrySaving()
+            .tint(Theme.electricCyan)
+            .safeAreaInset(edge: .top) {
+                if let error = env.storageWarning ?? tripTracker.persistenceError ?? chargingTracker.persistenceError {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                        if env.storageWarning == nil {
+                            Button("Retry Saving History") {
+                                tripTracker.retrySaving()
+                                chargingTracker.retrySaving()
+                            }
                         }
                     }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.highPowerAmber.opacity(0.2))
                 }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.highPowerAmber.opacity(0.2))
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isDisconnectedBannerActive)
+            .onChange(of: vehicleData.isDemoMode) { _, _ in
+                isBannerDismissedManually = false
+            }
+            // The trip/charging model contexts are wired in `AppEnvironment.init`, not here:
+            // a CarPlay-only launch never presents this view.
+        } else {
+            FirstRunVehiclePickerView(vehicleData: vehicleData)
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isDisconnectedBannerActive)
-        .onChange(of: vehicleData.isDemoMode) { _, _ in
-            isBannerDismissedManually = false
-        }
-        // The trip/charging model contexts are wired in `AppEnvironment.init`, not here:
-        // a CarPlay-only launch never presents this view.
     }
 }

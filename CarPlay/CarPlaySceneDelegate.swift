@@ -27,15 +27,30 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         didConnect interfaceController: CPInterfaceController
     ) {
         self.interfaceController = interfaceController
+        let env = AppEnvironment.shared
+
+        // Gate real UI until vehicle is selected
+        guard env.vehicleData.hasSelectedVehicle else {
+            showFirstRunTemplate(interfaceController: interfaceController, env: env)
+            
+            // Subscribe to vehicle selection
+            env.vehicleData.$hasSelectedVehicle
+                .dropFirst()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.rebuildInterface() }
+                .store(in: &cancellables)
+            
+            return
+        }
+
         cachedLayout = CarPlayLayout.load()
         rebuildInterface()
 
         // All telemetry/validity and diagnostic changes share one refresh budget.
-        let env = AppEnvironment.shared
         Publishers.MergeMany([env.vehicleData.objectWillChange.eraseToAnyPublisher(),
-                              env.dtcService.objectWillChange.eraseToAnyPublisher(),
-                              env.tripTracker.objectWillChange.eraseToAnyPublisher(),
-                              env.chargingTracker.objectWillChange.eraseToAnyPublisher()])
+                               env.dtcService.objectWillChange.eraseToAnyPublisher(),
+                               env.tripTracker.objectWillChange.eraseToAnyPublisher(),
+                               env.chargingTracker.objectWillChange.eraseToAnyPublisher()])
             .receive(on: DispatchQueue.main)
             .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in self?.rebuildInterface() }
@@ -67,6 +82,23 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.diagnosticsTemplate = nil
         self.healthImageCache = nil
         self.dialImageCache.removeAll()
+    }
+
+    private func showFirstRunTemplate(interfaceController: CPInterfaceController, env: AppEnvironment) {
+        let message = CPInformationTemplate(
+            title: "Select Your Vehicle",
+            layout: .twoColumn,
+            items: [
+                CPInformationItem(title: "First Time Setup", detail: "Please select your vehicle on your iPhone to continue."),
+                CPInformationItem(title: "Or Try Demo", detail: "Tap the 'Start Demo' button in settings on your iPhone to simulate a vehicle without an OBD adapter.")
+            ],
+            actions: [
+                CPTextButtonAction(title: "Pair on iPhone") { _ in
+                    // The user must handle vehicle selection on iPhone.
+                }
+            ]
+        )
+        interfaceController.setRootTemplate(message, animated: false)
     }
 
     private func rebuildInterface() {

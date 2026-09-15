@@ -21,6 +21,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     @Published public private(set) var liveMetrics: Set<TelemetryMetric> = []
     @Published public private(set) var isCommandSessionActive = false
     @Published public private(set) var socReferenceOffset: Double?
+    @Published public private(set) var hasSelectedVehicle: Bool = false
 
     public var obdConnection: OBDConnectionProtocol
     /// Close recordings before changing their source. A failed save keeps the current mode.
@@ -74,14 +75,15 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
         if let selectedVehicleID = persistenceDefaults?.string(forKey: Self.selectedVehicleIDDefaultsKey),
            let restoredVehicle = VehicleCatalog.allModels.first(where: { $0.id == selectedVehicleID }) {
-            self.selectedVehicle = restoredVehicle
-            self.selectedProfileID = restoredVehicle.profileID
-            self.selectedProfile = restoredVehicle.profileID.makeProfile()
-            if let year = persistenceDefaults?.object(forKey: Self.selectedModelYearDefaultsKey) as? Int,
-               restoredVehicle.modelYears().contains(year) {
-                self.selectedModelYear = year
-            }
-        }
+             self.selectedVehicle = restoredVehicle
+             self.selectedProfileID = restoredVehicle.profileID
+             self.selectedProfile = restoredVehicle.profileID.makeProfile()
+             if let year = persistenceDefaults?.object(forKey: Self.selectedModelYearDefaultsKey) as? Int,
+                restoredVehicle.modelYears().contains(year) {
+                 self.selectedModelYear = year
+             }
+             self.hasSelectedVehicle = true
+         }
 
         if let conn = connection {
             self.obdConnection = conn
@@ -148,6 +150,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.obdConnection = mock
             self.obdConnection.delegate = self
             connectionState = .demoMode
+            hasSelectedVehicle = true
         } else {
             let ble = BluetoothManager()
             self.obdConnection = ble
@@ -201,6 +204,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         } else {
             persistenceDefaults?.removeObject(forKey: Self.selectedModelYearDefaultsKey)
         }
+        hasSelectedVehicle = true
         return true
     }
 

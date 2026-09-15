@@ -214,6 +214,17 @@ public struct VehicleCatalog {
         variantDisplayName: "EQA 250 · OBDb community (experimental)"
     )
 
+    public static let genericEVModel = VehicleModelEntry(
+        id: "generic-ev-can",
+        brandName: "Generic",
+        modelName: "Standard EV CAN Bus Profile",
+        years: "2015+",
+        powertrain: .ev,
+        batteryCapacityKWh: 60.0,
+        profileID: .genericEV,
+        telemetrySupport: .generic
+    )
+
     private static func loadCatalogFromData() -> [VehicleBrand] {
         #if SWIFT_PACKAGE
         let bundle = Bundle.module
