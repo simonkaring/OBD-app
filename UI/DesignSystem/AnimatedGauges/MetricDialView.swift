@@ -114,28 +114,25 @@ public struct MetricDialView: View {
                     .frame(width: dialDiameter, height: dialDiameter)
 
                 if !isUnavailable {
-                    switch mode {
-                    case .bidirectional:
-                        if isNegativeArc {
+                    Group {
+                        switch mode {
+                        case .bidirectional:
+                            // Keep the same arc when crossing between draw and regen.
                             Circle()
-                                .trim(from: 0.5 + (normalizedProgress * 0.35), to: 0.5)
+                                .trim(from: 0.5 + min(0, normalizedProgress) * 0.35,
+                                      to: 0.5 + max(0, normalizedProgress) * 0.35)
                                 .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                                 .rotationEffect(.degrees(90))
                                 .frame(width: dialDiameter, height: dialDiameter)
-                        } else {
+                        case .unidirectional:
                             Circle()
-                                .trim(from: 0.5, to: 0.5 + (normalizedProgress * 0.35))
+                                .trim(from: 0.15, to: 0.15 + (normalizedProgress * 0.70))
                                 .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                                 .rotationEffect(.degrees(90))
                                 .frame(width: dialDiameter, height: dialDiameter)
                         }
-                    case .unidirectional:
-                        Circle()
-                            .trim(from: 0.15, to: 0.15 + (normalizedProgress * 0.70))
-                            .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                            .rotationEffect(.degrees(90))
-                            .frame(width: dialDiameter, height: dialDiameter)
                     }
+                    .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 1), value: normalizedProgress)
                 }
 
                 VStack(spacing: minDimension * 0.02) {
@@ -169,9 +166,10 @@ public struct MetricDialView: View {
                     .background((metric == .soc || isNegativeArc ? Theme.regenGreen : Theme.gaugeCyan).opacity(0.2), in: RoundedRectangle(cornerRadius: 6))
                 }
                 .padding(.horizontal, strokeWidth + 4)
+                // Update readouts immediately; animating text/layout softens the digits.
+                .transaction { $0.animation = nil }
             }
             .frame(width: geo.size.width, height: geo.size.height)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: value)
             .contentShape(Rectangle())
             .onTapGesture {
                 if metric == .soc {
