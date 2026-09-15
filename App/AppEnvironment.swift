@@ -58,14 +58,22 @@ public final class AppEnvironment: ObservableObject {
         vData.$latestTelemetry
             .sink { [weak tTracker, weak cTracker, weak vData] snapshot in
                 let hasPower = vData?.isDemoMode == true || (vData?.liveMetrics.contains(.power) == true && snapshot.hasFreshPower)
-                tTracker?.processTelemetrySnapshot(snapshot, vehicleName: vData?.vehicleName ?? "Mercedes EQA 250", hasPowerData: hasPower, requiresPowerForAutoStart: vData?.supportedMetrics.contains(.power) == true)
+                tTracker?.processTelemetrySnapshot(snapshot, vehicleName: vData?.vehicleName ?? "Vehicle", hasPowerData: hasPower, requiresPowerForAutoStart: vData?.supportedMetrics.contains(.power) == true)
                 cTracker?.processTelemetrySnapshot(snapshot)
             }
             .store(in: &cancellables)
 
-        Publishers.CombineLatest3(vData.$connectionState, vData.$selectedProfileID, vData.$isDemoMode)
-            .sink { state, profileID, isDemo in
-                if case .ready = state, profileID == .mercedesEQA250, !isDemo {
+        // Re-evaluate freshness even when the adapter stops returning telemetry.
+        Publishers.Merge(
+            vData.objectWillChange.map { _ in () },
+            Timer.publish(every: 1, on: .main, in: .common).autoconnect().map { _ in () }
+        )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak vData] _ in
+                guard let vData else { return }
+                vData.expireExternalSpeed()
+                if case .ready = vData.connectionState, vData.hasSelectedVehicle,
+                   !vData.isDemoMode, vData.needsExternalSpeed() {
                     locationManager.startSpeedMonitoring()
                 } else {
                     locationManager.stopSpeedMonitoring()
@@ -78,7 +86,7 @@ public final class AppEnvironment: ObservableObject {
             .compactMap { $0 }
             .sink { location in
                 guard location.speed >= 0,
-                      vData.selectedProfileID == .mercedesEQA250,
+                      vData.hasSelectedVehicle,
                       vData.connectionState.isConnected,
                       !vData.isDemoMode else { return }
                 vData.applyExternalSpeed(location.speed * 3.6, timestamp: location.timestamp)

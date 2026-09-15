@@ -16,7 +16,7 @@ public struct ChargingLiveView: View {
     }
 
     private var hasSOC: Bool {
-        vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc)
+        isConnected && TelemetryMetric.soc.isAvailable(in: vehicleData.latestTelemetry, liveMetrics: vehicleData.liveMetrics, isDemoMode: vehicleData.isDemoMode)
     }
 
     private var hasChargePower: Bool {
@@ -44,6 +44,8 @@ public struct ChargingLiveView: View {
         vehicleData.usableBatteryCapacityKWh
     }
 
+    private var hasCapacity: Bool { usableCapacityKWh.isFinite && usableCapacityKWh > 0 }
+
     private var storedEnergyKWh: Double {
         usableCapacityKWh * (vehicleData.displayedTelemetry.stateOfChargePct / 100.0)
     }
@@ -53,7 +55,7 @@ public struct ChargingLiveView: View {
     }
 
     private func minutesToTarget(_ targetPct: Double) -> Int {
-        guard isConnected && hasSOC && isCharging else { return 0 }
+        guard isConnected && hasSOC && isCharging && hasCapacity else { return 0 }
         let remainingPct = max(0, targetPct - vehicleData.displayedTelemetry.stateOfChargePct)
         // `isCharging` can be true from a status bit while the reported rate is still 0 kW
         // (profile reports charging without a power reading, or the charger is handshaking).
@@ -123,7 +125,7 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Usable Capacity")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
-                                        Text(String(format: "%.1f kWh", usableCapacityKWh))
+                                        Text(hasCapacity ? String(format: "%.1f kWh", usableCapacityKWh) : "Unknown")
                                             .font(.title3.weight(.semibold))
                                             .foregroundColor(Theme.textPrimary)
                                     }
@@ -131,7 +133,7 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .trailing, spacing: 4) {
                                         Text("Current Stored Energy")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
-                                        Text(hasSOC ? String(format: "%.1f kWh", storedEnergyKWh) : "— kWh")
+                                        Text(hasSOC && hasCapacity ? String(format: "%.1f kWh", storedEnergyKWh) : "— kWh")
                                             .font(.title3.weight(.semibold))
                                             .foregroundColor(Theme.textPrimary)
                                     }
@@ -143,7 +145,7 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Energy Needed to 100%")
                                             .font(.caption).foregroundColor(Theme.textSecondary)
-                                        Text(hasSOC ? String(format: "%.1f kWh", energyNeededToFullKWh) : "— kWh")
+                                        Text(hasSOC && hasCapacity ? String(format: "%.1f kWh", energyNeededToFullKWh) : "— kWh")
                                             .font(.headline)
                                             .foregroundColor(Theme.highPowerAmber)
                                     }
@@ -167,7 +169,7 @@ public struct ChargingLiveView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Estimated to 80%")
                                     .font(.caption).foregroundColor(Theme.textSecondary)
-                                Text(hasSOC && isCharging ? "\(timeTo80Min) min" : "—")
+                                Text(hasSOC && isCharging && hasCapacity ? "\(timeTo80Min) min" : "—")
                                     .font(.title2.weight(.semibold))
                                     .foregroundColor(Theme.textPrimary)
                             }

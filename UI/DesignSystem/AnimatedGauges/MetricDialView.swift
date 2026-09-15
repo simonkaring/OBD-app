@@ -18,14 +18,14 @@ public struct MetricDialView: View {
     public var metric: TelemetryMetric?
     public var isUnavailable: Bool = false
     /// Full-charge range used to derive the SoC dial's "estimated range" toggle. Should come
-    /// from the active `VehicleProfile.estimatedFullRangeKm`; defaults to a generic EV figure
-    /// when no profile is available (e.g. rendered standalone).
-    public var estimatedFullRangeKm: Double = 400.0
+    /// from the active `VehicleProfile.estimatedFullRangeKm`. `nil` disables the estimated
+    /// range feature (range unknown).
+    public var estimatedFullRangeKm: Double?
 
     @State private var showEstimatedRange: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil, isUnavailable: Bool = false, estimatedFullRangeKm: Double = 400.0) {
+    public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil, isUnavailable: Bool = false, estimatedFullRangeKm: Double? = nil) {
         self.value = value
         self.range = range
         self.mode = mode
@@ -77,7 +77,7 @@ public struct MetricDialView: View {
     private var statusText: String {
         if isUnavailable { return label }
         if metric == .soc {
-            return showEstimatedRange ? "Est. range" : "State of charge"
+            return showEstimatedRange && estimatedFullRangeKm != nil ? "Est. range" : "State of charge"
         }
         if metric == .instantEfficiency || metric == .tripAverageConsumption { return label }
         guard case .bidirectional = mode else { return label }
@@ -87,8 +87,8 @@ public struct MetricDialView: View {
     }
 
     private var displayValueAndUnit: (displayVal: String, displayUnit: String) {
-        if metric == .soc && showEstimatedRange {
-            let estimatedKm = (value / 100.0) * estimatedFullRangeKm
+        if metric == .soc && showEstimatedRange, let rangeKm = estimatedFullRangeKm {
+            let estimatedKm = (value / 100.0) * rangeKm
             return (String(format: "%.0f", estimatedKm), "km")
         }
         let decimals = metric?.decimalPlaces ?? (value >= 100 ? 0 : 1)
@@ -151,14 +151,14 @@ public struct MetricDialView: View {
                     }
 
                     HStack(spacing: 3) {
-                        Text(statusText)
-                            .font(.system(size: labelFontSize, weight: .semibold))
-                            .lineLimit(1)
+                         Text(statusText)
+                             .font(.system(size: labelFontSize, weight: .semibold))
+                             .lineLimit(1)
 
-                        if metric == .soc {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: labelFontSize * 0.9))
-                        }
+                         if metric == .soc && estimatedFullRangeKm != nil {
+                             Image(systemName: "arrow.triangle.2.circlepath")
+                                 .font(.system(size: labelFontSize * 0.9))
+                         }
                     }
                     .padding(.horizontal, max(4, minDimension * 0.04))
                     .padding(.vertical, max(2, minDimension * 0.015))
@@ -172,7 +172,7 @@ public struct MetricDialView: View {
             .frame(width: geo.size.width, height: geo.size.height)
             .contentShape(Rectangle())
             .onTapGesture {
-                if metric == .soc {
+                if metric == .soc && estimatedFullRangeKm != nil {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         showEstimatedRange.toggle()
                     }
@@ -183,7 +183,7 @@ public struct MetricDialView: View {
         .accessibilityLabel(label)
         .accessibilityValue(isUnavailable ? "Unavailable" : "\(displayValueAndUnit.displayVal) \(displayValueAndUnit.displayUnit)")
         .accessibilityActions {
-            if metric == .soc {
+            if metric == .soc && estimatedFullRangeKm != nil {
                 Button(showEstimatedRange ? "Show percentage" : "Show estimated range") {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         showEstimatedRange.toggle()

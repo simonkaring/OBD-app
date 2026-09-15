@@ -16,6 +16,9 @@ public struct DashboardView: View {
     public init(vehicleData: VehicleDataManager, tripTracker: TripTrackingManager) {
         self.vehicleData = vehicleData
         self.tripTracker = tripTracker
+        // Only used the first time this key is read (no saved layout yet), so a fresh
+        // install starts from widgets the active profile can actually populate.
+        self._layout = AppStorage(wrappedValue: .adaptedDefault(for: vehicleData.supportedMetrics), "dashboardLayout")
     }
 
     public var body: some View {
@@ -276,12 +279,20 @@ public struct DashboardView: View {
             .onChange(of: vehicleData.connectionState.isConnected) { _, _ in
                 telemetryHistory.removeAll()
             }
+            // Switching to a profile with different capabilities (e.g. Generic OBD-II ->
+            // an EV profile) re-adapts the default layout, but only while it's still
+            // untouched — any user customization is left exactly as they made it.
+            .onChange(of: vehicleData.supportedMetrics) { oldValue, newValue in
+                guard layout.matchesDefault(for: oldValue) else { return }
+                layout = .adaptedDefault(for: newValue)
+            }
             #if os(iOS)
             .fullScreenCover(isPresented: $showHUDMode) {
                 HUDModeView(
                     speedKmH: vehicleData.latestTelemetry.speedKmH,
                     powerKW: vehicleData.latestTelemetry.powerKW,
                     socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.displayedTelemetry.stateOfChargePct : nil,
+                    isDemoMode: vehicleData.isDemoMode,
                     isPresented: $showHUDMode
                 )
             }
@@ -291,6 +302,7 @@ public struct DashboardView: View {
                     speedKmH: vehicleData.latestTelemetry.speedKmH,
                     powerKW: vehicleData.latestTelemetry.powerKW,
                     socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.displayedTelemetry.stateOfChargePct : nil,
+                    isDemoMode: vehicleData.isDemoMode,
                     isPresented: $showHUDMode
                 )
             }

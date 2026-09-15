@@ -69,7 +69,7 @@ public final class TripTrackingManager: ObservableObject {
         locationManager.requestAlwaysAuthorization()
     }
 
-    public func startTrip(startSoc: Double = 80.0, vehicleName: String = "Mercedes EQA 250") {
+    public func startTrip(startSoc: Double = 80.0, vehicleName: String = "Vehicle") {
         guard currentTrip == nil else { return }
         let trip = TripModel(startTime: Date(), distanceKm: 0.0, startSocPct: startSoc, vehicleName: vehicleName)
         self.currentTrip = trip
@@ -276,7 +276,7 @@ public final class TripTrackingManager: ObservableObject {
         }
     }
 
-    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250", hasPowerData: Bool = true, requiresPowerForAutoStart: Bool = false) {
+    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Vehicle", hasPowerData: Bool = true, requiresPowerForAutoStart: Bool = false) {
         latestSoc = telemetry.stateOfChargePct
 
         if isRecordingTrip {

@@ -478,4 +478,33 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         XCTAssertNil(manager.calibratedCommands)
         XCTAssertNil(manager.calibrationSummary)
     }
+
+    func testRetainUnverifiedPollingCommandsPolicyIsTrueOnlyForTheRawEQAProfile() {
+        XCTAssertTrue(MercedesEQA250Profile().retainUnverifiedPollingCommands)
+        XCTAssertFalse(MercedesEQAOBDbProfile().retainUnverifiedPollingCommands, "Community profiles decode and verify their own PIDs")
+        XCTAssertFalse(GenericEVProfile().retainUnverifiedPollingCommands)
+        XCTAssertFalse(GenericOBD2Profile().retainUnverifiedPollingCommands)
+    }
+
+    @MainActor
+    func testEQACalibrationRetainsRawCommandsDespiteVerifiedReads() async {
+        let mock = CalibrationMockAdapter()
+        mock.responses = [
+            "22010A": .success("18 DA F1 59 05 62 01 0A 0D 3E\r>"),
+            "220210": .success("18 DA F1 59 05 62 02 10 00 00\r>")
+        ]
+
+        let manager = VehicleDataManager(connection: mock)
+        manager.selectProfile(.mercedesEQA250)
+        manager.startCalibration()
+
+        for _ in 0..<20 {
+            if !manager.isCalibrating { break }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+
+        XCTAssertFalse(manager.isCalibrating)
+        XCTAssertNil(manager.calibratedCommands, "EQA's raw-capture policy keeps unverified DIDs even though both reads responded")
+        XCTAssertEqual(manager.calibrationSummary, "2 of 2 reads responded")
+    }
 }

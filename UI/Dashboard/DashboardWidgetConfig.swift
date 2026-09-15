@@ -126,6 +126,14 @@ extension DashboardLayout: RawRepresentable {
 }
 
 extension DashboardLayout {
+    /// Persisted widget identities differ across launches; compare the user's presentation.
+    public func matchesDefault(for supportedMetrics: Set<TelemetryMetric>) -> Bool {
+        let defaults = Self.adaptedDefault(for: supportedMetrics).widgets
+        return widgets.count == defaults.count && zip(widgets, defaults).allSatisfy {
+            $0.kind == $1.kind && $0.style == $1.style && $0.size == $1.size
+        }
+    }
+
     /// Speed and power dials, a compact full-width charge bar, then supporting metrics.
     public static let `default` = DashboardLayout(widgets: [
         DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
@@ -135,6 +143,26 @@ extension DashboardLayout {
         DashboardWidgetConfig(kind: .metric(.batteryTemp), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large)
     ])
+
+    /// `.default` filtered down to what the active vehicle profile actually reports, so a
+    /// profile that can't decode e.g. pack voltage doesn't start every fresh dashboard with
+    /// an "unsupported" warning tile. Chart series are filtered the same way and the chart
+    /// is dropped entirely if none of its series are supported.
+    public static func adaptedDefault(for supportedMetrics: Set<TelemetryMetric>) -> DashboardLayout {
+        let widgets = DashboardLayout.default.widgets.compactMap { widget -> DashboardWidgetConfig? in
+            switch widget.kind {
+            case .metric(let metric):
+                return supportedMetrics.contains(metric) ? widget : nil
+            case .chart(let series):
+                let supportedSeries = series.filter(supportedMetrics.contains)
+                guard !supportedSeries.isEmpty else { return nil }
+                var adapted = widget
+                adapted.kind = .chart(series: supportedSeries)
+                return adapted
+            }
+        }
+        return DashboardLayout(widgets: widgets)
+    }
 }
 
 /// Packs widgets into 2-column grid rows:

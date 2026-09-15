@@ -12,7 +12,7 @@ public struct VolkswagenMEBProfile: VehicleProfile {
     public let isElectricVehicle = true
     public let batteryUsableCapacityKWh: Double = 77.0
     /// Conservative WLTP range across the MEB lineup (ID.Buzz is the low end; ID.4/ID.7 go higher).
-    public let estimatedFullRangeKm: Double = 400.0
+    public let estimatedFullRangeKm: Double? = 400.0
 
     private let isoParser = ISO15765Parser()
 

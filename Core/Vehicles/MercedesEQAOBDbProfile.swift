@@ -14,7 +14,7 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
     public let vehicleName = "Mercedes-Benz EQA 250 (OBDb community)"
     public let isElectricVehicle = true
     public let batteryUsableCapacityKWh = 66.5
-    public let estimatedFullRangeKm = 426.0
+    public let estimatedFullRangeKm: Double? = 426.0
 
     public static let sourceURL = URL(string: "https://github.com/OBDb/Mercedes-Benz-EQA/blob/main/signalsets/v3/default.json")!
     public static let licenseURL = URL(string: "https://creativecommons.org/licenses/by-sa/4.0/")!

@@ -3,19 +3,28 @@ import SwiftUI
 public struct VehicleProfilePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject public var vehicleData: VehicleDataManager
+    public let isFirstRun: Bool
 
     @State private var brandSearchText: String = ""
+    @State private var evOnly = true
 
-    public init(vehicleData: VehicleDataManager) {
+    public init(vehicleData: VehicleDataManager, isFirstRun: Bool = false) {
         self.vehicleData = vehicleData
+        self.isFirstRun = isFirstRun
     }
 
     private var filteredBrands: [VehicleBrand] {
         let brands = VehicleCatalog.brands.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        
+        let byPowertrain = brands.map { brand -> VehicleBrand in
+            let filtered = evOnly ? brand.models.filter { $0.powertrain == .ev } : brand.models
+            return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: filtered)
+        }.filter { !$0.models.isEmpty }
+        
         if brandSearchText.isEmpty {
-            return brands
+            return byPowertrain
         } else {
-            return brands.filter { brand in
+            return byPowertrain.filter { brand in
                 brand.name.localizedCaseInsensitiveContains(brandSearchText) ||
                 brand.modelFamilies.contains { family in
                     family.name.localizedCaseInsensitiveContains(brandSearchText) ||
@@ -31,27 +40,62 @@ public struct VehicleProfilePickerSheet: View {
 
     public var body: some View {
         NavigationStack {
-            List(filteredBrands) { brand in
-                NavigationLink {
-                    VehicleModelPickerView(
-                        brand: brand,
-                        vehicleData: vehicleData,
-                        onSelect: {
-                            dismiss()
+            List {
+                if isFirstRun {
+                    Section {
+                        Button {
+                            vehicleData.toggleDemoMode(true)
+                        } label: {
+                            Label("Start Demo Mode", systemImage: "play.circle.fill")
                         }
-                    )
-                } label: {
-                    BrandRow(brand: brand)
+                        Button {
+                            if vehicleData.selectVehicle(VehicleCatalog.genericEVModel, modelYear: nil) {
+                                dismiss()
+                            }
+                        } label: {
+                            Label("Generic EV / Vehicle Not Listed", systemImage: "questionmark.circle")
+                        }
+                    } footer: {
+                        Text("Demo simulates a vehicle without an adapter. Generic EV reads standard OBD data where available; battery and charging telemetry are not guaranteed.")
+                    }
+                }
+
+                Section {
+                    ForEach(filteredBrands) { brand in
+                        NavigationLink {
+                            VehicleModelPickerView(
+                                brand: brand,
+                                vehicleData: vehicleData,
+                                onSelect: {
+                                    dismiss()
+                                }
+                            )
+                        } label: {
+                            BrandRow(brand: brand)
+                        }
+                    }
                 }
             }
-            .navigationTitle("Select Brand")
+            .safeAreaInset(edge: .top) {
+                Picker("Powertrain", selection: $evOnly) {
+                    Text("EV").tag(true)
+                    Text("All").tag(false)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.bar)
+            }
+            .navigationTitle(isFirstRun ? "Select Your Vehicle" : "Select Brand")
             .inlineTitleDisplayMode()
-            .searchable(text: $brandSearchText, prompt: "Search brands")
+            .searchable(text: $brandSearchText, prompt: isFirstRun ? "Search brands or models" : "Search brands")
             .disabled(vehicleData.isCommandSessionActive)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+                if !isFirstRun {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
                     }
                 }
             }
@@ -216,14 +260,18 @@ private struct VehicleVariantRow: View {
 
                     Spacer()
 
-                    Text(model.powertrain.rawValue)
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.secondary.opacity(0.12))
-                        .foregroundColor(.secondary)
-                        .clipShape(Capsule())
+                    HStack(spacing: 4) {
+                        Image(systemName: model.powertrain.badgeIcon)
+                            .font(.caption2)
+                        Text(model.powertrain.rawValue)
+                            .font(.caption2)
+                    }
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.secondary.opacity(0.12))
+                    .foregroundColor(.secondary)
+                    .clipShape(Capsule())
                 }
 
                 HStack(spacing: 6) {
@@ -238,12 +286,21 @@ private struct VehicleVariantRow: View {
                         Text(String(format: "%.1f kWh", model.batteryCapacityKWh))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
+                    } else if model.powertrain != .ice {
+                        Text("•")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Text("Capacity unknown")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
                 }
 
-                Text(model.telemetrySupport.displayName)
-                    .font(.caption)
-                    .foregroundColor(model.telemetrySupport == .verified ? .green : .secondary)
+                HStack(spacing: 4) {
+                    Label(model.telemetrySupport.displayName, systemImage: model.telemetrySupport == .verified ? "checkmark.circle.fill" : "circle")
+                        .font(.caption)
+                        .foregroundColor(model.telemetrySupport == .verified ? Theme.regenGreen : .secondary)
+                }
 
                 if let notes = model.notes {
                     Text(notes)

@@ -29,24 +29,14 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.interfaceController = interfaceController
         let env = AppEnvironment.shared
 
-        // Gate real UI until vehicle is selected
-        guard env.vehicleData.hasSelectedVehicle else {
-            showFirstRunTemplate(interfaceController: interfaceController, env: env)
-            
-            // Subscribe to vehicle selection
-            env.vehicleData.$hasSelectedVehicle
-                .dropFirst()
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in self?.rebuildInterface() }
-                .store(in: &cancellables)
-            
-            return
-        }
-
         cachedLayout = CarPlayLayout.load()
+        // rebuildInterface() itself gates on hasSelectedVehicle/isDemoMode and shows the
+        // first-run template when neither is true yet.
         rebuildInterface()
 
-        // All telemetry/validity and diagnostic changes share one refresh budget.
+        // All telemetry/validity/diagnostic changes AND vehicle-selection/demo-mode changes
+        // share one refresh budget — vehicleData.objectWillChange already fires for those,
+        // so first-run -> real UI transitions rebuild through this same subscription.
         Publishers.MergeMany([env.vehicleData.objectWillChange.eraseToAnyPublisher(),
                                env.dtcService.objectWillChange.eraseToAnyPublisher(),
                                env.tripTracker.objectWillChange.eraseToAnyPublisher(),
@@ -84,28 +74,47 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.dialImageCache.removeAll()
     }
 
-    private func showFirstRunTemplate(interfaceController: CPInterfaceController, env: AppEnvironment) {
+    private func showFirstRunTemplate(interfaceController: CPInterfaceController) {
         let message = CPInformationTemplate(
             title: "Select Your Vehicle",
             layout: .twoColumn,
             items: [
                 CPInformationItem(title: "First Time Setup", detail: "Please select your vehicle on your iPhone to continue."),
-                CPInformationItem(title: "Or Try Demo", detail: "Tap the 'Start Demo' button in settings on your iPhone to simulate a vehicle without an OBD adapter.")
+                CPInformationItem(title: "Or Try Demo", detail: "Tap 'Start Demo Mode' on your iPhone to simulate a vehicle without an OBD adapter.")
             ],
-            actions: [
-                CPTextButtonAction(title: "Pair on iPhone") { _ in
-                    // The user must handle vehicle selection on iPhone.
-                }
-            ]
+            actions: []
         )
-        interfaceController.setRootTemplate(message, animated: false)
+        interfaceController.setRootTemplate(message, animated: false, completion: nil)
+    }
+
+    /// Drops any built templates so a later transition back to the real UI rebuilds fresh
+    /// rather than reusing stale grid/charging/diagnostics content.
+    private func clearCachedTemplates() {
+        tabBarTemplate = nil
+        drivingTemplate = nil
+        chargingTemplate = nil
+        diagnosticsTemplate = nil
+        healthImageCache = nil
+        dialImageCache.removeAll()
     }
 
     private func rebuildInterface() {
         let vehicleData = AppEnvironment.shared.vehicleData
+
+        // Gate here (not in didConnect) so toggling demo mode off, or first-run selection
+        // completing, both flow through the same rebuild without dropping subscriptions.
+        guard vehicleData.hasSelectedVehicle || vehicleData.isDemoMode else {
+            clearCachedTemplates()
+            if let interfaceController {
+                showFirstRunTemplate(interfaceController: interfaceController)
+            }
+            return
+        }
+
         let dtcService = AppEnvironment.shared.dtcService
         let snapshot = AppEnvironment.shared.tripTracker.telemetryForDisplay(vehicleData.displayedTelemetry)
         let layout = cachedLayout
+        let demoSuffix = vehicleData.isDemoMode ? " (Demo)" : ""
 
         // 1. Driving Mode Template
         let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
@@ -113,24 +122,27 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         }
         if let drivingTemplate, let chargingTemplate, let diagnosticsTemplate {
             drivingTemplate.updateGridButtons(buttons)
+            drivingTemplate.tabTitle = "Driving" + demoSuffix
             chargingTemplate.items = buildChargingItems(snapshot: snapshot)
+            chargingTemplate.tabTitle = "Charging" + demoSuffix
             diagnosticsTemplate.items = buildHealthItems(dtcService: dtcService)
+            diagnosticsTemplate.tabTitle = "Diagnostics" + demoSuffix
             return
         }
         let drivingTemplate = CPGridTemplate(title: "", gridButtons: buttons)
-        drivingTemplate.tabTitle = "Driving"
+        drivingTemplate.tabTitle = "Driving" + demoSuffix
         drivingTemplate.tabImage = UIImage(systemName: "gauge.with.dots.needle.bottom.50percent")
 
         // 2. Charging Mode Template
         let chargingItems = buildChargingItems(snapshot: snapshot)
         let chargingTemplate = CPInformationTemplate(title: "", layout: .twoColumn, items: chargingItems, actions: [])
-        chargingTemplate.tabTitle = "Charging"
+        chargingTemplate.tabTitle = "Charging" + demoSuffix
         chargingTemplate.tabImage = UIImage(systemName: "bolt.batteryblock")
 
         // 3. Diagnostics Mode Template
         let healthItems = buildHealthItems(dtcService: dtcService)
         let diagnosticsTemplate = CPInformationTemplate(title: "", layout: .twoColumn, items: healthItems, actions: [])
-        diagnosticsTemplate.tabTitle = "Diagnostics"
+        diagnosticsTemplate.tabTitle = "Diagnostics" + demoSuffix
         diagnosticsTemplate.tabImage = UIImage(systemName: "stethoscope")
 
         self.drivingTemplate = drivingTemplate
@@ -144,7 +156,9 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     private func buildChargingItems(snapshot: TelemetrySnapshot) -> [CPInformationItem] {
         let vehicleData = AppEnvironment.shared.vehicleData
         let isConnected = vehicleData.isDemoMode || vehicleData.connectionState.isConnected
-        let hasSOC = vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc)
+        // Demo SOC is synthetic and always "fresh"; live SOC must have updated recently,
+        // otherwise a stalled connection would keep showing the last known percentage.
+        let hasSOC = isConnected && TelemetryMetric.soc.isAvailable(in: snapshot, liveMetrics: vehicleData.liveMetrics, isDemoMode: vehicleData.isDemoMode)
         let hasChargePower = isConnected && vehicleData.hasChargePower
         let isCharging = hasChargePower && (snapshot.isCharging || snapshot.chargePowerKW > 0)
         let powerKW = snapshot.chargePowerKW
@@ -163,9 +177,12 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         }
         
         let remainingPct = max(0.0, 80.0 - snapshot.stateOfChargePct)
+        let capacityKWh = vehicleData.usableBatteryCapacityKWh
         let timeMin: String
-        if hasSOC && isCharging {
-            let neededKWh = (remainingPct / 100.0) * vehicleData.usableBatteryCapacityKWh
+        // Generic/unrecognized vehicles report a 0 kWh capacity — can't estimate a time
+        // from an unknown pack size, so fall back to "--" instead of a bogus "0 min".
+        if hasSOC && isCharging && capacityKWh > 0 {
+            let neededKWh = (remainingPct / 100.0) * capacityKWh
             let mins = remainingPct > 0 && powerKW > 0 ? Int(ceil(neededKWh / powerKW * 60.0)) : 0
             timeMin = "\(mins) min to 80%"
         } else {

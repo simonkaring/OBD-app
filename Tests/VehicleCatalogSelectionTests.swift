@@ -136,6 +136,77 @@ final class VehicleCatalogSelectionTests: XCTestCase {
         XCTAssertNil(invalid.selectedModelYear)
     }
 
+    func testHasSelectedVehicleIsFalseForANewManagerWithNoSavedSelection() throws {
+        let suiteName = "HasSelectedVehicleTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let manager = VehicleDataManager(userDefaults: defaults)
+        XCTAssertFalse(manager.hasSelectedVehicle)
+    }
+
+    func testHasSelectedVehicleRestoresOnlyFromAValidSavedVehicleID() throws {
+        let suiteName = "HasSelectedVehicleTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        defaults.set("not-a-real-vehicle-id", forKey: VehicleDataManager.selectedVehicleIDDefaultsKey)
+        let invalid = VehicleDataManager(userDefaults: defaults)
+        XCTAssertFalse(invalid.hasSelectedVehicle, "An unrecognized saved ID must not count as a selection")
+
+        let vehicle = try XCTUnwrap(VehicleCatalog.allModels.first { $0.id != VehicleCatalog.defaultModel.id })
+        defaults.set(vehicle.id, forKey: VehicleDataManager.selectedVehicleIDDefaultsKey)
+        let valid = VehicleDataManager(userDefaults: defaults)
+        XCTAssertTrue(valid.hasSelectedVehicle)
+        XCTAssertEqual(valid.selectedVehicle.id, vehicle.id)
+    }
+
+    func testHasSelectedVehicleIsSetBySelectVehicleAndNotByDemoMode() throws {
+        let suiteName = "HasSelectedVehicleTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let manager = VehicleDataManager(userDefaults: defaults)
+        XCTAssertFalse(manager.hasSelectedVehicle)
+
+        manager.toggleDemoMode(true)
+        XCTAssertFalse(manager.hasSelectedVehicle, "Enabling demo mode must not count as choosing a vehicle")
+        manager.toggleDemoMode(false)
+        XCTAssertFalse(manager.hasSelectedVehicle)
+
+        manager.selectVehicle(VehicleCatalog.eqaOBDbModel)
+        XCTAssertTrue(manager.hasSelectedVehicle)
+    }
+
+    func testGenericEVModelHasUnknownCapacityAndRangeAndIsRestorableFromTheCatalog() throws {
+        XCTAssertEqual(VehicleCatalog.genericEVModel.batteryCapacityKWh, 0, "Generic EV capacity is unknown until a real vehicle is picked")
+        XCTAssertNil(VehicleCatalog.genericEVModel.estimatedRangeKm)
+        XCTAssertEqual(VehicleCatalog.genericEVModel.profileID, .genericEV)
+
+        // The catalog must always carry an entry for this ID so a saved selection of it restores.
+        XCTAssertTrue(VehicleCatalog.allModels.contains { $0.id == VehicleCatalog.genericEVModel.id })
+
+        let suiteName = "HasSelectedVehicleTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(VehicleCatalog.genericEVModel.id, forKey: VehicleDataManager.selectedVehicleIDDefaultsKey)
+
+        let restored = VehicleDataManager(userDefaults: defaults)
+        XCTAssertTrue(restored.hasSelectedVehicle)
+        XCTAssertEqual(restored.selectedVehicle.id, VehicleCatalog.genericEVModel.id)
+        XCTAssertEqual(restored.selectedProfileID, .genericEV)
+        XCTAssertEqual(restored.usableBatteryCapacityKWh, 0)
+        XCTAssertNil(restored.estimatedFullRangeKm)
+    }
+
+    func testSharedDecoderDoesNotInventSpecificationsForSelectedVariant() {
+        let vehicle = VehicleModelEntry(id: "unknown-meb", brandName: "Volkswagen", modelName: "Unknown variant", years: "2025", powertrain: .ev, batteryCapacityKWh: 0, profileID: .volkswagenMEB)
+        let manager = VehicleDataManager()
+        manager.selectVehicle(vehicle)
+        XCTAssertEqual(manager.usableBatteryCapacityKWh, 0)
+        XCTAssertNil(manager.estimatedFullRangeKm)
+    }
+
     private func makeVehicle(
         id: String,
         modelName: String,

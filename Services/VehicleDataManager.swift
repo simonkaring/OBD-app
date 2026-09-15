@@ -32,10 +32,11 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         selectedVehicle.fullName + (selectedModelYear.map { " (\($0))" } ?? "")
     }
     public var usableBatteryCapacityKWh: Double {
-        selectedVehicle.batteryCapacityKWh > 0 ? selectedVehicle.batteryCapacityKWh : selectedProfile.batteryUsableCapacityKWh
+        // A shared decoder's reference pack size is not the selected variant's capacity.
+        selectedVehicle.batteryCapacityKWh
     }
-    public var estimatedFullRangeKm: Double {
-        selectedVehicle.estimatedRangeKm ?? selectedProfile.estimatedFullRangeKm
+    public var estimatedFullRangeKm: Double? {
+        selectedVehicle.estimatedRangeKm
     }
 
     public var hasChargePower: Bool {
@@ -51,6 +52,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     private var commandMetrics: [String: Set<TelemetryMetric>] = [:]
     private var commandMisses: [String: Int] = [:]
     private var externalSpeedUpdatedAt: Date?
+    private var obdSpeedUpdatedAt: Date?
     private var explicitChargingStatus: (charging: Bool, timestamp: Date)?
     private var batchedSnapshot: TelemetrySnapshot?
     private let persistenceDefaults: UserDefaults?
@@ -58,7 +60,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public var supportedMetrics: Set<TelemetryMetric> {
         if isDemoMode { return Set(TelemetryMetric.allCases) }
         var metrics = selectedProfile.supportedMetrics
-        if selectedProfileID == .mercedesEQA250 { metrics.insert(.speed) }
+        // GPS can supply speed even when the vehicle has no usable speed PID.
+        metrics.insert(.speed)
         if metrics.contains(.power) { metrics.insert(.tripAverageConsumption) }
         return TelemetryMetric.includingDerivedMetrics(metrics)
     }
@@ -75,15 +78,15 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
         if let selectedVehicleID = persistenceDefaults?.string(forKey: Self.selectedVehicleIDDefaultsKey),
            let restoredVehicle = VehicleCatalog.allModels.first(where: { $0.id == selectedVehicleID }) {
-             self.selectedVehicle = restoredVehicle
-             self.selectedProfileID = restoredVehicle.profileID
-             self.selectedProfile = restoredVehicle.profileID.makeProfile()
-             if let year = persistenceDefaults?.object(forKey: Self.selectedModelYearDefaultsKey) as? Int,
-                restoredVehicle.modelYears().contains(year) {
-                 self.selectedModelYear = year
-             }
-             self.hasSelectedVehicle = true
-         }
+            self.selectedVehicle = restoredVehicle
+            self.selectedProfileID = restoredVehicle.profileID
+            self.selectedProfile = restoredVehicle.profileID.makeProfile()
+            if let year = persistenceDefaults?.object(forKey: Self.selectedModelYearDefaultsKey) as? Int,
+               restoredVehicle.modelYears().contains(year) {
+                self.selectedModelYear = year
+            }
+            self.hasSelectedVehicle = true
+        }
 
         if let conn = connection {
             self.obdConnection = conn
@@ -150,7 +153,6 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.obdConnection = mock
             self.obdConnection.delegate = self
             connectionState = .demoMode
-            hasSelectedVehicle = true
         } else {
             let ble = BluetoothManager()
             self.obdConnection = ble
@@ -247,8 +249,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
             let respondingReadCount = verifiedCommands.filter { !$0.uppercased().hasPrefix("AT") }.count
             if respondingReadCount > 0 {
-                // Keep EQA voltage and the undecoded capture DID polling after a miss.
-                self.calibratedCommands = self.selectedProfileID == .mercedesEQA250 ? nil : verifiedCommands
+                self.calibratedCommands = self.selectedProfile.retainUnverifiedPollingCommands ? nil : verifiedCommands
                 let totalReadCount = commandsToTest.filter { !$0.uppercased().hasPrefix("AT") }.count
                 self.calibrationSummary = "\(respondingReadCount) of \(totalReadCount) reads responded"
             } else {
@@ -414,8 +415,14 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     }
 
     func applyExternalSpeed(_ speedKmH: Double, timestamp: Date = .now) {
-        externalSpeedUpdatedAt = timestamp
-        applyUpdate(.speed(speedKmH), timestamp: timestamp, sourceCommand: nil)
+        guard !isDemoMode, (0...15).contains(Date.now.timeIntervalSince(timestamp)),
+              needsExternalSpeed(at: timestamp) else { return }
+        applyUpdate(.speed(speedKmH), timestamp: timestamp, sourceCommand: nil, isExternalSpeed: true)
+    }
+
+    func needsExternalSpeed(at date: Date = .now) -> Bool {
+        guard let obdSpeedUpdatedAt else { return true }
+        return !(0...15).contains(date.timeIntervalSince(obdSpeedUpdatedAt))
     }
 
     public func clearExternalSpeed() {
@@ -467,7 +474,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     }
 
     @discardableResult
-    private func applyUpdate(_ update: TelemetryUpdate, timestamp: Date, sourceCommand: String?) -> Bool {
+    private func applyUpdate(_ update: TelemetryUpdate, timestamp: Date, sourceCommand: String?, isExternalSpeed: Bool = false) -> Bool {
         guard Self.isPlausible(update) else {
             return false
         }
@@ -480,6 +487,13 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         var updatedMetrics = metrics(for: update)
         switch update {
         case .speed(let s):
+            guard snap.speedUpdatedAt.map({ timestamp >= $0 }) ?? true else { return false }
+            if isExternalSpeed {
+                externalSpeedUpdatedAt = timestamp
+            } else {
+                obdSpeedUpdatedAt = timestamp
+                externalSpeedUpdatedAt = nil
+            }
             snap.speedKmH = s
             snap.speedUpdatedAt = timestamp
             if s > 1.0 {
@@ -672,9 +686,13 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     }
 
     private func recordMiss(for command: String) {
-        guard let metrics = commandMetrics[command] else { return }
+        guard var metrics = commandMetrics[command] else { return }
         commandMisses[command, default: 0] += 1
         guard commandMisses[command, default: 0] >= 3 else { return }
+        if metrics.contains(.speed) {
+            obdSpeedUpdatedAt = nil
+            if externalSpeedUpdatedAt != nil { metrics.remove(.speed) }
+        }
         let remaining = liveMetrics.subtracting(metrics)
         if remaining != liveMetrics { liveMetrics = remaining }
         if metrics.contains(.speed) { latestTelemetry.speedUpdatedAt = nil }
@@ -697,9 +715,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         liveMetrics = TelemetryMetric.includingDerivedMetrics(liveMetrics)
     }
 
-    private func expireExternalSpeed() {
+    func expireExternalSpeed(at date: Date = .now) {
         guard let updatedAt = externalSpeedUpdatedAt,
-              Date.now.timeIntervalSince(updatedAt) > 15 else { return }
+              date.timeIntervalSince(updatedAt) > 15 else { return }
         clearExternalSpeed()
     }
 
@@ -714,6 +732,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         commandMetrics = [:]
         commandMisses = [:]
         externalSpeedUpdatedAt = nil
+        obdSpeedUpdatedAt = nil
         latestTelemetry.isCharging = false
         latestTelemetry.chargePowerKW = 0
         latestTelemetry.chargePowerUpdatedAt = nil
@@ -754,7 +773,8 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             return
         }
 
-        guard chargingPermitted(snapshot: snapshot) else {
+        guard usableBatteryCapacityKWh.isFinite, usableBatteryCapacityKWh > 0,
+              chargingPermitted(snapshot: snapshot) else {
             socHistory.removeAll()
             clearEstimatedChargingPower(snapshot: &snapshot)
             return

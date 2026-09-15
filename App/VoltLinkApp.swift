@@ -54,7 +54,6 @@ struct MainTabView: View {
     @EnvironmentObject private var dtcService: DTCScannerService
     @State private var selectedTab: Int = 0
     @State private var isBannerDismissedManually: Bool = false
-    @State private var showFirstRunPicker = false
 
     private var isDisconnectedBannerActive: Bool {
         !vehicleData.isDemoMode && !vehicleData.connectionState.isConnected && !isBannerDismissedManually
@@ -84,7 +83,7 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        if vehicleData.hasSelectedVehicle {
+        if vehicleData.hasSelectedVehicle || vehicleData.isDemoMode {
             TabView(selection: $selectedTab) {
                 withBannerInset {
                     DashboardView(vehicleData: vehicleData, tripTracker: tripTracker)
@@ -151,7 +150,9 @@ struct MainTabView: View {
             // The trip/charging model contexts are wired in `AppEnvironment.init`, not here:
             // a CarPlay-only launch never presents this view.
         } else {
-            FirstRunVehiclePickerView(vehicleData: vehicleData)
+            // The picker owns its own NavigationStack and surfaces the demo/generic-EV
+            // entries as a top section when isFirstRun — no wrapper needed here.
+            VehicleProfilePickerSheet(vehicleData: vehicleData, isFirstRun: true)
         }
     }
 }

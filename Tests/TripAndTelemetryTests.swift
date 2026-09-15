@@ -342,6 +342,23 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(manager.selectedProfileID, .hkmcIoniq5)
     }
 
+    func testUnknownVehicleCapacityPreventsSOCSlopeCharging() {
+        let manager = VehicleDataManager()
+        XCTAssertTrue(manager.selectVehicle(VehicleCatalog.genericEVModel))
+        XCTAssertEqual(manager.usableBatteryCapacityKWh, 0, "Generic EV has no known capacity to base a slope estimate on")
+
+        let startedAt = Date.now
+        manager.applyUpdates([.speed(0), .soc(62.000)], timestamp: startedAt)
+        manager.applyUpdates([.speed(0), .soc(62.046)], timestamp: startedAt.addingTimeInterval(10))
+        manager.applyUpdates([.speed(0), .soc(62.091)], timestamp: startedAt.addingTimeInterval(20))
+        manager.applyUpdates([.speed(0), .soc(62.137)], timestamp: startedAt.addingTimeInterval(30))
+
+        XCTAssertFalse(manager.latestTelemetry.isCharging, "Zero/unknown capacity must never fabricate a charging estimate")
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0)
+        XCTAssertNil(manager.latestTelemetry.chargePowerSource)
+        XCTAssertFalse(manager.hasChargePower)
+    }
+
     func testDirectPackPowerWinsOverSOCEstimate() {
         let manager = VehicleDataManager()
         let startedAt = Date.now

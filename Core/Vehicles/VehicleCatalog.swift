@@ -193,6 +193,7 @@ public struct VehicleCatalog {
         batteryCapacityKWh: 66.5,
         profileID: .mercedesEQA250,
         telemetrySupport: .verified,
+        estimatedRangeKm: 426,
         notes: "Pack-voltage decoding only. SOC and SOC-derived charging are unavailable; DID 0x0210 is retained for raw capture pending validation.",
         modelFamilyID: "mercedes_benz-eqa",
         modelFamilyName: "EQA",
@@ -208,6 +209,7 @@ public struct VehicleCatalog {
         batteryCapacityKWh: 66.5,
         profileID: .mercedesEQAOBDb,
         telemetrySupport: .community,
+        estimatedRangeKm: 426,
         notes: "Experimental 11-bit OBDb requests. SOC, voltage, current, wheel speed, 12 V and HV coolant temperature. Validate readings and current direction on your car; coolant is not cell temperature.",
         modelFamilyID: "mercedes_benz-eqa",
         modelFamilyName: "EQA",
@@ -217,12 +219,15 @@ public struct VehicleCatalog {
     public static let genericEVModel = VehicleModelEntry(
         id: "generic-ev-can",
         brandName: "Generic",
-        modelName: "Standard EV CAN Bus Profile",
+        modelName: "EV / Vehicle Not Listed",
         years: "2015+",
         powertrain: .ev,
-        batteryCapacityKWh: 60.0,
+        batteryCapacityKWh: 0.0,
         profileID: .genericEV,
-        telemetrySupport: .generic
+        telemetrySupport: .generic,
+        notes: "Standard OBD readings only, where available. Battery SOC, power and charging telemetry are not guaranteed. Battery capacity and range are unknown.",
+        modelFamilyID: "generic-ev",
+        modelFamilyName: "Generic EV"
     )
 
     private static func loadCatalogFromData() -> [VehicleBrand] {
@@ -237,11 +242,11 @@ public struct VehicleCatalog {
            let data = try? Data(contentsOf: url),
            let container = try? JSONDecoder().decode(VehicleCatalogContainer.self, from: data) {
             let brands = container.brands.compactMap { brand -> VehicleBrand? in
-                let models = brand.models
-                    .filter {
+                let normalized: [VehicleModelEntry] = brand.models.map { $0.id == genericEVModel.id ? genericEVModel : $0 }
+                let models = normalized.filter {
                         // A zero pack size means a bad dataset row for a BEV/PHEV, but is
                         // correct for an ICE entry — don't let the sanity check eat those.
-                        ($0.batteryCapacityKWh > 0 || $0.powertrain == .ice) &&
+                        ($0.batteryCapacityKWh > 0 || $0.powertrain == .ice || $0.id == genericEVModel.id) &&
                         ($0.profileID != .mercedesEQA250 || $0.id == defaultModel.id)
                     }
                     .sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
@@ -250,13 +255,16 @@ public struct VehicleCatalog {
             }
 
             if !brands.isEmpty {
-                let mapped = brands.map { brand -> VehicleBrand in
+                var mapped = brands.map { brand -> VehicleBrand in
                     guard brand.name == defaultModel.brandName else { return brand }
                     let additions = [defaultModel, eqaOBDbModel].filter { model in
                         !brand.models.contains(where: { $0.id == model.id })
                     }
                     let updatedModels = (additions + brand.models).sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
                     return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: updatedModels)
+                }
+                if !mapped.flatMap(\.models).contains(where: { $0.id == genericEVModel.id }) {
+                    mapped.append(VehicleBrand(id: "generic-ev-fallback", name: "Generic EV", iconSymbol: "bolt.car", models: [genericEVModel]))
                 }
                 return mapped.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             }
@@ -269,7 +277,7 @@ public struct VehicleCatalog {
                 name: "Generic OBD-II & Others",
                 iconSymbol: "wrench.and.screwdriver.fill",
                 models: [
-                    VehicleModelEntry(id: "generic-ev-can", brandName: "Generic", modelName: "Standard EV CAN Bus Profile", years: "2015+", powertrain: .ev, batteryCapacityKWh: 60.0, profileID: .genericEV),
+                    genericEVModel,
                     VehicleModelEntry(id: "generic-sae-j1979", brandName: "Generic", modelName: "Standard SAE J1979 (Gas / Hybrid)", years: "1996+", powertrain: .ice, batteryCapacityKWh: 0.0, profileID: .genericOBD2)
                 ]
             ),

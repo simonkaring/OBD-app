@@ -4,6 +4,7 @@ public struct HUDModeView: View {
     public var speedKmH: Double
     public var powerKW: Double
     public var socPct: Double?
+    public var isDemoMode: Bool = false
     @Binding public var isPresented: Bool
 
     public var body: some View {
@@ -20,6 +21,15 @@ public struct HUDModeView: View {
                             .foregroundColor(Theme.textSecondary)
                     }
                     Spacer()
+                    if isDemoMode {
+                        Text("SIMULATED")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(Theme.highPowerAmber)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.highPowerAmber.opacity(0.15))
+                            .cornerRadius(4)
+                    }
                     Text("HEAD-UP DISPLAY MODE")
                         .font(.caption)
                         .fontWeight(.bold)

@@ -52,7 +52,7 @@ public final class TripModel {
         startTime: Date = Date(),
         distanceKm: Double = 0.0,
         startSocPct: Double = 0.0,
-        vehicleName: String = "Mercedes EQA 250"
+        vehicleName: String = "Vehicle"
     ) {
         self.id = id
         self.startTime = startTime

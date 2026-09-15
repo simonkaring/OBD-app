@@ -37,10 +37,16 @@ final class ConsumptionTelemetryTests: XCTestCase {
         let missingPower = TelemetryMetric.includingDerivedMetrics(manager.liveMetrics.subtracting([.power]))
         XCTAssertFalse(missingPower.contains(.instantEfficiency))
         XCTAssertFalse(missingPower.contains(.regenPower))
+        // `now` predates the OBD speed already recorded at now+16, so this GPS reading
+        // is stale relative to it and is rejected outright (never becomes the active
+        // source). Clearing external speed afterward must therefore be a no-op and must
+        // not erase the still-live OBD-derived metrics. See
+        // testClearingActiveGPSSpeedRemovesDerivedMetricsThatDependOnSpeed for the case
+        // where GPS genuinely is the active source.
         manager.applyExternalSpeed(100, timestamp: now)
         manager.clearExternalSpeed()
-        XCTAssertFalse(manager.liveMetrics.contains(.instantEfficiency))
-        XCTAssertFalse(manager.liveMetrics.contains(.regenPower))
+        XCTAssertTrue(manager.liveMetrics.contains(.instantEfficiency), "clearExternalSpeed must not erase a fresher OBD reading")
+        XCTAssertTrue(manager.liveMetrics.contains(.regenPower))
         manager.selectProfile(.genericOBD2)
         XCTAssertFalse(manager.supportedMetrics.contains(.instantEfficiency))
         XCTAssertFalse(manager.supportedMetrics.contains(.vehicleRange))
@@ -159,5 +165,119 @@ final class ConsumptionTelemetryTests: XCTestCase {
         tracker.processTelemetrySnapshot(snapshot, hasPowerData: false, requiresPowerForAutoStart: false)
         XCTAssertTrue(tracker.isRecordingTrip)
         XCTAssertNil(tracker.averageConsumption)
+    }
+
+    // MARK: - GPS-derived speed (applyExternalSpeed / expireExternalSpeed)
+
+    func testApplyExternalSpeedRejectsFutureStaleAndNonFiniteReadings() {
+        let manager = VehicleDataManager()
+        let now = Date.now
+
+        manager.applyExternalSpeed(80, timestamp: now.addingTimeInterval(1))
+        XCTAssertFalse(manager.liveMetrics.contains(.speed), "A timestamp in the future must be rejected")
+
+        manager.applyExternalSpeed(80, timestamp: now.addingTimeInterval(-16))
+        XCTAssertFalse(manager.liveMetrics.contains(.speed), "A timestamp older than 15s must be rejected")
+
+        manager.applyExternalSpeed(.nan, timestamp: now)
+        XCTAssertFalse(manager.liveMetrics.contains(.speed), "A non-finite speed must be rejected")
+        XCTAssertNil(manager.latestTelemetry.speedUpdatedAt)
+    }
+
+    func testApplyExternalSpeedPrefersFreshOBDOverGPS() {
+        let manager = VehicleDataManager()
+        let now = Date.now
+        manager.applyUpdate(.speed(60), timestamp: now)
+
+        manager.applyExternalSpeed(90, timestamp: now)
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 60, "Fresh OBD speed must not be overridden by GPS")
+        XCTAssertFalse(manager.needsExternalSpeed(at: now))
+    }
+
+    func testApplyExternalSpeedAcceptedOnceOBDSpeedGoesStale() {
+        let manager = VehicleDataManager()
+        let staleOBDTimestamp = Date.now.addingTimeInterval(-20)
+        manager.applyUpdate(.speed(60), timestamp: staleOBDTimestamp)
+
+        XCTAssertTrue(manager.needsExternalSpeed())
+        manager.applyExternalSpeed(90, timestamp: .now)
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 90)
+        XCTAssertTrue(manager.liveMetrics.contains(.speed))
+    }
+
+    func testOBDRecoveryAfterGPSTakeoverIsNotErasedByClearExternalSpeed() {
+        let manager = VehicleDataManager()
+        let staleOBDTimestamp = Date.now.addingTimeInterval(-20)
+        manager.applyUpdate(.speed(60), timestamp: staleOBDTimestamp)
+        manager.applyExternalSpeed(90, timestamp: .now)
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 90, "GPS takes over once OBD speed is stale")
+
+        // OBD reports again and immediately supersedes GPS as the active source.
+        manager.applyUpdate(.speed(70), timestamp: .now)
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 70)
+        XCTAssertFalse(manager.needsExternalSpeed())
+
+        manager.clearExternalSpeed()
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 70, "clearExternalSpeed must not erase a recovered OBD reading")
+        XCTAssertTrue(manager.liveMetrics.contains(.speed))
+    }
+
+    func testExpireExternalSpeedClearsOnlyOnceGPSItselfIsStale() {
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.speed(50), timestamp: Date.now.addingTimeInterval(-30))
+        let gpsTimestamp = Date.now.addingTimeInterval(-5)
+        manager.applyExternalSpeed(80, timestamp: gpsTimestamp)
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 80)
+
+        manager.expireExternalSpeed(at: gpsTimestamp.addingTimeInterval(12))
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 80, "12s since the GPS reading is still fresh")
+
+        manager.expireExternalSpeed(at: gpsTimestamp.addingTimeInterval(16))
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 0, "16s since the GPS reading is stale")
+        XCTAssertFalse(manager.liveMetrics.contains(.speed))
+    }
+
+    func testSelectProfileAndDemoModeResetGPSAndOBDSpeedBookkeeping() {
+        let manager = VehicleDataManager()
+        manager.applyUpdate(.speed(50), timestamp: Date.now.addingTimeInterval(-30))
+        manager.applyExternalSpeed(80, timestamp: Date.now.addingTimeInterval(-5))
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 80)
+
+        // selectProfile clears the OBD/GPS freshness bookkeeping (via resetTelemetryValidity)
+        // without resetting the full snapshot, so needsExternalSpeed must be true again while
+        // the last reported speed value itself is left alone until a new reading arrives.
+        manager.selectProfile(.genericEV)
+        XCTAssertTrue(manager.needsExternalSpeed(), "Profile switches clear OBD/GPS speed bookkeeping")
+
+        manager.applyUpdate(.speed(40), timestamp: Date.now.addingTimeInterval(-30))
+        manager.applyExternalSpeed(70, timestamp: Date.now.addingTimeInterval(-5))
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 70)
+
+        // toggleDemoMode replaces latestTelemetry with a fresh snapshot outright.
+        manager.toggleDemoMode(true)
+        XCTAssertTrue(manager.needsExternalSpeed(), "Entering demo mode clears OBD/GPS speed bookkeeping")
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 0)
+        manager.toggleDemoMode(false)
+        XCTAssertTrue(manager.needsExternalSpeed())
+        XCTAssertEqual(manager.latestTelemetry.speedKmH, 0)
+    }
+
+    /// Isolated counterpart to the corrected assertion in
+    /// testConsumptionAndRegenRequireFreshInputsAndDistinguishCharging: here GPS genuinely
+    /// is the active speed source (OBD is stale), so clearing it must drop the
+    /// speed-dependent derived metrics.
+    func testClearingActiveGPSSpeedRemovesDerivedMetricsThatDependOnSpeed() {
+        let manager = VehicleDataManager()
+        manager.selectProfile(.mercedesEQAOBDb)
+        manager.applyUpdate(.speed(100), timestamp: Date.now.addingTimeInterval(-30))
+        manager.applyUpdates([.packVoltage(400), .packCurrent(50)], timestamp: Date.now.addingTimeInterval(-5))
+        manager.applyExternalSpeed(100, timestamp: Date.now.addingTimeInterval(-5))
+        XCTAssertTrue(manager.liveMetrics.contains(.instantEfficiency))
+        XCTAssertTrue(manager.liveMetrics.contains(.regenPower))
+
+        manager.clearExternalSpeed()
+        XCTAssertFalse(manager.liveMetrics.contains(.speed))
+        XCTAssertFalse(manager.liveMetrics.contains(.instantEfficiency))
+        XCTAssertFalse(manager.liveMetrics.contains(.regenPower))
     }
 }

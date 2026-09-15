@@ -75,11 +75,13 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
     }
 
     public func startSpeedMonitoring() {
+        guard !speedMonitoringRequested else { return }
         speedMonitoringRequested = true
         refreshLocationUpdates()
     }
 
     public func stopSpeedMonitoring() {
+        guard speedMonitoringRequested else { return }
         speedMonitoringRequested = false
         refreshLocationUpdates()
     }

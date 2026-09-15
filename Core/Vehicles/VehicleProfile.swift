@@ -9,9 +9,13 @@ public protocol VehicleProfile: Sendable {
     var supportedMetrics: Set<TelemetryMetric> { get }
 
     /// Manufacturer-published full-charge range (e.g. WLTP), used as a conservative
-    /// estimate basis for the dashboard's "estimated range" SoC dial toggle. Defaults to
-    /// `Self.defaultEstimatedFullRangeKm` when a profile doesn't know its vehicle's range.
-    var estimatedFullRangeKm: Double { get }
+    /// estimate basis for the dashboard's "estimated range" SoC dial toggle. `nil` indicates
+    /// the profile doesn't have a known range (generic OBD-II, unrecognized ABRP vehicles, etc.).
+    var estimatedFullRangeKm: Double? { get }
+
+    /// Profile's polling command retention policy: whether to retain unverified commands
+    /// for raw capture and future decode discovery. Defaults to `false` (discard unverified).
+    var retainUnverifiedPollingCommands: Bool { get }
 
     func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate?
 
@@ -24,11 +28,9 @@ public protocol VehicleProfile: Sendable {
 }
 
 extension VehicleProfile {
-    /// Fallback used by profiles (generic OBD-II, unrecognized ABRP vehicles, ...) that have
-    /// no published range figure to report.
-    public static var defaultEstimatedFullRangeKm: Double { 400.0 }
+    public var estimatedFullRangeKm: Double? { nil }
 
-    public var estimatedFullRangeKm: Double { Self.defaultEstimatedFullRangeKm }
+    public var retainUnverifiedPollingCommands: Bool { false }
 
     public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
         parseResponse(command: command, rawResponse: rawResponse).map { [$0] } ?? []
