@@ -30,24 +30,29 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
     public var pollingCommands: [String] {
         // Poll wheel speed first so pack-current charging inference has a stationary reading.
         ["AT CRA 7EA", "AT SH 7E2", "222001",
-         "AT CRA 7ED", "AT SH 7E5", "226050", "226075", "226053", "222005", "222526"]
+         "AT CRA 7ED", "AT SH 7E5", "226050", "226075", "226053", "222005", "222526", "226502"]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        [.soc, .packVoltage, .packCurrent, .power, .speed, .aux12V, .coolantTemp]
+        [.soc, .packVoltage, .packCurrent, .power, .speed, .aux12V, .coolantTemp, .vehicleRange]
     }
 
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {
         let command = command.replacingOccurrences(of: " ", with: "").uppercased()
-        guard ["222001", "226050", "226075", "226053", "222005", "222526"].contains(command) else { return nil }
+        guard ["222001", "226050", "226075", "226053", "222005", "222526", "226502"].contains(command) else { return nil }
         let expectedECU = command == "222001" ? "7EA" : "7ED"
         // Headers are required by this profile. Never decode another ECU's reply or
         // search inside an unrelated payload for a coincidental DID byte sequence.
         guard let payload = ISO15765Parser().assembleISOTPPayloads(rawResponse)
             .first(where: { $0.ecu.uppercased() == expectedECU })?.payload,
               payload.hasPrefix("62" + command.dropFirst(2)),
-              let bytes = payload.hexBytes(after: "62" + command.dropFirst(2), count: command == "222005" ? 1 : 2) else { return nil }
+               let bytes = payload.hexBytes(after: "62" + command.dropFirst(2), count: command == "226502" ? 4 : (command == "222005" ? 1 : 2)) else { return nil }
 
+        if command == "226502" {
+            // Community definition; validate against the dashboard on the real vehicle.
+            let km = bytes.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+            return km <= 1_000 ? .vehicleRange(Double(km)) : nil
+        }
         if command == "222005" { return .aux12V(Double(bytes[0]) * 25.9 / 255) }
         let raw = UInt16(bytes[0]) << 8 | UInt16(bytes[1])
         switch command {

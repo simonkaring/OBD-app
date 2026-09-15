@@ -64,6 +64,12 @@ public final class MockDrivingSimulation: ObservableObject {
         }
 
         stepGenericDerivedMetrics(&nextTelemetry)
+        nextTelemetry.speedUpdatedAt = nextTelemetry.timestamp
+        nextTelemetry.powerUpdatedAt = nextTelemetry.timestamp
+        nextTelemetry.voltageUpdatedAt = nextTelemetry.timestamp
+        nextTelemetry.currentUpdatedAt = nextTelemetry.timestamp
+        nextTelemetry.vehicleRangeKm = 426 * nextTelemetry.stateOfChargePct / 100
+        nextTelemetry.vehicleRangeUpdatedAt = nextTelemetry.timestamp
         telemetry = nextTelemetry
     }
 

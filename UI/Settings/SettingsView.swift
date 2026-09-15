@@ -227,6 +227,9 @@ public struct SettingsView: View {
                     }
                 }
 
+                SOCReferenceSection(vehicleData: vehicleData)
+                    .id("\(vehicleData.selectedVehicle.id).\(vehicleData.selectedModelYear ?? 0).\(vehicleData.selectedProfileID.rawValue).\(vehicleData.isDemoMode)")
+
                 Section("Bluetooth Adapter") {
                     NavigationLink("Scan Nearby BLE Devices") {
                         AdapterScanView(vehicleData: vehicleData)
@@ -399,6 +402,82 @@ public struct AdapterScanView: View {
         case .connecting, .scanning: return .orange
         case .disconnected: return .secondary
         case .error: return .red
+        }
+    }
+}
+
+private struct SOCReferenceSection: View {
+    @ObservedObject var vehicleData: VehicleDataManager
+    @State private var dashboardSOC = ""
+    @State private var referenceError: String?
+    @FocusState private var isInputFocused: Bool
+
+    private var referenceValue: Double? {
+        let text = dashboardSOC.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: Locale.current.decimalSeparator ?? ".", with: ".")
+        guard let value = Double(text), value.isFinite, (0...100).contains(value) else { return nil }
+        return value
+    }
+
+    var body: some View {
+        Section {
+            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                let isLive = vehicleData.canSetSOCReference()
+                VStack(alignment: .leading, spacing: 12) {
+                    LabeledContent("OBD-reported SOC", value: isLive ? vehicleData.latestTelemetry.stateOfChargePct.formatted(.number.precision(.fractionLength(1))) + "%" : "Unavailable")
+                    LabeledContent("Adjusted SOC", value: isLive ? vehicleData.displayedTelemetry.stateOfChargePct.formatted(.number.precision(.fractionLength(1))) + "%" : "Unavailable")
+                    if !isLive {
+                        Text("Connect to your car with a profile that supplies live SOC. A reading from the last 15 seconds is required.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+            }
+
+            TextField("Car dashboard SOC (%)", text: $dashboardSOC)
+                #if os(iOS)
+                .keyboardType(.decimalPad)
+                #endif
+                .focused($isInputFocused)
+                .accessibilityLabel("Car dashboard SOC, percent")
+                .onChange(of: dashboardSOC) { _, _ in referenceError = nil }
+
+            if !dashboardSOC.isEmpty && referenceValue == nil {
+                Text("Enter a number from 0 to 100.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.criticalRed)
+            }
+
+            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                Button("Use as Reference") {
+                    guard let value = referenceValue, vehicleData.setSOCReference(value) else {
+                        referenceError = "Wait for a fresh SOC reading, then try again."
+                        return
+                    }
+                    referenceError = nil
+                    dashboardSOC = ""
+                    isInputFocused = false
+                }
+                .disabled(referenceValue == nil || !vehicleData.canSetSOCReference())
+            }
+
+            if let referenceError {
+                Text(referenceError)
+                    .font(.caption)
+                    .foregroundStyle(Theme.criticalRed)
+            }
+
+            if let offset = vehicleData.socReferenceOffset {
+                LabeledContent("Saved adjustment", value: String(format: "%+.1f percentage points", offset))
+                Button("Reset SOC Reference") {
+                    vehicleData.resetSOCReference()
+                    referenceError = nil
+                }
+            }
+        } header: {
+            Text("SOC Reference")
+        } footer: {
+            Text("Enter the percentage currently shown by your car. VoltLink saves the difference for this vehicle, model year and profile, then adjusts live displays and charging-target estimates. Original readings are kept for recordings and charging-power calculations. The adjustment is not applied in Demo Mode.")
         }
     }
 }

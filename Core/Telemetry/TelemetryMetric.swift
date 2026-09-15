@@ -27,6 +27,9 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
     case timingAdvance
     case barometricPressure
     case instantEfficiency
+    case tripAverageConsumption
+    case regenPower
+    case vehicleRange
 
     public var id: String { rawValue }
 
@@ -55,14 +58,17 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .oilTemp: return "Oil Temp"
         case .timingAdvance: return "Timing Advance"
         case .barometricPressure: return "Barometric Pressure"
-        case .instantEfficiency: return "Instant Efficiency"
+        case .instantEfficiency: return "Live Consumption"
+        case .tripAverageConsumption: return "Trip Average Consumption"
+        case .regenPower: return "Regen Power"
+        case .vehicleRange: return "Vehicle Range"
         }
     }
 
     public var unitSymbol: String {
         switch self {
         case .speed: return "km/h"
-        case .power: return "kW"
+        case .power, .regenPower: return "kW"
         case .soc, .soh, .fuelLevel, .throttlePosition, .engineLoad: return "%"
         case .batteryTemp, .coolantTemp, .intakeAirTemp, .batteryTempMin, .batteryTempMax, .ambientAirTemp, .oilTemp: return "°C"
         case .aux12V, .packVoltage: return "V"
@@ -72,7 +78,8 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .maf: return "g/s"
         case .manifoldPressure, .barometricPressure: return "kPa"
         case .timingAdvance: return "°"
-        case .instantEfficiency: return "kWh/100km"
+        case .instantEfficiency, .tripAverageConsumption: return "kWh/100km"
+        case .vehicleRange: return "km"
         }
     }
 
@@ -93,7 +100,9 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .maf: return "wind"
         case .manifoldPressure, .barometricPressure: return "gauge.low"
         case .timingAdvance: return "timer"
-        case .instantEfficiency: return "leaf.fill"
+        case .instantEfficiency, .tripAverageConsumption: return "leaf.fill"
+        case .regenPower: return "arrow.down.forward.and.arrow.up.backward"
+        case .vehicleRange: return "point.topleft.down.to.point.bottomright.curvepath"
         }
     }
 
@@ -116,7 +125,9 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .manifoldPressure, .barometricPressure: return 20...120
         case .oilTemp: return -20...150
         case .timingAdvance: return -30...60
-        case .instantEfficiency: return 0...40
+        case .instantEfficiency, .tripAverageConsumption: return -40...40
+        case .regenPower: return 0...100
+        case .vehicleRange: return 0...600
         }
     }
 
@@ -124,7 +135,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
     /// small-magnitude values like 12.6V to an indistinguishable "13".
     public var decimalPlaces: Int {
         switch self {
-        case .packVoltage, .aux12V, .instantEfficiency: return 1
+        case .packVoltage, .aux12V, .instantEfficiency, .tripAverageConsumption, .regenPower: return 1
         case .power, .packCurrent: return 1
         default: return 0
         }
@@ -156,8 +167,40 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .timingAdvance: return snapshot.timingAdvanceDeg
         case .barometricPressure: return snapshot.barometricPressureKPa
         case .instantEfficiency:
-            guard snapshot.speedKmH > 1 else { return 0 }
+            guard snapshot.speedKmH >= 5 else { return 0 }
             return (snapshot.powerKW / snapshot.speedKmH) * 100.0
+        case .tripAverageConsumption: return snapshot.tripAverageConsumption ?? 0
+        case .regenPower:
+            return snapshot.speedKmH >= 1 && !snapshot.isCharging ? max(0, -snapshot.powerKW) : 0
+        case .vehicleRange: return snapshot.vehicleRangeKm ?? 0
+        }
+    }
+
+    /// Derived metrics share the availability of their inputs, including after a read fails.
+    public static func includingDerivedMetrics(_ metrics: Set<Self>) -> Set<Self> {
+        var result = metrics.subtracting([.instantEfficiency, .regenPower])
+        if result.isSuperset(of: [.speed, .power]) {
+            result.formUnion([.instantEfficiency, .regenPower])
+        }
+        return result
+    }
+
+    /// Used by tiles, CarPlay and individual chart samples so missing data isn't plotted as zero.
+    public func isAvailable(in snapshot: TelemetrySnapshot, liveMetrics: Set<Self>, isDemoMode: Bool = false, at date: Date? = nil) -> Bool {
+        if self == .tripAverageConsumption { return snapshot.tripAverageConsumption != nil }
+        guard isDemoMode || liveMetrics.contains(self) else { return false }
+        let date = date ?? snapshot.timestamp
+        func fresh(_ timestamp: Date?) -> Bool {
+            timestamp.map { (0...15).contains(date.timeIntervalSince($0)) } ?? false
+        }
+        switch self {
+        case .instantEfficiency:
+            return fresh(snapshot.speedUpdatedAt) && fresh(snapshot.powerUpdatedAt) && snapshot.speedKmH >= 5 && !snapshot.isCharging
+        case .regenPower:
+            return fresh(snapshot.speedUpdatedAt) && fresh(snapshot.powerUpdatedAt)
+        case .vehicleRange:
+            return snapshot.vehicleRangeKm != nil && fresh(snapshot.vehicleRangeUpdatedAt)
+        default: return true
         }
     }
 }

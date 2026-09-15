@@ -20,6 +20,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     @Published public private(set) var calibrationSummary: String? = nil
     @Published public private(set) var liveMetrics: Set<TelemetryMetric> = []
     @Published public private(set) var isCommandSessionActive = false
+    @Published public private(set) var socReferenceOffset: Double?
 
     public var obdConnection: OBDConnectionProtocol
     /// Close recordings before changing their source. A failed save keeps the current mode.
@@ -54,9 +55,11 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     private let persistenceDefaults: UserDefaults?
 
     public var supportedMetrics: Set<TelemetryMetric> {
+        if isDemoMode { return Set(TelemetryMetric.allCases) }
         var metrics = selectedProfile.supportedMetrics
         if selectedProfileID == .mercedesEQA250 { metrics.insert(.speed) }
-        return metrics
+        if metrics.contains(.power) { metrics.insert(.tripAverageConsumption) }
+        return TelemetryMetric.includingDerivedMetrics(metrics)
     }
 
     public init(connection: OBDConnectionProtocol? = nil, userDefaults: UserDefaults? = nil) {
@@ -86,6 +89,49 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.obdConnection = BluetoothManager()
         }
         self.obdConnection.delegate = self
+        loadSOCReference()
+    }
+
+    private var socReferenceDefaultsKey: String {
+        "socReferenceOffset.\(selectedVehicle.id).\(selectedModelYear.map(String.init) ?? "unspecified").\(selectedProfileID.rawValue)"
+    }
+
+    private func loadSOCReference() {
+        let offset = persistenceDefaults?.object(forKey: socReferenceDefaultsKey) as? Double
+        socReferenceOffset = offset.flatMap { $0.isFinite && (-100...100).contains($0) ? $0 : nil }
+    }
+
+    public func canSetSOCReference(at date: Date = .now) -> Bool {
+        guard !isDemoMode, case .ready = connectionState, liveMetrics.contains(.soc),
+              let updatedAt = latestTelemetry.socUpdatedAt else { return false }
+        return (0...15).contains(date.timeIntervalSince(updatedAt))
+    }
+
+    @MainActor
+    @discardableResult
+    public func setSOCReference(_ dashboardSOC: Double) -> Bool {
+        guard dashboardSOC.isFinite, (0...100).contains(dashboardSOC), canSetSOCReference() else { return false }
+        socReferenceOffset = dashboardSOC - latestTelemetry.stateOfChargePct
+        persistenceDefaults?.set(socReferenceOffset, forKey: socReferenceDefaultsKey)
+        return true
+    }
+
+    @MainActor
+    public func resetSOCReference() {
+        socReferenceOffset = nil
+        persistenceDefaults?.removeObject(forKey: socReferenceDefaultsKey)
+    }
+
+    public var displayedTelemetry: TelemetrySnapshot { telemetryForDisplay(latestTelemetry) }
+
+    /// Apply the dashboard reference only at presentation time. Recordings and SOC-slope
+    /// charging estimates continue to use the original readings, including near 0/100%.
+    public func telemetryForDisplay(_ snapshot: TelemetrySnapshot) -> TelemetrySnapshot {
+        guard !isDemoMode, liveMetrics.contains(.soc), snapshot.socUpdatedAt != nil,
+              let offset = socReferenceOffset else { return snapshot }
+        var displayed = snapshot
+        displayed.stateOfChargePct = min(100, max(0, snapshot.stateOfChargePct + offset))
+        return displayed
     }
 
     public func toggleDemoMode(_ enabled: Bool) {
@@ -131,6 +177,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         stopPolling()
         selectedProfileID = id
         selectedProfile = id.makeProfile()
+        loadSOCReference()
         calibratedCommands = nil
         calibrationSummary = nil
         pollingIndex = 0
@@ -373,6 +420,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         latestTelemetry.speedKmH = 0
         latestTelemetry.speedUpdatedAt = nil
         if liveMetrics.contains(.speed) { liveMetrics.remove(.speed) }
+        liveMetrics = TelemetryMetric.includingDerivedMetrics(liveMetrics)
     }
 
     /// Physically plausible bounds per decoded quantity. Several vehicle profiles carry
@@ -409,6 +457,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .oilTemp(let v):                   return ok(v, -50...250)
         case .timingAdvance(let v):             return ok(v, -70...70)
         case .barometricPressure(let v):        return ok(v, 0...300)
+        case .vehicleRange(let v):              return ok(v, 0...1_000)
         case .genericPid:                       return true
         }
     }
@@ -442,6 +491,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             snap.voltageV = v
             snap.currentA = a
             snap.powerKW = kw
+            snap.voltageUpdatedAt = timestamp
+            snap.currentUpdatedAt = timestamp
+            snap.powerUpdatedAt = timestamp
             // Negative pack current = energy into the battery. Only treat it as
             // charging (not regen) when parked, since regen only occurs while moving.
             if a < -1.0 && chargingPermitted(snapshot: snap) {
@@ -458,10 +510,12 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
         case .packVoltage(let v):
             snap.voltageV = v
+            snap.voltageUpdatedAt = timestamp
             updatePackPower(snapshot: &snap, updatedMetrics: &updatedMetrics)
 
         case .packCurrent(let current):
             snap.currentA = current
+            snap.currentUpdatedAt = timestamp
             updatePackPower(snapshot: &snap, updatedMetrics: &updatedMetrics)
 
         case .soc(let soc):
@@ -502,6 +556,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .oilTemp(let c): snap.oilTempC = c
         case .timingAdvance(let deg): snap.timingAdvanceDeg = deg
         case .barometricPressure(let kPa): snap.barometricPressureKPa = kPa
+        case .vehicleRange(let km):
+            snap.vehicleRangeKm = km
+            snap.vehicleRangeUpdatedAt = timestamp
         case .genericPid: break
         }
         if !chargingPermitted(snapshot: snap) {
@@ -509,7 +566,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             snap.chargePowerKW = 0
             if snap.chargePowerSource == .socEstimate { clearEstimatedChargingPower(snapshot: &snap) }
         }
-        let available = liveMetrics.union(updatedMetrics)
+        let available = TelemetryMetric.includingDerivedMetrics(liveMetrics.union(updatedMetrics))
         if available != liveMetrics { liveMetrics = available }
         if let sourceCommand {
             commandMetrics[sourceCommand, default: []].formUnion(updatedMetrics)
@@ -563,9 +620,14 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
 
     private func updatePackPower(snapshot: inout TelemetrySnapshot, updatedMetrics: inout Set<TelemetryMetric>) {
         let available = liveMetrics.union(updatedMetrics)
-        guard available.contains(.packVoltage), available.contains(.packCurrent) else { return }
+        guard available.contains(.packVoltage), available.contains(.packCurrent),
+              let voltageAt = snapshot.voltageUpdatedAt, let currentAt = snapshot.currentUpdatedAt,
+              (0...15).contains(snapshot.timestamp.timeIntervalSince(voltageAt)),
+              (0...15).contains(snapshot.timestamp.timeIntervalSince(currentAt)) else { return }
         clearEstimatedChargingPower(snapshot: &snapshot)
         snapshot.powerKW = (snapshot.voltageV * snapshot.currentA) / 1000.0
+        // Power is only as fresh as its oldest input.
+        snapshot.powerUpdatedAt = min(voltageAt, currentAt)
         updatedMetrics.insert(.power)
         if snapshot.currentA < -1.0 && chargingPermitted(snapshot: snapshot) {
             snapshot.isCharging = true
@@ -600,6 +662,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .oilTemp: [.oilTemp]
         case .timingAdvance: [.timingAdvance]
         case .barometricPressure: [.barometricPressure]
+        case .vehicleRange: [.vehicleRange]
         case .hvacPower, .chargingStats, .genericPid: []
         }
     }
@@ -618,6 +681,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         if metrics.contains(.packVoltage) || metrics.contains(.packCurrent) {
             if liveMetrics.contains(.power) { liveMetrics.remove(.power) }
             latestTelemetry.powerKW = 0
+            latestTelemetry.powerUpdatedAt = nil
             // SOC-derived charging power does not depend on a voltage/current read.
             if latestTelemetry.chargePowerSource != .socEstimate {
                 latestTelemetry.chargePowerKW = 0
@@ -626,6 +690,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
                 latestTelemetry.chargePowerSource = nil
             }
         }
+        liveMetrics = TelemetryMetric.includingDerivedMetrics(liveMetrics)
     }
 
     private func expireExternalSpeed() {
@@ -638,6 +703,10 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         if !liveMetrics.isEmpty { liveMetrics = [] }
         explicitChargingStatus = nil
         latestTelemetry.speedUpdatedAt = nil
+        latestTelemetry.powerUpdatedAt = nil
+        latestTelemetry.voltageUpdatedAt = nil
+        latestTelemetry.currentUpdatedAt = nil
+        latestTelemetry.vehicleRangeUpdatedAt = nil
         commandMetrics = [:]
         commandMisses = [:]
         externalSpeedUpdatedAt = nil

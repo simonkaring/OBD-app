@@ -37,7 +37,7 @@ public struct DashboardWidgetTile: View {
     @ViewBuilder
     private func metricTile(_ metric: TelemetryMetric) -> some View {
         let isSupported = isDemoMode || supportedMetrics.contains(metric)
-        let isAvailable = isDemoMode || (isSupported && isConnected && liveMetrics.contains(metric))
+        let isAvailable = isSupported && (isConnected || metric == .tripAverageConsumption) && metric.isAvailable(in: snapshot, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now)
         let value = metric.value(in: snapshot)
         let range = metric.defaultRange
         let dialMode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional

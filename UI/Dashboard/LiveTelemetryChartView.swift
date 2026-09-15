@@ -20,6 +20,7 @@ public struct LiveTelemetryChartView: View {
     }
 
     private func color(for metric: TelemetryMetric, value: Double, seriesIndex: Int) -> Color {
+        if metric == .regenPower { return Theme.regenGreen }
         if metric == .power {
             return value < 0 ? Theme.regenGreen : Theme.textPrimary
         }
@@ -27,7 +28,9 @@ public struct LiveTelemetryChartView: View {
     }
 
     public var body: some View {
-        let activeMetrics = isDemoMode ? seriesMetrics : seriesMetrics.filter(liveMetrics.contains)
+        let activeMetrics = seriesMetrics.filter { metric in
+            telemetryHistory.last.map { metric.isAvailable(in: $0, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now) } ?? false
+        }
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Label(headerTitle, systemImage: "chart.xyaxis.line")
@@ -41,7 +44,7 @@ public struct LiveTelemetryChartView: View {
 
             Chart {
                 ForEach(Array(activeMetrics.enumerated()), id: \.offset) { seriesIndex, metric in
-                    ForEach(telemetryHistory.suffix(30), id: \.timestamp) { item in
+                    ForEach(telemetryHistory.suffix(30).filter { metric.isAvailable(in: $0, liveMetrics: liveMetrics, isDemoMode: isDemoMode) }, id: \.timestamp) { item in
                         let value = metric.value(in: item)
                         let seriesColor = color(for: metric, value: value, seriesIndex: seriesIndex)
 

@@ -72,7 +72,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     private func rebuildInterface() {
         let vehicleData = AppEnvironment.shared.vehicleData
         let dtcService = AppEnvironment.shared.dtcService
-        let snapshot = vehicleData.latestTelemetry
+        let snapshot = AppEnvironment.shared.tripTracker.telemetryForDisplay(vehicleData.displayedTelemetry)
         let layout = cachedLayout
 
         // 1. Driving Mode Template
@@ -174,8 +174,9 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         case .metric(let metric):
             guard isDemoMode || supportedMetrics.contains(metric) else { return nil }
             let value = metric.value(in: snapshot)
-            let image = cachedDialImage(for: metric, value: value)
-            let valueStr = isDemoMode || liveMetrics.contains(metric) ? String(format: "%.1f %@", value, metric.unitSymbol) : "-- \(metric.unitSymbol)"
+            let available = metric.isAvailable(in: snapshot, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now)
+            let image = available ? cachedDialImage(for: metric, value: value) : renderDialImage(for: metric, value: 0, isUnavailable: true)
+            let valueStr = available ? String(format: "%.1f %@", value, metric.unitSymbol) : "-- \(metric.unitSymbol)"
             return CPGridButton(titleVariants: [metric.displayName.uppercased(), valueStr], image: image) { _ in }
 
         case .health:
@@ -205,10 +206,10 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     }
 
     @MainActor
-    private func renderDialImage(for metric: TelemetryMetric, value: Double) -> UIImage {
+    private func renderDialImage(for metric: TelemetryMetric, value: Double, isUnavailable: Bool = false) -> UIImage {
         let range = metric.defaultRange
         let mode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional
-        let dialView = MetricDialView(value: value, range: range, mode: mode, unit: metric.unitSymbol, label: metric.displayName)
+        let dialView = MetricDialView(value: value, range: range, mode: mode, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: isUnavailable)
 
         let container = dialView
             .padding(4)

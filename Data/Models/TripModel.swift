@@ -37,6 +37,8 @@ public final class TripModel {
     public var startSocPct: Double
     public var endSocPct: Double
     public var totalKWhUsed: Double
+    /// Nil for older recordings which did not track recovered energy.
+    public var totalKWhRecovered: Double?
     public var averageSpeedKmH: Double
     public var maxPowerKW: Double
     public var maxRegenKW: Double
@@ -58,6 +60,7 @@ public final class TripModel {
         self.startSocPct = startSocPct
         self.endSocPct = startSocPct
         self.totalKWhUsed = 0.0
+        self.totalKWhRecovered = 0.0
         self.averageSpeedKmH = 0.0
         self.maxPowerKW = 0.0
         self.maxRegenKW = 0.0
@@ -67,7 +70,7 @@ public final class TripModel {
 
     public var efficiencyKWhPer100Km: Double {
         guard distanceKm > 0.1 else { return 0.0 }
-        return (totalKWhUsed / distanceKm) * 100.0
+        return ((totalKWhUsed - (totalKWhRecovered ?? 0)) / distanceKm) * 100.0
     }
 
     public var routeSamples: [TelemetryPointModel] {

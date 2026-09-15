@@ -98,11 +98,6 @@ public struct AddDashboardWidgetSheet: View {
     @State private var selectedStyle: MetricDisplayStyle = .dial
     @State private var chartSeries: Set<TelemetryMetric> = [.power, .speed]
 
-    public init(profile: VehicleProfile, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
-        self.supportedMetrics = profile.supportedMetrics
-        self.onAdd = onAdd
-    }
-
     public init(supportedMetrics: Set<TelemetryMetric>, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
         self.supportedMetrics = supportedMetrics
         self.onAdd = onAdd
@@ -189,6 +184,7 @@ public struct AddDashboardWidgetSheet: View {
                 }
             }
             .navigationTitle("Widget Gallery")
+            .onAppear { chartSeries.formIntersection(supportedMetrics) }
             .inlineTitleDisplayMode()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -321,8 +317,8 @@ public struct AddDashboardWidgetSheet: View {
                     .font(.caption.weight(.semibold))
                     .foregroundColor(Theme.textSecondary)
 
-                HStack(spacing: 8) {
-                    ForEach(filteredMetrics.prefix(4)) { metric in
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading, spacing: 8) {
+                    ForEach(filteredMetrics) { metric in
                         Button {
                             if chartSeries.contains(metric) {
                                 chartSeries.remove(metric)
@@ -338,6 +334,7 @@ public struct AddDashboardWidgetSheet: View {
                                 .foregroundColor(chartSeries.contains(metric) ? Theme.highPowerAmber : Theme.textSecondary)
                                 .cornerRadius(8)
                         }
+                        .accessibilityAddTraits(chartSeries.contains(metric) ? .isSelected : [])
                     }
                 }
             }

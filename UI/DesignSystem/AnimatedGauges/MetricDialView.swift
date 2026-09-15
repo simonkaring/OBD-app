@@ -65,6 +65,8 @@ public struct MetricDialView: View {
                 return value < 20 ? Theme.socLowGradient : Theme.socGradient
             case .power:
                 return isNegativeArc ? Theme.regenGradient : Theme.powerGradient
+            case .regenPower:
+                return Theme.regenGradient
             default:
                 break
             }
@@ -77,6 +79,7 @@ public struct MetricDialView: View {
         if metric == .soc {
             return showEstimatedRange ? "Est. range" : "State of charge"
         }
+        if metric == .instantEfficiency || metric == .tripAverageConsumption { return label }
         guard case .bidirectional = mode else { return label }
         if value < -0.5 { return "Regen" }
         if value > 5.0 { return "Draw" }

@@ -137,11 +137,11 @@ public struct DashboardView: View {
                                     WidgetTileWrapper(
                                         widget: widget,
                                         isEditMode: isEditMode,
-                                        snapshot: vehicleData.latestTelemetry,
+                                        snapshot: tripTracker.telemetryForDisplay(vehicleData.displayedTelemetry),
                                         profile: vehicleData.selectedProfile,
                                         supportedMetrics: vehicleData.supportedMetrics,
                                         liveMetrics: vehicleData.liveMetrics,
-                                        telemetryHistory: widget.kind.isChart ? telemetryHistory : [],
+                                        telemetryHistory: widget.kind.isChart ? telemetryHistory.map(vehicleData.telemetryForDisplay) : [],
                                         isConnected: vehicleData.isDemoMode || vehicleData.connectionState.isConnected,
                                         isDemoMode: vehicleData.isDemoMode,
                                         estimatedFullRangeKm: vehicleData.estimatedFullRangeKm,
@@ -259,7 +259,7 @@ public struct DashboardView: View {
                 }
             }
             .onReceive(vehicleData.$latestTelemetry) { snap in
-                telemetryHistory.append(snap)
+                telemetryHistory.append(tripTracker.telemetryForDisplay(snap))
                 if telemetryHistory.count > 50 {
                     telemetryHistory.removeFirst()
                 }
@@ -281,7 +281,7 @@ public struct DashboardView: View {
                 HUDModeView(
                     speedKmH: vehicleData.latestTelemetry.speedKmH,
                     powerKW: vehicleData.latestTelemetry.powerKW,
-                    socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.latestTelemetry.stateOfChargePct : nil,
+                    socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.displayedTelemetry.stateOfChargePct : nil,
                     isPresented: $showHUDMode
                 )
             }
@@ -290,7 +290,7 @@ public struct DashboardView: View {
                 HUDModeView(
                     speedKmH: vehicleData.latestTelemetry.speedKmH,
                     powerKW: vehicleData.latestTelemetry.powerKW,
-                    socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.latestTelemetry.stateOfChargePct : nil,
+                    socPct: vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.soc) ? vehicleData.displayedTelemetry.stateOfChargePct : nil,
                     isPresented: $showHUDMode
                 )
             }
@@ -299,7 +299,7 @@ public struct DashboardView: View {
                 DashboardCustomizationSheet(layout: $layout, supportedMetrics: vehicleData.supportedMetrics)
             }
             .sheet(isPresented: $showAddWidgetSheet) {
-                AddDashboardWidgetSheet(profile: vehicleData.selectedProfile) { newWidget in
+                AddDashboardWidgetSheet(supportedMetrics: vehicleData.supportedMetrics) { newWidget in
                     layout.widgets.append(newWidget)
                 }
             }

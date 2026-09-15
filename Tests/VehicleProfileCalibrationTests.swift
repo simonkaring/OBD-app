@@ -36,6 +36,123 @@ private final class CalibrationMockAdapter: OBDConnectionProtocol {
 final class VehicleProfileCalibrationTests: XCTestCase {
 
     @MainActor
+    func testSOCReferenceReplacementBoundsPersistenceAndSelectionIsolation() throws {
+        let suite = "SOCReferenceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let mock = CalibrationMockAdapter()
+        mock.state = .disconnected
+        let manager = VehicleDataManager(connection: mock, userDefaults: defaults)
+        manager.selectVehicle(VehicleCatalog.eqaOBDbModel, modelYear: 2021)
+        mock.connect(peripheralName: nil)
+        manager.stopPolling()
+
+        manager.applyUpdate(.soc(75))
+        XCTAssertTrue(manager.setSOCReference(80))
+        XCTAssertEqual(manager.socReferenceOffset, 5)
+        XCTAssertEqual(manager.telemetryForDisplay(TelemetrySnapshot()).stateOfChargePct, 0,
+                       "Display history from before the first SOC reading must not gain an invented value")
+        manager.applyUpdate(.soc(65))
+        XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 70)
+        XCTAssertEqual(manager.latestTelemetry.stateOfChargePct, 65)
+        XCTAssertTrue(manager.setSOCReference(67))
+        XCTAssertEqual(manager.socReferenceOffset, 2, "Replace using raw SOC, not the already-adjusted value")
+        manager.applyUpdate(.soc(99))
+        XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 100)
+        XCTAssertTrue(manager.setSOCReference(89))
+        manager.applyUpdate(.soc(3))
+        XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 0)
+
+        manager.applyUpdate(.soc(75))
+        XCTAssertTrue(manager.setSOCReference(80))
+        let restored = VehicleDataManager(userDefaults: defaults)
+        XCTAssertEqual(restored.socReferenceOffset, 5)
+        XCTAssertEqual(restored.selectedModelYear, 2021)
+        XCTAssertFalse(restored.canSetSOCReference())
+        XCTAssertEqual(restored.displayedTelemetry.stateOfChargePct, 0, "A saved offset must not invent a reading")
+
+        manager.selectProfile(.genericOBD2)
+        XCTAssertNil(manager.socReferenceOffset)
+        manager.selectProfile(.mercedesEQAOBDb)
+        XCTAssertEqual(manager.socReferenceOffset, 5)
+        XCTAssertFalse(manager.canSetSOCReference(), "Profile changes invalidate the previous live reading")
+        manager.selectVehicle(VehicleCatalog.eqaOBDbModel)
+        XCTAssertNil(manager.socReferenceOffset, "Model-year selections have separate references")
+        manager.selectVehicle(VehicleCatalog.defaultModel, modelYear: 2021)
+        manager.selectProfile(.mercedesEQAOBDb)
+        XCTAssertNil(manager.socReferenceOffset, "Vehicle selections have separate references even with the same profile")
+        manager.selectVehicle(VehicleCatalog.eqaOBDbModel, modelYear: 2021)
+        XCTAssertEqual(manager.socReferenceOffset, 5)
+
+        manager.applyUpdate(.soc(75))
+        manager.resetSOCReference()
+        XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 75)
+        XCTAssertNil(VehicleDataManager(userDefaults: defaults).socReferenceOffset)
+    }
+
+    @MainActor
+    func testSOCReferenceRejectsInvalidStaleDisconnectedAndDemoReadings() {
+        let mock = CalibrationMockAdapter()
+        let manager = VehicleDataManager(connection: mock)
+        XCTAssertFalse(manager.setSOCReference(80))
+        mock.connect(peripheralName: nil)
+        manager.stopPolling()
+        XCTAssertFalse(manager.setSOCReference(80), "Connection alone is not an SOC reading")
+        manager.applyUpdate(.soc(75))
+        XCTAssertTrue(manager.setSOCReference(80))
+        for value in [Double.nan, .infinity, -.infinity, -1, 101] {
+            XCTAssertFalse(manager.setSOCReference(value))
+            XCTAssertEqual(manager.socReferenceOffset, 5)
+        }
+        let now = Date.now
+        XCTAssertTrue(manager.canSetSOCReference(at: now))
+        manager.applyUpdate(.soc(75), timestamp: now.addingTimeInterval(-16))
+        manager.applyUpdate(.packVoltage(400), timestamp: now)
+        XCTAssertFalse(manager.setSOCReference(80), "Other telemetry cannot refresh SOC")
+        manager.applyUpdate(.soc(75), timestamp: now.addingTimeInterval(60))
+        XCTAssertFalse(manager.setSOCReference(80), "Future timestamps are invalid")
+        manager.applyUpdate(.soc(75))
+        XCTAssertTrue(manager.setSOCReference(0))
+        XCTAssertTrue(manager.setSOCReference(100))
+        XCTAssertTrue(manager.setSOCReference(80))
+        mock.disconnect()
+        XCTAssertFalse(manager.setSOCReference(80))
+        manager.toggleDemoMode(true)
+        manager.applyUpdate(.soc(75))
+        XCTAssertFalse(manager.setSOCReference(80))
+        XCTAssertEqual(manager.socReferenceOffset, 5)
+        XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 75, "Demo readings bypass the saved adjustment")
+    }
+
+    @MainActor
+    func testSOCReferencePreservesRawStreamAndChargingPowerSlope() {
+        let mock = CalibrationMockAdapter()
+        let manager = VehicleDataManager(connection: mock)
+        mock.connect(peripheralName: nil)
+        manager.stopPolling()
+        let now = Date.now
+        for seconds in [0, 10, 20] {
+            manager.applyUpdates([.speed(0), .soc(50 + Double(seconds) * 0.004)],
+                                 timestamp: now.addingTimeInterval(Double(seconds) - 30))
+        }
+        var publishedSnapshots = 0
+        let subscription = manager.$latestTelemetry.dropFirst().sink { _ in publishedSnapshots += 1 }
+        XCTAssertTrue(manager.setSOCReference(80))
+        XCTAssertEqual(publishedSnapshots, 0, "Saving a display reference must not emit synthetic telemetry")
+        XCTAssertNil(manager.latestTelemetry.chargePowerSource)
+        manager.applyUpdates([.speed(0), .soc(50.12)], timestamp: now)
+        XCTAssertEqual(manager.latestTelemetry.stateOfChargePct, 50.12)
+        XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 80.04, accuracy: 0.0001)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerSource, .socEstimate)
+        XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 9.576, accuracy: 0.0001)
+        XCTAssertEqual(manager.displayedTelemetry.chargePowerKW, manager.latestTelemetry.chargePowerKW)
+        manager.resetSOCReference()
+        XCTAssertEqual(publishedSnapshots, 1)
+        XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 50.12)
+        withExtendedLifetime(subscription) {}
+    }
+
+    @MainActor
     func testFastPollingWaitsForReplyAndPreservesEQARoutingAcrossCycles() async {
         let mock = CalibrationMockAdapter()
         mock.state = .disconnected

@@ -57,7 +57,8 @@ public final class AppEnvironment: ObservableObject {
 
         vData.$latestTelemetry
             .sink { [weak tTracker, weak cTracker, weak vData] snapshot in
-                tTracker?.processTelemetrySnapshot(snapshot, vehicleName: vData?.vehicleName ?? "Mercedes EQA 250")
+                let hasPower = vData?.isDemoMode == true || (vData?.liveMetrics.contains(.power) == true && snapshot.hasFreshPower)
+                tTracker?.processTelemetrySnapshot(snapshot, vehicleName: vData?.vehicleName ?? "Mercedes EQA 250", hasPowerData: hasPower, requiresPowerForAutoStart: vData?.supportedMetrics.contains(.power) == true)
                 cTracker?.processTelemetrySnapshot(snapshot)
             }
             .store(in: &cancellables)

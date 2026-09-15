@@ -26,6 +26,7 @@ public enum TelemetryUpdate: Sendable {
     case oilTemp(Double)                // C
     case timingAdvance(Double)          // degrees before TDC
     case barometricPressure(Double)     // kPa
+    case vehicleRange(Double)           // km, reported by the vehicle
 }
 
 public enum ChargePowerSource: String, Codable, Sendable {
@@ -43,8 +44,19 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
         speedUpdatedAt.map { abs(timestamp.timeIntervalSince($0)) <= 15 } ?? false
     }
     public var powerKW: Double = 0.0
+    public var powerUpdatedAt: Date?
     public var voltageV: Double = 0.0
+    public var voltageUpdatedAt: Date?
     public var currentA: Double = 0.0
+    public var currentUpdatedAt: Date?
+    public var vehicleRangeKm: Double?
+    public var vehicleRangeUpdatedAt: Date?
+    /// Presentation-only value supplied by the active trip tracker.
+    public var tripAverageConsumption: Double?
+
+    public var hasFreshPower: Bool {
+        powerUpdatedAt.map { (0...15).contains(timestamp.timeIntervalSince($0)) } ?? false
+    }
     public var stateOfChargePct: Double = 0.0
     public var socUpdatedAt: Date?
     public var stateOfHealthPct: Double = 0.0

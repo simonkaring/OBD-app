@@ -115,6 +115,7 @@ final class TripPersistenceTests: XCTestCase {
         let older = TripModel(startTime: start, distanceKm: 10, startSocPct: 90)
         older.endTime = start.addingTimeInterval(600)
         older.totalKWhUsed = 2
+        older.totalKWhRecovered = 0.2
         older.maxPowerKW = 35
         older.maxRegenKW = -5
         older.samples = [
@@ -126,6 +127,7 @@ final class TripPersistenceTests: XCTestCase {
         newer.endTime = end
         newer.endSocPct = 82
         newer.totalKWhUsed = 1
+        newer.totalKWhRecovered = 0.1
         newer.maxPowerKW = 45
         newer.maxRegenKW = -10
         newer.samples = [
@@ -164,6 +166,8 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertEqual(merged.id, tripID)
         XCTAssertEqual(merged.distanceKm, 15)
         XCTAssertEqual(merged.totalKWhUsed, 3)
+        XCTAssertEqual(try XCTUnwrap(merged.totalKWhRecovered), 0.3, accuracy: 0.001)
+        XCTAssertEqual(merged.efficiencyKWhPer100Km, 18, accuracy: 0.001)
         XCTAssertEqual(merged.maxPowerKW, 45)
         XCTAssertEqual(merged.maxRegenKW, -10)
         XCTAssertEqual(merged.endTime, end)

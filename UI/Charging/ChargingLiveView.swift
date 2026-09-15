@@ -45,16 +45,16 @@ public struct ChargingLiveView: View {
     }
 
     private var storedEnergyKWh: Double {
-        usableCapacityKWh * (vehicleData.latestTelemetry.stateOfChargePct / 100.0)
+        usableCapacityKWh * (vehicleData.displayedTelemetry.stateOfChargePct / 100.0)
     }
 
     private var energyNeededToFullKWh: Double {
-        usableCapacityKWh * ((100.0 - vehicleData.latestTelemetry.stateOfChargePct) / 100.0)
+        usableCapacityKWh * ((100.0 - vehicleData.displayedTelemetry.stateOfChargePct) / 100.0)
     }
 
     private func minutesToTarget(_ targetPct: Double) -> Int {
         guard isConnected && hasSOC && isCharging else { return 0 }
-        let remainingPct = max(0, targetPct - vehicleData.latestTelemetry.stateOfChargePct)
+        let remainingPct = max(0, targetPct - vehicleData.displayedTelemetry.stateOfChargePct)
         // `isCharging` can be true from a status bit while the reported rate is still 0 kW
         // (profile reports charging without a power reading, or the charger is handshaking).
         // Dividing by it traps on `Int(inf)`, so require a real rate first.
@@ -105,7 +105,7 @@ public struct ChargingLiveView: View {
 
                         // Battery State of Charge Ring
                         BatteryLevelBar(
-                            socPct: hasSOC ? vehicleData.latestTelemetry.stateOfChargePct : nil,
+                            socPct: hasSOC ? vehicleData.displayedTelemetry.stateOfChargePct : nil,
                             batteryTempC: isConnected && hasBatteryTemperature ? vehicleData.latestTelemetry.batteryTempC : nil,
                             isCharging: isCharging
                         )

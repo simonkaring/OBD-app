@@ -6,6 +6,8 @@ import CoreLocation
 public final class TripTrackingManager: ObservableObject {
     @Published public private(set) var currentTrip: TripModel?
     @Published public private(set) var isRecordingTrip: Bool = false
+    @Published public private(set) var averageConsumption: Double?
+    private var hasCompleteEnergyData = true
     @Published public private(set) var demoTrips: [TripModel] = []
     @Published public private(set) var persistenceError: String?
     public private(set) var isDemoMode = false
@@ -72,6 +74,8 @@ public final class TripTrackingManager: ObservableObject {
         let trip = TripModel(startTime: Date(), distanceKm: 0.0, startSocPct: startSoc, vehicleName: vehicleName)
         self.currentTrip = trip
         self.isRecordingTrip = true
+        self.averageConsumption = nil
+        self.hasCompleteEnergyData = true
         self.lastSampleTime = nil
         self.lastStoredSampleTime = nil
         self.lastSaveTime = Date()
@@ -95,6 +99,7 @@ public final class TripTrackingManager: ObservableObject {
 
         self.currentTrip = nil
         self.isRecordingTrip = false
+        self.averageConsumption = nil
         self.lastSampleTime = nil
         resetStationaryTimer()
         return true
@@ -133,6 +138,7 @@ public final class TripTrackingManager: ObservableObject {
             lastSampleTime = nil
             self.currentTrip = nil
             self.isRecordingTrip = false
+            self.averageConsumption = nil
             resetStationaryTimer()
         }
         demoTrips.removeAll { $0.id == tripID }
@@ -147,6 +153,7 @@ public final class TripTrackingManager: ObservableObject {
         demoTrips.removeAll()
         self.currentTrip = nil
         self.isRecordingTrip = false
+        self.averageConsumption = nil
         resetStationaryTimer()
 
         if let context {
@@ -199,6 +206,11 @@ public final class TripTrackingManager: ObservableObject {
             older.samples.append(contentsOf: copies)
             older.distanceKm += newer.distanceKm
             older.totalKWhUsed += newer.totalKWhUsed
+            if let olderRecovered = older.totalKWhRecovered, let newerRecovered = newer.totalKWhRecovered {
+                older.totalKWhRecovered = olderRecovered + newerRecovered
+            } else {
+                older.totalKWhRecovered = nil
+            }
             older.maxPowerKW = max(older.maxPowerKW, newer.maxPowerKW)
             older.maxRegenKW = min(older.maxRegenKW, newer.maxRegenKW)
             older.endTime = newer.endTime
@@ -264,11 +276,11 @@ public final class TripTrackingManager: ObservableObject {
         }
     }
 
-    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250") {
+    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Mercedes EQA 250", hasPowerData: Bool = true, requiresPowerForAutoStart: Bool = false) {
         latestSoc = telemetry.stateOfChargePct
 
         if isRecordingTrip {
-            recordSnapshot(telemetry)
+            recordSnapshot(telemetry, hasPowerData: hasPowerData)
 
             if isAutoTripEnabled {
                 if telemetry.speedKmH < 1.0 || telemetry.isCharging {
@@ -280,28 +292,40 @@ public final class TripTrackingManager: ObservableObject {
         } else if isAutoTripEnabled {
             resetStationaryTimer()
 
-            if telemetry.speedKmH >= 5.0 {
+            if telemetry.speedKmH >= 5.0 && (hasPowerData || !requiresPowerForAutoStart) {
                 startTrip(startSoc: telemetry.stateOfChargePct, vehicleName: vehicleName)
-                recordSnapshot(telemetry)
+                recordSnapshot(telemetry, hasPowerData: hasPowerData)
             }
         }
     }
 
-    public func recordSnapshot(_ telemetry: TelemetrySnapshot, at now: Date = .now) {
+    public func recordSnapshot(_ telemetry: TelemetrySnapshot, at now: Date = .now, hasPowerData: Bool = true) {
         guard let trip = currentTrip, trip.endTime == nil else { return }
         // Integrate every update, but persist route/chart points at one-second resolution.
         // This keeps energy independent of the number of PIDs returned by a response.
         if let last = lastSampleTime {
             let interval = now.timeIntervalSince(last)
             if interval > 0, interval < 300 {
-                if telemetry.powerKW > 0 {
-                    trip.totalKWhUsed += telemetry.powerKW * interval / 3600
+                if !telemetry.isCharging {
+                    if !hasPowerData { hasCompleteEnergyData = false }
+                    if hasPowerData && telemetry.powerKW > 0 {
+                        trip.totalKWhUsed += telemetry.powerKW * interval / 3600
+                    } else if hasPowerData && telemetry.powerKW < 0 {
+                        if telemetry.hasFreshSpeed && telemetry.speedKmH >= 1 {
+                            trip.totalKWhRecovered = (trip.totalKWhRecovered ?? 0) - telemetry.powerKW * interval / 3600
+                        } else if !telemetry.hasFreshSpeed {
+                            hasCompleteEnergyData = false
+                        }
+                    }
                 }
                 if isDemoMode { trip.distanceKm += telemetry.speedKmH * interval / 3600 }
+            } else if interval >= 300 {
+                hasCompleteEnergyData = false
             }
         }
         lastSampleTime = now
         if !isDemoMode { trip.distanceKm = locationManager.totalDistanceMeters / 1000 }
+        averageConsumption = hasCompleteEnergyData && hasPowerData && trip.distanceKm > 0.1 ? trip.efficiencyKWhPer100Km : nil
         trip.endSocPct = telemetry.stateOfChargePct
         trip.maxPowerKW = max(trip.maxPowerKW, telemetry.powerKW)
         trip.maxRegenKW = min(trip.maxRegenKW, telemetry.powerKW)
@@ -330,5 +354,11 @@ public final class TripTrackingManager: ObservableObject {
             batteryTempC: telemetry.batteryTempC
         )
         trip.samples.append(sample)
+    }
+
+    public func telemetryForDisplay(_ snapshot: TelemetrySnapshot) -> TelemetrySnapshot {
+        var displayed = snapshot
+        displayed.tripAverageConsumption = averageConsumption
+        return displayed
     }
 }
