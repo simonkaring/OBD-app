@@ -308,6 +308,9 @@ public struct DashboardView: View {
             .onChange(of: vehicleData.selectedVehicle.id) { _, _ in
                 telemetryHistory.removeAll()
             }
+            .onChange(of: vehicleData.selectedModelYear) { _, _ in
+                telemetryHistory.removeAll()
+            }
             .onChange(of: vehicleData.isDemoMode) { _, _ in
                 telemetryHistory.removeAll()
             }

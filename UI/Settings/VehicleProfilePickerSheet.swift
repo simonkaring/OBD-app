@@ -47,6 +47,7 @@ public struct VehicleProfilePickerSheet: View {
             .navigationTitle("Select Brand")
             .inlineTitleDisplayMode()
             .searchable(text: $brandSearchText, prompt: "Search brands")
+            .disabled(vehicleData.isCommandSessionActive)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -121,26 +122,17 @@ private struct VehicleModelPickerView: View {
 
     var body: some View {
         List(filteredFamilies) { family in
-            if family.variants.count == 1, let model = family.variants.first {
-                Button {
-                    vehicleData.selectVehicle(model)
-                    onSelect()
-                } label: {
-                    VehicleVariantRow(model: model, title: family.name, vehicleData: vehicleData)
+            NavigationLink {
+                VehicleYearPickerView(family: family, vehicleData: vehicleData, onSelect: onSelect)
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(family.name)
+                        .font(.headline)
+                    Text("\(family.variants.count) \(family.variants.count == 1 ? "variant" : "variants")")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
-            } else {
-                NavigationLink {
-                    VehicleVariantPickerView(family: family, vehicleData: vehicleData, onSelect: onSelect)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(family.name)
-                            .font(.headline)
-                        Text("\(family.variants.count) variants")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
+                .padding(.vertical, 4)
             }
         }
         .navigationTitle(brand.name)
@@ -149,21 +141,61 @@ private struct VehicleModelPickerView: View {
     }
 }
 
-private struct VehicleVariantPickerView: View {
+private struct VehicleYearPickerView: View {
     let family: VehicleModelFamily
     @ObservedObject var vehicleData: VehicleDataManager
     let onSelect: () -> Void
 
     var body: some View {
-        List(family.variants) { model in
-            Button {
-                vehicleData.selectVehicle(model)
-                onSelect()
-            } label: {
-                VehicleVariantRow(model: model, title: model.resolvedVariantDisplayName, vehicleData: vehicleData)
+        List {
+            Section(family.name) {
+                ForEach(family.modelYears, id: \.self) { year in
+                    NavigationLink {
+                        VehicleVariantPickerView(family: family, modelYear: year, vehicleData: vehicleData, onSelect: onSelect)
+                    } label: {
+                        HStack {
+                            Text(String(year))
+                            Spacer()
+                            if vehicleData.selectedModelYear == year,
+                               family.variants.contains(where: { $0.id == vehicleData.selectedVehicle.id }) {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Theme.electricCyan)
+                                    .accessibilityLabel("Selected model year")
+                            }
+                        }
+                    }
+                }
+            }
+            Section {
+                NavigationLink("Year not specified") {
+                    VehicleVariantPickerView(family: family, modelYear: nil, vehicleData: vehicleData, onSelect: onSelect)
+                }
+            } footer: {
+                Text("Choose the model year, which may differ from the registration year. Years reflect catalog availability; live telemetry support is shown for each variant.")
             }
         }
-        .navigationTitle(family.name)
+        .navigationTitle("Model Year")
+        .inlineTitleDisplayMode()
+    }
+}
+
+private struct VehicleVariantPickerView: View {
+    let family: VehicleModelFamily
+    let modelYear: Int?
+    @ObservedObject var vehicleData: VehicleDataManager
+    let onSelect: () -> Void
+
+    var body: some View {
+        List(modelYear.map { family.variants(forModelYear: $0) } ?? family.variants) { model in
+            Button {
+                if vehicleData.selectVehicle(model, modelYear: modelYear) {
+                    onSelect()
+                }
+            } label: {
+                VehicleVariantRow(model: model, title: model.resolvedVariantDisplayName, modelYear: modelYear, vehicleData: vehicleData)
+            }
+        }
+        .navigationTitle(family.name + (modelYear.map { " · \($0)" } ?? ""))
         .inlineTitleDisplayMode()
     }
 }
@@ -171,6 +203,7 @@ private struct VehicleVariantPickerView: View {
 private struct VehicleVariantRow: View {
     let model: VehicleModelEntry
     let title: String
+    let modelYear: Int?
     @ObservedObject var vehicleData: VehicleDataManager
 
     var body: some View {
@@ -194,7 +227,7 @@ private struct VehicleVariantRow: View {
                 }
 
                 HStack(spacing: 6) {
-                    Text(model.years)
+                    Text(modelYear.map { String($0) } ?? model.years)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
@@ -219,11 +252,12 @@ private struct VehicleVariantRow: View {
                 }
             }
 
-            if vehicleData.selectedVehicle.id == model.id {
+            if vehicleData.selectedVehicle.id == model.id && vehicleData.selectedModelYear == modelYear {
                 Spacer()
                 Image(systemName: "checkmark")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.accentColor)
+                    .accessibilityLabel("Selected vehicle")
             }
         }
         .padding(.vertical, 4)

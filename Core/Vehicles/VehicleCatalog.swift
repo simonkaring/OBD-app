@@ -84,12 +84,36 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
     public var resolvedVariantDisplayName: String {
         variantDisplayName ?? modelName
     }
+
+    /// Expand the catalog's year labels, preserving gaps such as "2023, 2025".
+    /// Open-ended entries include the next model year; closed ranges stay exact.
+    public func modelYears(through latestYear: Int = Calendar.current.component(.year, from: .now) + 1) -> [Int] {
+        var result = Set<Int>()
+        // Hand-maintained entries may append a qualification, e.g. "2021 · experimental".
+        for segment in years.components(separatedBy: "·")[0].components(separatedBy: ",") {
+            let label = segment.filter { !$0.isWhitespace }.replacingOccurrences(of: "–", with: "-")
+            guard label.range(of: #"^[0-9]{4}(-[0-9]{4}|\+)?$"#, options: .regularExpression) != nil,
+                  let first = Int(label.prefix(4)) else { return [] }
+            let last = label.hasSuffix("+") ? max(first, latestYear) : Int(label.suffix(4))!
+            guard first <= last, last <= 9999 else { return [] }
+            result.formUnion(first...last)
+        }
+        return result.sorted(by: >)
+    }
 }
 
 public struct VehicleModelFamily: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let variants: [VehicleModelEntry]
+
+    public var modelYears: [Int] {
+        Set(variants.flatMap { $0.modelYears() }).sorted(by: >)
+    }
+
+    public func variants(forModelYear year: Int) -> [VehicleModelEntry] {
+        variants.filter { $0.modelYears().contains(year) }
+    }
 }
 
 public struct VehicleBrand: Identifiable, Hashable, Codable, Sendable {

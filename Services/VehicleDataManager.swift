@@ -4,12 +4,14 @@ import SwiftUI
 
 public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public static let selectedVehicleIDDefaultsKey = "selectedVehicleID"
+    public static let selectedModelYearDefaultsKey = "selectedModelYear"
 
     @Published public private(set) var latestTelemetry = TelemetrySnapshot()
     @Published public private(set) var connectionState: BLEConnectionState = .disconnected
     @Published public private(set) var selectedProfile: VehicleProfile = MercedesEQA250Profile()
     @Published public private(set) var selectedProfileID: VehicleProfileID = .mercedesEQA250
     @Published public private(set) var selectedVehicle = VehicleCatalog.defaultModel
+    @Published public private(set) var selectedModelYear: Int?
     @Published public private(set) var chargingSession = ChargingSessionState()
     @Published public var isDemoMode: Bool = false
     @Published public private(set) var isCalibrating: Bool = false
@@ -24,7 +26,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public var prepareDemoModeChange: ((Bool) -> Bool)?
     public let chargingTracker = ChargingSessionTracker()
 
-    public var vehicleName: String { selectedVehicle.fullName }
+    public var vehicleName: String {
+        selectedVehicle.fullName + (selectedModelYear.map { " (\($0))" } ?? "")
+    }
     public var usableBatteryCapacityKWh: Double {
         selectedVehicle.batteryCapacityKWh > 0 ? selectedVehicle.batteryCapacityKWh : selectedProfile.batteryUsableCapacityKWh
     }
@@ -70,6 +74,10 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
             self.selectedVehicle = restoredVehicle
             self.selectedProfileID = restoredVehicle.profileID
             self.selectedProfile = restoredVehicle.profileID.makeProfile()
+            if let year = persistenceDefaults?.object(forKey: Self.selectedModelYearDefaultsKey) as? Int,
+               restoredVehicle.modelYears().contains(year) {
+                self.selectedModelYear = year
+            }
         }
 
         if let conn = connection {
@@ -133,11 +141,20 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         }
     }
 
-    public func selectVehicle(_ vehicle: VehicleModelEntry) {
-        guard !isCommandSessionActive else { return }
+    @discardableResult
+    public func selectVehicle(_ vehicle: VehicleModelEntry, modelYear: Int? = nil) -> Bool {
+        guard !isCommandSessionActive,
+              modelYear.map({ vehicle.modelYears().contains($0) }) ?? true else { return false }
         selectedVehicle = vehicle
+        selectedModelYear = modelYear
         selectProfile(vehicle.profileID)
         persistenceDefaults?.set(vehicle.id, forKey: Self.selectedVehicleIDDefaultsKey)
+        if let modelYear {
+            persistenceDefaults?.set(modelYear, forKey: Self.selectedModelYearDefaultsKey)
+        } else {
+            persistenceDefaults?.removeObject(forKey: Self.selectedModelYearDefaultsKey)
+        }
+        return true
     }
 
     public func startCalibration() {
