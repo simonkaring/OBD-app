@@ -11,6 +11,7 @@ public struct SettingsView: View {
     @State private var showVehiclePicker = false
 
     @AppStorage("developerModeEnabled") private var developerModeEnabled: Bool = false
+    @AppStorage("keepScreenAwake") private var keepScreenAwake = false
     @ObservedObject private var keyStore = AIAPIKeyStore.shared
     @State private var aiApiKey = ""
 
@@ -108,6 +109,14 @@ public struct SettingsView: View {
                         }
                         .pickerStyle(.menu)
                     }
+                }
+
+                Section {
+                    Toggle("Keep Screen Awake", isOn: $keepScreenAwake)
+                } header: {
+                    Text("Display")
+                } footer: {
+                    Text("Prevents the screen from dimming and locking while VoltLink is open. This may increase battery use.")
                 }
 
                 Section("GPS Route Recording") {

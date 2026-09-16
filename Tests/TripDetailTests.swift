@@ -23,4 +23,27 @@ final class TripDetailTests: XCTestCase {
         XCTAssertEqual(TripDetailView.displaySamples(samples, limit: 1).count, 1)
         XCTAssertTrue(TripDetailView.displaySamples(samples, limit: 0).isEmpty)
     }
+
+    func testComputedAverageSpeedAndAveragePower() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let trip = TripModel(startTime: start, distanceKm: 50.0)
+        trip.endTime = start.addingTimeInterval(3600) // 1 hour duration
+        trip.totalKWhUsed = 10.0
+
+        // When samples are empty, falls back to distance / time or totalKWhUsed / time
+        XCTAssertEqual(trip.computedAverageSpeedKmH, 50.0, accuracy: 0.01)
+        XCTAssertEqual(trip.averagePowerKW, 10.0, accuracy: 0.01)
+
+        // Add samples
+        trip.samples = [
+            TelemetryPointModel(timestamp: start, speedKmH: 40.0, powerKW: 12.0),
+            TelemetryPointModel(timestamp: start.addingTimeInterval(10), speedKmH: 60.0, powerKW: 18.0),
+            TelemetryPointModel(timestamp: start.addingTimeInterval(20), speedKmH: 80.0, powerKW: 30.0)
+        ]
+
+        // Average speed should be (40 + 60 + 80) / 3 = 60 km/h
+        XCTAssertEqual(trip.computedAverageSpeedKmH, 60.0, accuracy: 0.01)
+        // Average power should be (12 + 18 + 30) / 3 = 20 kW
+        XCTAssertEqual(trip.averagePowerKW, 20.0, accuracy: 0.01)
+    }
 }

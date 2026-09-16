@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct VoltLinkApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @AppStorage("keepScreenAwake") private var keepScreenAwake = false
     @StateObject private var env = AppEnvironment.shared
 
     var body: some Scene {
@@ -39,6 +40,10 @@ struct VoltLinkApp: App {
                 .environmentObject(env.chargingTracker)
                 .environmentObject(env.dtcService)
                 .preferredColorScheme(.dark)
+                .onAppear { UIApplication.shared.isIdleTimerDisabled = keepScreenAwake }
+                .onChange(of: keepScreenAwake) { _, enabled in
+                    UIApplication.shared.isIdleTimerDisabled = enabled
+                }
         }
         // Container is owned by AppEnvironment so CarPlay-only launches persist too.
         .modelContainer(env.modelContainer)

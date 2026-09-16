@@ -73,6 +73,41 @@ public final class TripModel {
         return ((totalKWhUsed - (totalKWhRecovered ?? 0)) / distanceKm) * 100.0
     }
 
+    public var computedAverageSpeedKmH: Double {
+        let speedSamples = samples.lazy.map(\.speedKmH).filter { $0.isFinite }
+        var count = 0
+        var sum = 0.0
+        for s in speedSamples {
+            sum += s
+            count += 1
+        }
+        if count > 0 {
+            return sum / Double(count)
+        }
+        if averageSpeedKmH > 0 {
+            return averageSpeedKmH
+        }
+        guard let endTime, distanceKm > 0 else { return 0.0 }
+        let hours = endTime.timeIntervalSince(startTime) / 3600.0
+        return hours > 0 ? (distanceKm / hours) : 0.0
+    }
+
+    public var averagePowerKW: Double {
+        let powerSamples = samples.lazy.map(\.powerKW).filter { $0.isFinite }
+        var count = 0
+        var sum = 0.0
+        for p in powerSamples {
+            sum += p
+            count += 1
+        }
+        if count > 0 {
+            return sum / Double(count)
+        }
+        guard let endTime, (totalKWhUsed > 0 || (totalKWhRecovered ?? 0) > 0) else { return 0.0 }
+        let hours = endTime.timeIntervalSince(startTime) / 3600.0
+        return hours > 0 ? ((totalKWhUsed - (totalKWhRecovered ?? 0)) / hours) : 0.0
+    }
+
     public var routeSamples: [TelemetryPointModel] {
         let sortedSamples = samples
             .filter(\.hasValidCoordinate)

@@ -92,6 +92,7 @@ public final class TripTrackingManager: ObservableObject {
             trip.endTime = Date()
             trip.endSocPct = endSoc
         }
+        trip.averageSpeedKmH = trip.computedAverageSpeedKmH
         locationManager.stopTracking()
         resetStationaryTimer()
         guard save() else { return false }
@@ -215,6 +216,7 @@ public final class TripTrackingManager: ObservableObject {
             older.maxRegenKW = min(older.maxRegenKW, newer.maxRegenKW)
             older.endTime = newer.endTime
             older.endSocPct = newer.endSocPct
+            older.averageSpeedKmH = older.computedAverageSpeedKmH
             context?.delete(newer)
         }
 

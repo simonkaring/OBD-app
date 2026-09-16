@@ -204,6 +204,20 @@ public struct TripDetailView: View {
                             )
 
                             TripStatTile(
+                                title: "Avg Speed",
+                                value: String(format: "%.0f km/h", trip.computedAverageSpeedKmH),
+                                subtitle: "Average travel speed",
+                                accentColor: Theme.electricCyan
+                            )
+
+                            TripStatTile(
+                                title: "Avg Power Draw",
+                                value: String(format: "%.1f kW", trip.averagePowerKW),
+                                subtitle: "Mean electrical power",
+                                accentColor: Theme.electricCyan
+                            )
+
+                            TripStatTile(
                                 title: "Peak Power Draw",
                                 value: String(format: "%.1f kW", trip.maxPowerKW),
                                 subtitle: "Max motor output",
