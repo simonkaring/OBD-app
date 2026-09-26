@@ -7,7 +7,6 @@ public struct TripDetailView: View {
     @EnvironmentObject private var tripTracker: TripTrackingManager
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
-    @State private var samplePage = 0
     public let trip: TripModel
 
     public init(trip: TripModel) {
@@ -52,9 +51,6 @@ public struct TripDetailView: View {
         let chartSamples = Self.displaySamples(samples.filter { $0.speedKmH.isFinite && $0.powerKW.isFinite }, limit: 500)
         let routeSamples = Self.displaySamples(trip.routeSamples, limit: 2_000)
         let topSpeedKmH = samples.lazy.map(\.speedKmH).filter(\.isFinite).max() ?? trip.averageSpeedKmH
-        let pageCount = max(1, (samples.count + 99) / 100)
-        let page = min(samplePage, pageCount - 1)
-        let pageSamples = Array(samples.dropFirst(page * 100).prefix(100))
 
         return ZStack {
             Theme.backgroundDark.ignoresSafeArea()
@@ -288,116 +284,6 @@ public struct TripDetailView: View {
                             .padding(.horizontal)
                         }
                     }
-
-                    // Detailed Sample Telemetry Points with Timestamps
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("TELEMETRY LOG (\(samples.count) SAMPLES)")
-                            .font(.caption.weight(.semibold))
-                                .foregroundColor(Theme.textSecondary)
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-
-                        if samples.isEmpty {
-                            VStack(spacing: 8) {
-                                Image(systemName: "chart.line.uptrend.xyaxis")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(Theme.textSecondary)
-                                Text("No Telemetry Samples Recorded")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(Theme.textSecondary)
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .glassCard()
-                            .padding(.horizontal)
-                        } else {
-                            VStack(spacing: 0) {
-                                // Table Header
-                                HStack {
-                                    Text("TIMESTAMP").frame(width: 80, alignment: .leading)
-                                    Spacer()
-                                    Text("SPEED").frame(width: 65, alignment: .trailing)
-                                    Spacer()
-                                    Text("POWER").frame(width: 65, alignment: .trailing)
-                                    Spacer()
-                                    Text("SOC").frame(width: 50, alignment: .trailing)
-                                    Spacer()
-                                    Text("TEMP").frame(width: 55, alignment: .trailing)
-                                }
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(Theme.textSecondary)
-                                .padding(.horizontal)
-                                .padding(.vertical, 8)
-                                .background(Color.white.opacity(0.05))
-
-                                Divider().background(Color.white.opacity(0.2))
-
-                                ForEach(Array(pageSamples.enumerated()), id: \.element.persistentModelID) { index, sample in
-                                    HStack {
-                                        Text(sample.timestamp.formatted(date: .omitted, time: .standard))
-                                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                            .foregroundColor(Theme.textPrimary)
-                                            .frame(width: 80, alignment: .leading)
-
-                                        Spacer()
-
-                                        Text(String(format: "%.0f km/h", sample.speedKmH))
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundColor(Theme.electricCyan)
-                                            .frame(width: 65, alignment: .trailing)
-
-                                        Spacer()
-
-                                        Text(String(format: "%.1f kW", sample.powerKW))
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundColor(sample.powerKW < 0 ? Theme.regenGreen : Theme.textPrimary)
-                                            .frame(width: 65, alignment: .trailing)
-
-                                        Spacer()
-
-                                        Text(String(format: "%.1f%%", sample.socPct))
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundColor(Theme.textPrimary)
-                                            .frame(width: 50, alignment: .trailing)
-
-                                        Spacer()
-
-                                        Text(String(format: "%.0f°C", sample.batteryTempC))
-                                            .font(.caption)
-                                            .foregroundColor(Theme.textSecondary)
-                                            .frame(width: 55, alignment: .trailing)
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 8)
-                                    .background(index % 2 == 0 ? Color.clear : Color.white.opacity(0.02))
-
-                                    if index < pageSamples.count - 1 {
-                                        Divider().background(Color.white.opacity(0.05))
-                                    }
-                                }
-                            }
-                            .glassCard()
-                            .padding(.horizontal)
-
-                            if pageCount > 1 {
-                                HStack {
-                                    Button("Previous") { samplePage = page - 1 }
-                                        .disabled(page == 0)
-                                    Spacer()
-                                    Text("Page \(page + 1) of \(pageCount)")
-                                        .font(.caption)
-                                        .foregroundStyle(Theme.textSecondary)
-                                    Spacer()
-                                    Button("Next") { samplePage = page + 1 }
-                                        .disabled(page + 1 == pageCount)
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                    }
-                    .padding(.bottom, 20)
                 }
                 .padding(.vertical)
             }
