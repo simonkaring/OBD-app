@@ -193,6 +193,13 @@ public struct TripDetailView: View {
                             )
 
                             TripStatTile(
+                                title: "Peak Regen Braking",
+                                value: String(format: "%.1f kW", abs(trip.maxRegenKW)),
+                                subtitle: "Max kinetic recovery",
+                                accentColor: Theme.regenGreen
+                            )
+
+                            TripStatTile(
                                 title: "Top Speed",
                                 value: String(format: "%.0f km/h", topSpeedKmH),
                                 subtitle: "Peak speed recorded",
@@ -218,13 +225,6 @@ public struct TripDetailView: View {
                                 value: String(format: "%.1f kW", trip.maxPowerKW),
                                 subtitle: "Max motor output",
                                 accentColor: Theme.highPowerAmber
-                            )
-
-                            TripStatTile(
-                                title: "Peak Regen Braking",
-                                value: String(format: "%.1f kW", abs(trip.maxRegenKW)),
-                                subtitle: "Max kinetic recovery",
-                                accentColor: Theme.regenGreen
                             )
                         }
                         .padding(.horizontal)
