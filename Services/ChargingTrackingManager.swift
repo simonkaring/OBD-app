@@ -108,7 +108,20 @@ public final class ChargingTrackingManager: ObservableObject {
         geocoder.cancelGeocode()
         demoSessions.removeAll()
         isDemoMode = enabled
+        if enabled { demoSessions = [Self.odenseChargingSession()] }
         return true
+    }
+
+    private static func odenseChargingSession() -> ChargingSessionModel {
+        let start = Calendar.current.startOfDay(for: .now).addingTimeInterval(-24 * 3600 + 11 * 3600 + 5 * 60)
+        let session = ChargingSessionModel(startTime: start, startSocPct: 43,
+            locationName: "Drejebænken 10, 5260 Odense", latitude: 55.352522, longitude: 10.421215)
+        session.endTime = start.addingTimeInterval(40 * 60)
+        session.endSocPct = 82
+        session.totalKWhDelivered = 28
+        session.peakPowerKW = 78
+        session.averagePowerKW = 42
+        return session
     }
 
     @discardableResult

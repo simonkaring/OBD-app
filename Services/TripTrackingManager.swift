@@ -112,7 +112,47 @@ public final class TripTrackingManager: ObservableObject {
         guard stopTrip(endSoc: endSoc) else { return false }
         demoTrips.removeAll()
         isDemoMode = enabled
+        if enabled { demoTrips = [Self.copenhagenToOdenseTrip()] }
         return true
+    }
+
+    private static func copenhagenToOdenseTrip() -> TripModel {
+        let start = Calendar.current.startOfDay(for: .now).addingTimeInterval(-24 * 3600 + 9 * 3600)
+        let trip = TripModel(startTime: start, distanceKm: 158.9, startSocPct: 82, vehicleName: "Mercedes-Benz EQA 250")
+        trip.endTime = start.addingTimeInterval(110 * 60)
+        trip.endSocPct = 43
+        trip.totalKWhUsed = 30.2
+        trip.totalKWhRecovered = 1.2
+        trip.averageSpeedKmH = 86.7
+        trip.maxPowerKW = 95
+        trip.maxRegenKW = -28
+
+        // Road waypoints from Copenhagen via Storebælt to Drejebænken 10, Odense.
+        let route: [(Double, Double)] = [
+            (55.676328, 12.569312), (55.665112, 12.557955), (55.659578, 12.491748),
+            (55.652789, 12.488200), (55.641374, 12.416469), (55.637247, 12.336490),
+            (55.613688, 12.324044), (55.568750, 12.238654), (55.535238, 12.199289),
+            (55.488406, 12.167190), (55.480124, 12.148200), (55.478959, 12.100264),
+            (55.458172, 11.992889), (55.453122, 11.864208), (55.457770, 11.760357),
+            (55.447544, 11.654629), (55.460062, 11.578230), (55.458852, 11.553223),
+            (55.436707, 11.495930), (55.427194, 11.428617), (55.405410, 11.401946),
+            (55.367698, 11.287113), (55.360807, 11.168869), (55.349104, 11.133800),
+            (55.334694, 10.979746), (55.298549, 10.844916), (55.308771, 10.812342),
+            (55.328517, 10.802856), (55.333795, 10.790527), (55.331931, 10.737965),
+            (55.344188, 10.629489), (55.365613, 10.525311), (55.348532, 10.450371),
+            (55.352479, 10.421264)
+        ]
+        trip.samples = route.enumerated().map { index, coordinate in
+            let progress = Double(index) / Double(route.count - 1)
+            return TelemetryPointModel(
+                timestamp: start.addingTimeInterval(110 * 60 * progress),
+                latitude: coordinate.0, longitude: coordinate.1,
+                speedKmH: index == 0 || index == route.count - 1 ? 0 : (index < 8 || index > 29 ? 55 : 110),
+                powerKW: index == 0 || index == route.count - 1 ? 0 : (index % 7 == 0 ? -18 : 23),
+                socPct: 82 - 39 * progress, batteryTempC: 24 + 5 * progress
+            )
+        }
+        return trip
     }
 
     @discardableResult
