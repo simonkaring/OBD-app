@@ -4,12 +4,18 @@ import SwiftUI
 public struct DashboardCustomizationSheet: View {
     @Binding public var layout: DashboardLayout
     public var supportedMetrics: Set<TelemetryMetric>
+    public var liveMetrics: Set<TelemetryMetric>
+    public var profileName: String
+    public var isConnected: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var showAddWidget = false
 
-    public init(layout: Binding<DashboardLayout>, supportedMetrics: Set<TelemetryMetric>) {
+    public init(layout: Binding<DashboardLayout>, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, profileName: String, isConnected: Bool) {
         self._layout = layout
         self.supportedMetrics = supportedMetrics
+        self.liveMetrics = liveMetrics
+        self.profileName = profileName
+        self.isConnected = isConnected
     }
 
     public var body: some View {
@@ -21,8 +27,10 @@ public struct DashboardCustomizationSheet: View {
                     }
                     .onMove { layout.widgets.move(fromOffsets: $0, toOffset: $1) }
                     .onDelete { layout.widgets.remove(atOffsets: $0) }
+                } header: {
+                    Text(profileName)
                 } footer: {
-                    Text("Drag to reorder. Swipe to remove.")
+                    Text("Compatible means this profile defines the signal. Live means it is arriving from the car. Drag to reorder; swipe to remove.")
                 }
             }
             .navigationTitle("Customize Dashboard")
@@ -45,7 +53,8 @@ public struct DashboardCustomizationSheet: View {
                 }
             }
             .sheet(isPresented: $showAddWidget) {
-                AddDashboardWidgetSheet(supportedMetrics: supportedMetrics) { newWidget in
+                AddDashboardWidgetSheet(supportedMetrics: supportedMetrics, liveMetrics: liveMetrics,
+                                        profileName: profileName, isConnected: isConnected) { newWidget in
                     layout.widgets.append(newWidget)
                 }
             }
@@ -57,6 +66,17 @@ public struct DashboardCustomizationSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(widgetTitle(widget.wrappedValue))
                 .font(.subheadline.weight(.semibold))
+            let series: [TelemetryMetric] = {
+                switch widget.wrappedValue.kind {
+                case .metric(let metric): return [metric]
+                case .chart(let metrics): return metrics
+                }
+            }()
+            Text(series.allSatisfy(supportedMetrics.contains) ?
+                 (isConnected ? (series.allSatisfy(liveMetrics.contains) ? "Live" : "Compatible · No data") : "Compatible · Not connected") :
+                 "Not compatible with selected profile")
+                .font(.caption)
+                .foregroundColor(series.allSatisfy(supportedMetrics.contains) ? Theme.textSecondary : Theme.highPowerAmber)
 
             HStack {
                 if case .metric = widget.wrappedValue.kind {
@@ -90,6 +110,9 @@ public struct DashboardCustomizationSheet: View {
 
 public struct AddDashboardWidgetSheet: View {
     public let supportedMetrics: Set<TelemetryMetric>
+    public let liveMetrics: Set<TelemetryMetric>
+    public let profileName: String
+    public let isConnected: Bool
     public let onAdd: (DashboardWidgetConfig) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -98,8 +121,11 @@ public struct AddDashboardWidgetSheet: View {
     @State private var selectedStyle: MetricDisplayStyle = .dial
     @State private var chartSeries: Set<TelemetryMetric> = [.power, .speed]
 
-    public init(supportedMetrics: Set<TelemetryMetric>, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
+    public init(supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, profileName: String, isConnected: Bool, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
         self.supportedMetrics = supportedMetrics
+        self.liveMetrics = liveMetrics
+        self.profileName = profileName
+        self.isConnected = isConnected
         self.onAdd = onAdd
     }
 
@@ -118,6 +144,10 @@ public struct AddDashboardWidgetSheet: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        Text("Compatible with \(profileName) · \(filteredMetrics.count) metrics")
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary)
+                            .padding(.horizontal)
                         // iOS Gallery Search & Selectors
                         VStack(spacing: 12) {
                             HStack {
@@ -215,6 +245,9 @@ public struct AddDashboardWidgetSheet: View {
                     Text("Unit: \(metric.unitSymbol) • Display as \(selectedStyle.displayName)")
                         .font(.caption)
                         .foregroundColor(Theme.textSecondary)
+                    Text(isConnected ? (liveMetrics.contains(metric) ? "Live" : "Compatible · No data") : "Compatible · Not connected")
+                        .font(.caption)
+                        .foregroundColor(liveMetrics.contains(metric) && isConnected ? Theme.regenGreen : Theme.textSecondary)
                 }
 
                 Spacer()

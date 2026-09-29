@@ -27,6 +27,7 @@ public enum TelemetryUpdate: Sendable {
     case timingAdvance(Double)          // degrees before TDC
     case barometricPressure(Double)     // kPa
     case vehicleRange(Double)           // km, reported by the vehicle
+    case communityMetric(TelemetryMetric, Double) // Additional profile-specific published signals
 }
 
 public enum ChargePowerSource: String, Codable, Sendable {
@@ -51,6 +52,7 @@ public struct TelemetrySnapshot: Codable, Sendable, Identifiable {
     public var currentUpdatedAt: Date?
     public var vehicleRangeKm: Double?
     public var vehicleRangeUpdatedAt: Date?
+    public var communityValues: [TelemetryMetric: Double]?
     /// Presentation-only value supplied by the active trip tracker.
     public var tripAverageConsumption: Double?
 

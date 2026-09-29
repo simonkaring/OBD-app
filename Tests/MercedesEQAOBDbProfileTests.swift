@@ -4,6 +4,45 @@ import XCTest
 final class MercedesEQAOBDbProfileTests: XCTestCase {
     private let profile = MercedesEQAOBDbProfile()
 
+    @MainActor
+    func testAdditionalCommunitySignalsAndRouting() {
+        let wheel = "7EA 10 0B 62 20 01 04 00 04\r7EA 21 00 04 00 04 00 00 00"
+        let wheelUpdates = profile.parseResponses(command: "222001", rawResponse: wheel)
+        XCTAssertEqual(wheelUpdates.count, 5)
+        let manager = VehicleDataManager()
+        manager.applyUpdates(wheelUpdates, timestamp: .now, sourceCommand: "222001")
+        XCTAssertEqual(TelemetryMetric.frontRightWheelSpeed.value(in: manager.latestTelemetry), 57.6, accuracy: 0.001)
+
+        let data: [UInt8] = [0, 0, 100, 0, 32, 0, 0, 100, 0, 0, 100, 0, 0, 100, 0, 0, 0, 0, 3, 232]
+        let payload: [UInt8] = [0x62, 0x20, 0x02] + data
+        let first = "7EA 10 17 " + payload.prefix(6).map { String(format: "%02X", $0) }.joined(separator: " ")
+        let rest = stride(from: 6, to: payload.count, by: 7).enumerated().map { offset, start in
+            "7EA " + String(format: "%02X", 0x21 + offset) + " " + payload[start..<min(start + 7, payload.count)].map { String(format: "%02X", $0) }.joined(separator: " ")
+        }
+        let updates = profile.parseResponses(command: "222002", rawResponse: ([first] + rest).joined(separator: "\r"))
+        XCTAssertEqual(updates.count, 6)
+        manager.applyUpdates(updates, timestamp: .now, sourceCommand: "222002")
+        XCTAssertEqual(TelemetryMetric.longitudinalAcceleration.value(in: manager.latestTelemetry), 0.005, accuracy: 0.00001)
+        XCTAssertEqual(TelemetryMetric.lateralAcceleration.value(in: manager.latestTelemetry), 0.5, accuracy: 0.00001)
+        XCTAssertEqual(TelemetryMetric.yawRate.value(in: manager.latestTelemetry), 0.3497, accuracy: 0.00001)
+        XCTAssertEqual(TelemetryMetric.steeringAngle.value(in: manager.latestTelemetry), 10)
+        XCTAssertEqual(TelemetryMetric.brakeCylinderPressure.value(in: manager.latestTelemetry), 1.53, accuracy: 0.00001)
+        XCTAssertEqual(TelemetryMetric.vacuumBrakePressure.value(in: manager.latestTelemetry), 1)
+
+        for (command, response, metric, expected) in [
+            ("226071", "7ED 05 62 60 71 02 58", TelemetryMetric.converterRequestedVoltage, 15.0),
+            ("226504", "7ED 05 62 65 04 03 E8", .serviceDistance, 1000.0),
+            ("220201", "5A4 07 62 02 01 00 00 00 7E", .aux12VHighDefinition, 12.6)
+        ] {
+            let decoded = profile.parseResponses(command: command, rawResponse: response)
+            XCTAssertEqual(decoded.count, 1, command)
+            manager.applyUpdates(decoded, timestamp: .now, sourceCommand: command)
+            XCTAssertEqual(metric.value(in: manager.latestTelemetry), expected, accuracy: 0.001)
+        }
+        XCTAssertTrue(profile.supportedMetrics.isSuperset(of: [.steeringAngle, .serviceDistance, .aux12VHighDefinition]))
+        XCTAssertTrue(profile.parseResponses(command: "222002", rawResponse: "7ED 05 62 20 02 00 00").isEmpty)
+    }
+
     func testPublishedFormulasAndMalformedResponses() {
         // Synthetic vectors exercise published math plus VoltLink's current-sign normalization.
         guard case .soc(let soc) = profile.parseResponse(command: "22 60 50", rawResponse: "7ED 05 62 60 50 1F A4") else { return XCTFail("SOC") }
@@ -37,7 +76,7 @@ final class MercedesEQAOBDbProfileTests: XCTestCase {
         XCTAssertTrue(manager.selectedProfile is MercedesEQAOBDbProfile)
         XCTAssertEqual(VehicleDataManager(userDefaults: defaults).selectedVehicle.id, vehicle.id)
         XCTAssertTrue(profile.initializationCommands.contains("AT SP 6"))
-        XCTAssertEqual(Array(profile.pollingCommands.prefix(5)), ["AT CRA 7EA", "AT SH 7E2", "222001", "AT CRA 7ED", "AT SH 7E5"])
+        XCTAssertEqual(Array(profile.pollingCommands.prefix(4)), ["AT CRA 7EA", "AT SH 7E2", "222001", "222002"])
 
         let timestamp = Date()
         for (command, response) in [

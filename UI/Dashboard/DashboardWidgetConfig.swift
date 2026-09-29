@@ -134,8 +134,17 @@ extension DashboardLayout {
         }
     }
 
-    /// Speed and power dials, a compact full-width charge bar, then supporting metrics.
+    /// Familiar driving and charging readouts, filtered by the selected profile.
     public static let `default` = DashboardLayout(widgets: [
+        DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
+        DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.tripAverageConsumption), style: .numeric, size: .medium)
+    ])
+
+    /// Recognize untouched dashboards saved by older releases without resetting edits.
+    public static let previousDefault = DashboardLayout(widgets: [
         DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
@@ -149,7 +158,15 @@ extension DashboardLayout {
     /// an "unsupported" warning tile. Chart series are filtered the same way and the chart
     /// is dropped entirely if none of its series are supported.
     public static func adaptedDefault(for supportedMetrics: Set<TelemetryMetric>) -> DashboardLayout {
-        let widgets = DashboardLayout.default.widgets.compactMap { widget -> DashboardWidgetConfig? in
+        adapted(Self.default, for: supportedMetrics)
+    }
+
+    public static func adaptedPreviousDefault(for supportedMetrics: Set<TelemetryMetric>) -> DashboardLayout {
+        adapted(previousDefault, for: supportedMetrics)
+    }
+
+    private static func adapted(_ layout: DashboardLayout, for supportedMetrics: Set<TelemetryMetric>) -> DashboardLayout {
+        let widgets = layout.widgets.compactMap { widget -> DashboardWidgetConfig? in
             switch widget.kind {
             case .metric(let metric):
                 return supportedMetrics.contains(metric) ? widget : nil

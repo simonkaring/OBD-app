@@ -58,7 +58,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     private let persistenceDefaults: UserDefaults?
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        if isDemoMode { return Set(TelemetryMetric.allCases) }
+        if isDemoMode { return Set(TelemetryMetric.allCases).subtracting(TelemetryMetric.eqaCommunityMetrics) }
         var metrics = selectedProfile.supportedMetrics
         // GPS can supply speed even when the vehicle has no usable speed PID.
         metrics.insert(.speed)
@@ -469,6 +469,16 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .timingAdvance(let v):             return ok(v, -70...70)
         case .barometricPressure(let v):        return ok(v, 0...300)
         case .vehicleRange(let v):              return ok(v, 0...1_000)
+        case .communityMetric(let metric, let value):
+            switch metric {
+            case .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed: return ok(value, 0...400)
+            case .longitudinalAcceleration, .lateralAcceleration, .yawRate: return ok(value, -10...10)
+            case .steeringAngle: return ok(value, -3_600...3_600)
+            case .brakeCylinderPressure, .vacuumBrakePressure: return ok(value, -500...500)
+            case .aux12VHighDefinition, .converterRequestedVoltage: return ok(value, 0...36)
+            case .serviceDistance: return ok(value, 0...65_535)
+            default: return false
+            }
         case .genericPid:                       return true
         }
     }
@@ -577,6 +587,9 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .vehicleRange(let km):
             snap.vehicleRangeKm = km
             snap.vehicleRangeUpdatedAt = timestamp
+        case .communityMetric(let metric, let value):
+            if snap.communityValues == nil { snap.communityValues = [:] }
+            snap.communityValues?[metric] = value
         case .genericPid: break
         }
         if !chargingPermitted(snapshot: snap) {
@@ -681,6 +694,7 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         case .timingAdvance: [.timingAdvance]
         case .barometricPressure: [.barometricPressure]
         case .vehicleRange: [.vehicleRange]
+        case .communityMetric(let metric, _): [metric]
         case .hvacPower, .chargingStats, .genericPid: []
         }
     }

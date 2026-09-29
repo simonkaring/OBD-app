@@ -21,6 +21,14 @@ public struct DashboardView: View {
         self._layout = AppStorage(wrappedValue: .adaptedDefault(for: vehicleData.supportedMetrics), "dashboardLayout")
     }
 
+    private var widgetLiveMetrics: Set<TelemetryMetric> {
+        var metrics = vehicleData.liveMetrics
+        if tripTracker.telemetryForDisplay(vehicleData.displayedTelemetry).tripAverageConsumption != nil {
+            metrics.insert(.tripAverageConsumption)
+        }
+        return metrics
+    }
+
     public var body: some View {
         NavigationStack {
             ZStack {
@@ -267,6 +275,14 @@ public struct DashboardView: View {
                     telemetryHistory.removeFirst()
                 }
             }
+            .onAppear {
+                let previous = DashboardLayout.adaptedPreviousDefault(for: vehicleData.supportedMetrics)
+                if layout.widgets.count == previous.widgets.count && zip(layout.widgets, previous.widgets).allSatisfy({
+                    $0.kind == $1.kind && $0.style == $1.style && $0.size == $1.size
+                }) {
+                    layout = .adaptedDefault(for: vehicleData.supportedMetrics)
+                }
+            }
             .onChange(of: vehicleData.selectedVehicle.id) { _, _ in
                 telemetryHistory.removeAll()
             }
@@ -308,10 +324,14 @@ public struct DashboardView: View {
             }
             #endif
             .sheet(isPresented: $showCustomization) {
-                DashboardCustomizationSheet(layout: $layout, supportedMetrics: vehicleData.supportedMetrics)
+                DashboardCustomizationSheet(layout: $layout, supportedMetrics: vehicleData.supportedMetrics,
+                                            liveMetrics: widgetLiveMetrics, profileName: vehicleData.vehicleName,
+                                            isConnected: vehicleData.isDemoMode || vehicleData.connectionState.isConnected)
             }
             .sheet(isPresented: $showAddWidgetSheet) {
-                AddDashboardWidgetSheet(supportedMetrics: vehicleData.supportedMetrics) { newWidget in
+                AddDashboardWidgetSheet(supportedMetrics: vehicleData.supportedMetrics,
+                                        liveMetrics: widgetLiveMetrics, profileName: vehicleData.vehicleName,
+                                        isConnected: vehicleData.isDemoMode || vehicleData.connectionState.isConnected) { newWidget in
                     layout.widgets.append(newWidget)
                 }
             }

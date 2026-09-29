@@ -38,14 +38,14 @@ final class DashboardLayoutTests: XCTestCase {
         XCTAssertEqual(decoded, layout)
     }
 
-    func testDefaultLayoutUsesPackVoltageInsteadOfAuxiliary12V() {
+    func testDefaultLayoutMatchesCompatibleScreenshotMetrics() {
         let metrics = DashboardLayout.default.widgets.compactMap { config -> TelemetryMetric? in
             guard case .metric(let metric) = config.kind else { return nil }
             return metric
         }
 
-        XCTAssertTrue(metrics.contains(.packVoltage))
-        XCTAssertFalse(metrics.contains(.aux12V))
+        XCTAssertEqual(metrics, [.speed, .power, .soc, .aux12V, .tripAverageConsumption])
+        XCTAssertFalse(metrics.contains(.batteryTemp))
     }
 
     func testChartWidgetRoundTrip() {
@@ -84,22 +84,21 @@ final class DashboardLayoutTests: XCTestCase {
     }
 
     func testAdaptedDefaultDropsUnsupportedMetricWidgets() {
-        // Mirrors MercedesEQA250Profile's raw decoder support: only pack voltage.
+        // Only voltage cannot populate any of the default widgets.
         let adapted = DashboardLayout.adaptedDefault(for: [.packVoltage])
         let metrics = adapted.widgets.compactMap { config -> TelemetryMetric? in
             guard case .metric(let metric) = config.kind else { return nil }
             return metric
         }
-        XCTAssertEqual(metrics, [.packVoltage])
-        XCTAssertTrue(adapted.widgets.allSatisfy { !$0.kind.isChart }, "Power chart series aren't supported, so the chart widget must be dropped entirely")
+        XCTAssertTrue(metrics.isEmpty)
+        XCTAssertTrue(adapted.widgets.isEmpty)
     }
 
-    func testAdaptedDefaultFiltersChartSeriesInsteadOfDroppingWholeChart() {
+    func testAdaptedDefaultKeepsOnlyCompatibleWidgets() {
         let adapted = DashboardLayout.adaptedDefault(for: [.speed, .power, .soc])
-        guard let chart = adapted.widgets.first(where: \.kind.isChart), case .chart(let series) = chart.kind else {
-            return XCTFail("Expected the power chart to survive since .power is supported")
-        }
-        XCTAssertEqual(series, [.power])
+        XCTAssertEqual(adapted.widgets.count, 3)
+        XCTAssertTrue(adapted.widgets.allSatisfy { !$0.kind.isChart })
+        XCTAssertEqual(DashboardLayout.adaptedPreviousDefault(for: [.speed, .power, .soc]).widgets.count, 4)
     }
 
     func testAdaptedDefaultForAllMetricsMatchesStaticDefault() {

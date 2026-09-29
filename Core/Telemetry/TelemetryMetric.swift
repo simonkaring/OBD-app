@@ -30,6 +30,17 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
     case tripAverageConsumption
     case regenPower
     case vehicleRange
+    case frontLeftWheelSpeed, frontRightWheelSpeed, rearLeftWheelSpeed, rearRightWheelSpeed
+    case longitudinalAcceleration, lateralAcceleration, yawRate, steeringAngle
+    case brakeCylinderPressure, vacuumBrakePressure
+    case aux12VHighDefinition, converterRequestedVoltage, serviceDistance
+
+    public static let eqaCommunityMetrics: Set<Self> = [
+        .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed,
+        .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle,
+        .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
+        .converterRequestedVoltage, .serviceDistance
+    ]
 
     public var id: String { rawValue }
 
@@ -62,6 +73,19 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .tripAverageConsumption: return "Trip Average Consumption"
         case .regenPower: return "Regen Power"
         case .vehicleRange: return "Vehicle Range"
+        case .frontLeftWheelSpeed: return "Front Left Wheel Speed"
+        case .frontRightWheelSpeed: return "Front Right Wheel Speed"
+        case .rearLeftWheelSpeed: return "Rear Left Wheel Speed"
+        case .rearRightWheelSpeed: return "Rear Right Wheel Speed"
+        case .longitudinalAcceleration: return "Longitudinal Acceleration"
+        case .lateralAcceleration: return "Lateral Acceleration"
+        case .yawRate: return "Yaw Rate"
+        case .steeringAngle: return "Steering Angle"
+        case .brakeCylinderPressure: return "Brake Cylinder Pressure"
+        case .vacuumBrakePressure: return "Vacuum Brake Pressure"
+        case .aux12VHighDefinition: return "12V Voltage (High Definition)"
+        case .converterRequestedVoltage: return "DC Converter Requested Voltage"
+        case .serviceDistance: return "Distance to Service"
         }
     }
 
@@ -80,6 +104,12 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .timingAdvance: return "°"
         case .instantEfficiency, .tripAverageConsumption: return "kWh/100km"
         case .vehicleRange: return "km"
+        case .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed: return "km/h"
+        case .longitudinalAcceleration, .lateralAcceleration, .yawRate: return "g"
+        case .steeringAngle: return "°"
+        case .brakeCylinderPressure, .vacuumBrakePressure: return "bar"
+        case .aux12VHighDefinition, .converterRequestedVoltage: return "V"
+        case .serviceDistance: return "km"
         }
     }
 
@@ -103,6 +133,12 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .instantEfficiency, .tripAverageConsumption: return "leaf.fill"
         case .regenPower: return "arrow.down.forward.and.arrow.up.backward"
         case .vehicleRange: return "point.topleft.down.to.point.bottomright.curvepath"
+        case .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed: return "speedometer"
+        case .longitudinalAcceleration, .lateralAcceleration: return "arrow.up.right"
+        case .yawRate, .steeringAngle: return "steeringwheel"
+        case .brakeCylinderPressure, .vacuumBrakePressure: return "gauge.low"
+        case .aux12VHighDefinition, .converterRequestedVoltage: return "bolt.batteryblock"
+        case .serviceDistance: return "wrench.and.screwdriver"
         }
     }
 
@@ -128,6 +164,12 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .instantEfficiency, .tripAverageConsumption: return -40...40
         case .regenPower: return 0...100
         case .vehicleRange: return 0...600
+        case .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed: return 0...200
+        case .longitudinalAcceleration, .lateralAcceleration, .yawRate: return -2...2
+        case .steeringAngle: return -720...720
+        case .brakeCylinderPressure, .vacuumBrakePressure: return 0...100
+        case .aux12VHighDefinition, .converterRequestedVoltage: return 0...25
+        case .serviceDistance: return 0...60_000
         }
     }
 
@@ -137,6 +179,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         switch self {
         case .packVoltage, .aux12V, .instantEfficiency, .tripAverageConsumption, .regenPower: return 1
         case .power, .packCurrent: return 1
+        case .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle, .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition, .converterRequestedVoltage: return 2
         default: return 0
         }
     }
@@ -173,6 +216,10 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .regenPower:
             return snapshot.speedKmH >= 1 && !snapshot.isCharging ? max(0, -snapshot.powerKW) : 0
         case .vehicleRange: return snapshot.vehicleRangeKm ?? 0
+        case .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed,
+             .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle,
+             .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
+             .converterRequestedVoltage, .serviceDistance: return snapshot.communityValues?[self] ?? 0
         }
     }
 
