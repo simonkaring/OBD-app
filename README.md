@@ -1,16 +1,26 @@
 # VoltLink — Swift iOS OBD-II & EV Telemetry App
 
-**VoltLink** is a modern, native Swift iOS & Apple CarPlay OBD-II diagnostic and live telemetry application built with **SwiftUI**, **CoreBluetooth**, **CarPlay**, **ActivityKit**, and **SwiftData**. 
+[![Platform: iOS 17+](https://img.shields.io/badge/Platform-iOS%2017%2B-blue.svg?style=flat-square)](https://apple.com)
+[![CarPlay](https://img.shields.io/badge/CarPlay-Ready-black.svg?style=flat-square)](https://apple.com)
+[![Swift 6 Concurrency](https://img.shields.io/badge/Swift-6%20Strict-orange.svg?style=flat-square)](https://swift.org)
+[![SwiftUI & SwiftData](https://img.shields.io/badge/Framework-SwiftUI%20%7C%20SwiftData-red.svg?style=flat-square)](https://developer.apple.com/swift/)
 
-Optimized for Bluetooth Low Energy (BLE) adapters—specifically the **Vgate iCar Pro 2S**—with specialized Unified Diagnostic Services (UDS) support for electric vehicles like the **Mercedes-Benz EQA 250 (2021)**, as well as a generic SAE J1979 OBD-II fallback and a physics-based **Demo / Simulation Mode**.
+**VoltLink** is a modern, high-performance native iOS & Apple CarPlay diagnostic and live telemetry suite built with **SwiftUI**, **CoreBluetooth**, **CarPlay**, **Swift Charts**, and **SwiftData**. 
+
+Engineered for Bluetooth Low Energy (BLE) OBD-II adapters—specifically optimized for the **Vgate iCar Pro 2S**—VoltLink delivers real-time Unified Diagnostic Services (UDS) telemetry for electric vehicles (including the **Mercedes-Benz EQA 250**, **Volkswagen MEB platform**, and **Hyundai/Kia E-GMP**), alongside standard SAE J1979 OBD-II fallback and a physics-based **Demo / Simulation Engine**.
 
 ---
 
-## 📸 App Screenshots
+## 📸 App Showcase
 
-| Live Telemetry Dashboard | ECU Fault Code Diagnostics | Apple CarPlay Dashboard |
+<div align="center">
+
+| Live Telemetry Dashboard | ECU Fault Code Diagnostics | Apple CarPlay Display |
 | :---: | :---: | :---: |
 | <img src="docs/assets/dashboard_preview.jpg" width="280" alt="VoltLink Telemetry Dashboard" /> | <img src="docs/assets/diagnostics_preview.jpg" width="280" alt="VoltLink ECU Diagnostics" /> | <img src="docs/assets/carplay_preview.jpg" width="400" alt="VoltLink Apple CarPlay Display" /> |
+| *Real-time speed, power arc, SOC % & Swift Charts stream* | *ECU fault scanner with severity rating & Mode 04 clearing* | *Glanceable 4-widget CarPlay driver dashboard* |
+
+</div>
 
 ---
 
