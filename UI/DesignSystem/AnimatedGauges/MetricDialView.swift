@@ -91,8 +91,9 @@ public struct MetricDialView: View {
 
     private var displayValueAndUnit: (displayVal: String, displayUnit: String) {
         if metric == .soc && showEstimatedRange, let rangeKm = estimatedFullRangeKm {
+            let units = UnitPreferences.shared
             let estimatedKm = (value / 100.0) * rangeKm
-            return (String(format: "%.0f", estimatedKm), "km")
+            return (String(format: "%.0f", units.distanceValue(fromKilometers: estimatedKm)), units.rangeUnit)
         }
         let decimals = metric?.decimalPlaces ?? (value >= 100 ? 0 : 1)
         let formatted = String(format: "%.\(decimals)f", abs(value))

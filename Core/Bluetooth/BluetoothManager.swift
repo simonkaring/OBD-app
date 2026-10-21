@@ -27,6 +27,10 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
 
     private var centralManager: CBCentralManager!
     private var activePeripheral: CBPeripheral?
+    /// Remember the last adapter so relaunching doesn't force another scan.
+    static let lastPeripheralIDKey = "lastConnectedPeripheralID"
+    static let autoReconnectKey = "autoReconnectToAdapter"
+    private var didAttemptAutoReconnect = false
     private var boundService: CBService?
     private var writeCharacteristic: CBCharacteristic?
     private var notifyCharacteristic: CBCharacteristic?
@@ -163,6 +167,7 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         if activePeripheral != nil { disconnect() }
         centralManager.stopScan()
         activePeripheral = peripheral
+        UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: Self.lastPeripheralIDKey)
         peripheral.delegate = self
         let name = peripheral.name ?? "OBD Adapter"
         state = .connecting(deviceName: name)
@@ -343,14 +348,36 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
 }
 
 extension BluetoothManager: @preconcurrency CBCentralManagerDelegate {
+    /// Reconnect to the adapter used last, without rescanning. Called once per launch
+    /// when Bluetooth becomes available; the user's manual scan still overrides it.
+    public func attemptAutoReconnect() {
+        guard !didAttemptAutoReconnect, activePeripheral == nil, centralManager != nil else { return }
+        didAttemptAutoReconnect = true
+        guard UserDefaults.standard.object(forKey: Self.autoReconnectKey) as? Bool ?? true,
+            let saved = UserDefaults.standard.string(forKey: Self.lastPeripheralIDKey),
+            let identifier = UUID(uuidString: saved),
+            centralManager.state == .poweredOn
+        else { return }
+        let known = centralManager.retrievePeripherals(withIdentifiers: [identifier])
+        guard let peripheral = known.first else { return }
+        connect(to: peripheral)
+    }
+
+    public func forgetSavedAdapter() {
+        UserDefaults.standard.removeObject(forKey: Self.lastPeripheralIDKey)
+    }
+
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn {
             if case .scanning = state {
                 central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+            } else if case .disconnected = state {
+                attemptAutoReconnect()
             }
         } else {
             state = .error("Bluetooth is off or unauthorized")
             resetConnectionState()
+            Haptics.error()
             delegate?.obdConnectionStateDidChange(state)
         }
     }
@@ -480,6 +507,7 @@ extension BluetoothManager: @preconcurrency CBPeripheralDelegate {
         cancelConnectionTimeout()
         let devName = peripheral.name ?? "OBD Adapter"
         state = .ready(deviceName: devName)
+        Haptics.success()
         delegate?.obdConnectionStateDidChange(state)
     }
 

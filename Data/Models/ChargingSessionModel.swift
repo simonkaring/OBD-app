@@ -15,6 +15,11 @@ public final class ChargingSessionModel {
     public var latitude: Double?
     public var longitude: Double?
 
+    /// Power/SOC points captured while charging, used to draw the session curve.
+    /// Empty for sessions recorded before schema V2.
+    @Relationship(deleteRule: .cascade)
+    public var samples: [ChargingSampleModel]
+
     public init(
         id: UUID = UUID(),
         startTime: Date = Date(),
@@ -33,6 +38,21 @@ public final class ChargingSessionModel {
         self.locationName = locationName
         self.latitude = latitude
         self.longitude = longitude
+        self.samples = []
+    }
+}
+
+/// One point on a charging session's power-vs-SOC curve.
+@Model
+public final class ChargingSampleModel {
+    public var timestamp: Date
+    public var socPct: Double
+    public var powerKW: Double
+
+    public init(timestamp: Date = Date(), socPct: Double = 0, powerKW: Double = 0) {
+        self.timestamp = timestamp
+        self.socPct = socPct
+        self.powerKW = powerKW
     }
 }
 

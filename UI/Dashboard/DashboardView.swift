@@ -229,7 +229,7 @@ public struct DashboardView: View {
                                         .font(.subheadline)
                                         .foregroundStyle(Theme.highPowerAmber)
                                 } else {
-                                    Text(String(format: "%.1f km logged", tripTracker.currentTrip?.distanceKm ?? 0.0))
+                                    Text("\(UnitPreferences.shared.distance(kilometers: tripTracker.currentTrip?.distanceKm ?? 0.0)) logged")
                                         .font(.headline)
                                         .monospacedDigit()
                                         .foregroundStyle(Theme.textPrimary)

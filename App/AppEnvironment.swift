@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import SwiftData
+import OSLog
 
 @MainActor
 public final class AppEnvironment: ObservableObject {
@@ -18,18 +19,33 @@ public final class AppEnvironment: ObservableObject {
     @Published public private(set) var storageWarning: String?
 
     private var cancellables = Set<AnyCancellable>()
+    /// Widget/Live Activity writes are throttled separately from telemetry; the poll
+    /// loop can publish several times per second.
+    private var lastSharedPublish = Date.distantPast
 
     private static func makeModelContainer() -> (ModelContainer, String?) {
-        let schema = Schema(versionedSchema: VoltLinkSchemaV1.self)
+        let schema = Schema(versionedSchema: VoltLinkCurrentSchema.versioned)
+        // Pin the store to the app's own container. SwiftData's default URL resolves to the
+        // first app group once the widget shares one, which would open an empty store and
+        // orphan trips recorded before the widget was added.
+        let configuration = ModelConfiguration(
+            schema: schema,
+            url: URL.applicationSupportDirectory.appending(path: "default.store"))
         do {
-            return (try ModelContainer(for: schema, migrationPlan: VoltLinkMigrationPlan.self), nil)
+            // Schema V2 only adds an entity plus an empty-default relationship, so SwiftData's
+            // inferred lightweight migration handles stores created by V1. Supplying a plan
+            // whose two versions share model classes made Core Data abort instead of migrate.
+            return (try ModelContainer(for: schema, configurations: configuration), nil)
         } catch {
+            // Surfaced in Console so a migration failure on a real device is diagnosable
+            // rather than only visible as the in-app banner.
+            Logger(subsystem: "com.simonkaring.voltlink", category: "persistence")
+                .error("Persistent store unavailable, using in-memory history: \(String(describing: error), privacy: .public)")
             let warning =
                 "Persistent history is unavailable: \(error.localizedDescription). New recordings are temporary and will be lost when VoltLink closes."
             return (
                 try! ModelContainer(
                     for: schema,
-                    migrationPlan: VoltLinkMigrationPlan.self,
                     configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning
             )
         }
@@ -73,12 +89,14 @@ public final class AppEnvironment: ObservableObject {
         cTracker.processTelemetrySnapshot(initialSnapshot)
 
         vData.telemetryPublisher
-            .sink { [weak tTracker, weak cTracker, weak vData] snapshot in
+            .sink { [weak self, weak tTracker, weak cTracker, weak vData] snapshot in
                 let hasPower = vData?.isDemoMode == true || (vData?.liveMetrics.contains(.power) == true && snapshot.hasFreshPower)
                 tTracker?.processTelemetrySnapshot(
                     snapshot, vehicleName: vData?.vehicleName ?? "Vehicle", hasPowerData: hasPower,
                     requiresPowerForAutoStart: vData?.supportedMetrics.contains(.power) == true)
                 cTracker?.processTelemetrySnapshot(snapshot)
+                guard let self, let vData else { return }
+                self.publishSharedState(snapshot: snapshot, vehicleData: vData, tripTracker: tTracker)
             }
             .store(in: &cancellables)
 
@@ -101,6 +119,15 @@ public final class AppEnvironment: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // Only warn about a dropped adapter while a trip is actually being recorded;
+        // disconnects while idle are expected and already shown by the banner.
+        vData.onUnexpectedDisconnect = { [weak tTracker] in
+            guard tTracker?.currentTrip != nil else { return }
+            #if os(iOS)
+            NotificationService.shared.notifyAdapterDisconnected()
+            #endif
+        }
+
         locationManager.$currentLocation
             .compactMap { $0 }
             .sink { location in
@@ -112,5 +139,38 @@ public final class AppEnvironment: ObservableObject {
                 vData.applyExternalSpeed(location.speed * 3.6, timestamp: location.timestamp)
             }
             .store(in: &cancellables)
+    }
+
+    /// Mirrors the latest state into the app group for the widget and Live Activity.
+    private func publishSharedState(snapshot: TelemetrySnapshot, vehicleData: VehicleDataManager, tripTracker: TripTrackingManager?) {
+        let now = Date()
+        guard now.timeIntervalSince(lastSharedPublish) >= 2 else { return }
+        lastSharedPublish = now
+
+        let soc = vehicleData.displayedTelemetry.stateOfChargePct
+        let range = vehicleData.estimatedFullRangeKm.map { $0 * max(0, min(100, soc)) / 100 }
+        let shared = SharedTelemetrySnapshot(
+            vehicleName: vehicleData.vehicleName,
+            socPct: soc,
+            powerKW: snapshot.isCharging ? snapshot.chargePowerKW : abs(snapshot.powerKW),
+            speedKmH: snapshot.speedKmH,
+            rangeKm: range,
+            isCharging: snapshot.isCharging,
+            isConnected: vehicleData.connectionState.isConnected || vehicleData.isDemoMode,
+            isDemoMode: vehicleData.isDemoMode,
+            isTripActive: tripTracker?.currentTrip != nil,
+            distanceKm: tripTracker?.currentTrip?.distanceKm ?? 0,
+            updatedAt: now
+        )
+        SharedTelemetryStore.save(shared)
+
+        #if os(iOS)
+        SharedWidgetRefresher.refreshIfNeeded(at: now)
+        LiveActivityCoordinator.shared.update(
+            snapshot: shared,
+            chargingActive: snapshot.isCharging,
+            tripActive: tripTracker?.currentTrip != nil
+        )
+        #endif
     }
 }

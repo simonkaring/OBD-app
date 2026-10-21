@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import MapKit
+import Charts
 
 public struct ChargingSessionDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -32,6 +33,13 @@ public struct ChargingSessionDetailView: View {
             Image(systemName: "square.and.arrow.up")
         }
         .accessibilityLabel("Export charging session")
+    }
+
+    /// Session curve points with valid readings, ordered by SOC for a power-vs-SOC plot.
+    private var curveSamples: [ChargingSampleModel] {
+        session.samples
+            .filter { $0.socPct.isFinite && $0.powerKW.isFinite && $0.socPct >= 0 }
+            .sorted { $0.socPct < $1.socPct }
     }
 
     private var coordinate: CLLocationCoordinate2D? {
@@ -90,7 +98,7 @@ public struct ChargingSessionDetailView: View {
                             VStack(alignment: .leading) {
                                 Text("Energy Added")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.2f kWh", session.totalKWhDelivered))
+                                Text(UnitPreferences.shared.energy(kilowattHours: session.totalKWhDelivered))
                                     .font(.title2.weight(.semibold))
                                     .foregroundStyle(Theme.regenGreen)
                             }
@@ -100,7 +108,7 @@ public struct ChargingSessionDetailView: View {
                             VStack(alignment: .leading) {
                                 Text("Peak Power")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.1f kW", session.peakPowerKW))
+                                Text(UnitPreferences.shared.power(kilowatts: session.peakPowerKW))
                                     .font(.title2.weight(.semibold))
                                     .foregroundStyle(Theme.highPowerAmber)
                             }
@@ -110,7 +118,7 @@ public struct ChargingSessionDetailView: View {
                             VStack(alignment: .leading) {
                                 Text("Avg Power")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.1f kW", session.averagePowerKW))
+                                Text(UnitPreferences.shared.power(kilowatts: session.averagePowerKW))
                                     .font(.title2.weight(.semibold))
                                     .foregroundStyle(Theme.electricCyan)
                             }
@@ -162,6 +170,44 @@ public struct ChargingSessionDetailView: View {
                         }
                     }
 
+                    if curveSamples.count > 1 {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("CHARGING CURVE")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.textSecondary)
+
+                            Chart(curveSamples, id: \.persistentModelID) { sample in
+                                let units = UnitPreferences.shared
+
+                                LineMark(
+                                    x: .value("State of charge", sample.socPct),
+                                    y: .value("Power", units.powerValue(fromKilowatts: sample.powerKW))
+                                )
+                                .foregroundStyle(Theme.regenGreen)
+                                .interpolationMethod(.catmullRom)
+
+                                AreaMark(
+                                    x: .value("State of charge", sample.socPct),
+                                    y: .value("Power", units.powerValue(fromKilowatts: sample.powerKW))
+                                )
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Theme.regenGreen.opacity(0.35), Theme.regenGreen.opacity(0.02)],
+                                        startPoint: .top,
+                                        endPoint: .bottom)
+                                )
+                                .interpolationMethod(.catmullRom)
+                            }
+                            .chartXAxisLabel("State of charge (%)", position: .bottom)
+                            .chartYAxisLabel(UnitPreferences.shared.powerUnit.symbol, position: .leading)
+                            .frame(height: 180)
+                            .accessibilityLabel("Charging power curve across state of charge")
+                        }
+                        .padding()
+                        .glassCard()
+                        .padding(.horizontal)
+                    }
+
                     // Performance Grid
                     VStack(alignment: .leading, spacing: 12) {
                         Text("BATTERY & CHARGE STATS")
@@ -186,14 +232,14 @@ public struct ChargingSessionDetailView: View {
 
                             StatTile(
                                 title: "Peak Power",
-                                value: String(format: "%.1f kW", session.peakPowerKW),
+                                value: UnitPreferences.shared.power(kilowatts: session.peakPowerKW),
                                 subtitle: "Maximum charging rate",
                                 accentColor: Theme.highPowerAmber
                             )
 
                             StatTile(
                                 title: "Energy Delivered",
-                                value: String(format: "%.2f kWh", session.totalKWhDelivered),
+                                value: UnitPreferences.shared.energy(kilowattHours: session.totalKWhDelivered),
                                 subtitle: "Total net energy",
                                 accentColor: Theme.regenGreen
                             )

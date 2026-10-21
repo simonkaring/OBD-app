@@ -119,7 +119,7 @@ public struct TripDetailView: View {
                             VStack(alignment: .leading) {
                                 Text("Distance")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.1f km", trip.distanceKm))
+                                Text(UnitPreferences.shared.distance(kilometers: trip.distanceKm))
                                     .font(.title2.weight(.semibold))
                                     .foregroundStyle(Theme.electricCyan)
                             }
@@ -129,7 +129,7 @@ public struct TripDetailView: View {
                             VStack(alignment: .leading) {
                                 Text("Energy Used")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.2f kWh", trip.totalKWhUsed))
+                                Text(UnitPreferences.shared.energy(kilowattHours: trip.totalKWhUsed))
                                     .font(.title2.weight(.semibold))
                                     .foregroundStyle(Theme.textPrimary)
                             }
@@ -139,9 +139,17 @@ public struct TripDetailView: View {
                             VStack(alignment: .leading) {
                                 Text("Avg Efficiency")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.1f", trip.efficiencyKWhPer100Km))
+                                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                    Text(
+                                        String(
+                                            format: "%.1f",
+                                            UnitPreferences.shared.efficiencyValue(fromKilowattHoursPer100Kilometers: trip.efficiencyKWhPer100Km))
+                                    )
                                     .font(.title2.weight(.semibold))
-                                    .foregroundStyle(Theme.regenGreen) + Text(" kWh/100km").font(.caption).foregroundStyle(Theme.textSecondary)
+                                    Text(UnitPreferences.shared.efficiencyUnit)
+                                        .font(.caption)
+                                }
+                                .foregroundStyle(Theme.regenGreen)
                             }
                         }
                     }
@@ -222,35 +230,35 @@ public struct TripDetailView: View {
 
                             TripStatTile(
                                 title: "Peak Regen Braking",
-                                value: String(format: "%.1f kW", abs(trip.maxRegenKW)),
+                                value: UnitPreferences.shared.power(kilowatts: abs(trip.maxRegenKW)),
                                 subtitle: "Max kinetic recovery",
                                 accentColor: Theme.regenGreen
                             )
 
                             TripStatTile(
                                 title: "Top Speed",
-                                value: String(format: "%.0f km/h", topSpeedKmH),
+                                value: UnitPreferences.shared.speed(kilometersPerHour: topSpeedKmH, decimals: 0),
                                 subtitle: "Peak speed recorded",
                                 accentColor: Theme.highPowerAmber
                             )
 
                             TripStatTile(
                                 title: "Avg Speed",
-                                value: String(format: "%.0f km/h", trip.computedAverageSpeedKmH),
+                                value: UnitPreferences.shared.speed(kilometersPerHour: trip.computedAverageSpeedKmH, decimals: 0),
                                 subtitle: "Average travel speed",
                                 accentColor: Theme.electricCyan
                             )
 
                             TripStatTile(
                                 title: "Avg Power Draw",
-                                value: String(format: "%.1f kW", trip.averagePowerKW),
+                                value: UnitPreferences.shared.power(kilowatts: trip.averagePowerKW),
                                 subtitle: "Mean electrical power",
                                 accentColor: Theme.electricCyan
                             )
 
                             TripStatTile(
                                 title: "Peak Power Draw",
-                                value: String(format: "%.1f kW", trip.maxPowerKW),
+                                value: UnitPreferences.shared.power(kilowatts: trip.maxPowerKW),
                                 subtitle: "Max motor output",
                                 accentColor: Theme.highPowerAmber
                             )
@@ -267,20 +275,20 @@ public struct TripDetailView: View {
                                 .padding(.horizontal)
 
                             VStack(alignment: .leading, spacing: 16) {
-                                Text("Speed Profile (km/h)")
+                                Text("Speed Profile (\(UnitPreferences.shared.distanceUnit.perHourSymbol))")
                                     .font(.caption).fontWeight(.bold).foregroundStyle(Theme.electricCyan)
 
                                 Chart(chartSamples, id: \.persistentModelID) { sample in
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
-                                        y: .value("Speed", sample.speedKmH)
+                                        y: .value("Speed", UnitPreferences.shared.speedValue(fromKilometersPerHour: sample.speedKmH))
                                     )
                                     .foregroundStyle(Theme.electricCyan)
                                     .interpolationMethod(.linear)
 
                                     AreaMark(
                                         x: .value("Time", sample.timestamp),
-                                        y: .value("Speed", sample.speedKmH)
+                                        y: .value("Speed", UnitPreferences.shared.speedValue(fromKilometersPerHour: sample.speedKmH))
                                     )
                                     .foregroundStyle(
                                         LinearGradient(
@@ -294,13 +302,13 @@ public struct TripDetailView: View {
 
                                 Divider().background(Theme.divider)
 
-                                Text("Power Draw & Regen (kW)")
+                                Text("Power Draw & Regen (\(UnitPreferences.shared.powerUnit.symbol))")
                                     .font(.caption).fontWeight(.bold).foregroundStyle(Theme.regenGreen)
 
                                 Chart(chartSamples, id: \.persistentModelID) { sample in
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
-                                        y: .value("Power", sample.powerKW)
+                                        y: .value("Power", UnitPreferences.shared.powerValue(fromKilowatts: sample.powerKW))
                                     )
                                     .foregroundStyle(sample.powerKW >= 0 ? Theme.highPowerAmber : Theme.regenGreen)
                                     .interpolationMethod(.linear)

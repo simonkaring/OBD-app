@@ -108,7 +108,7 @@ final class TripPersistenceTests: XCTestCase {
     override func setUpWithError() throws {
         storeDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: storeDirectory, withIntermediateDirectories: true)
-        let schema = Schema([TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self])
+        let schema = Schema([TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, ChargingSampleModel.self])
         let configuration = ModelConfiguration(schema: schema, url: storeDirectory.appendingPathComponent("trips.store"))
         container = try ModelContainer(for: schema, configurations: configuration)
     }
@@ -336,5 +336,63 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertNil(tracker.currentSession)
         XCTAssertFalse(tracker.isRecordingSession)
         XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<ChargingSessionModel>()), 0)
+    }
+
+    @MainActor
+    func testChargingCurveSamplesAreThrottledAndPersisted() throws {
+        let context = ModelContext(container)
+        context.autosaveEnabled = false
+        let tracker = ChargingTrackingManager()
+        tracker.modelContext = context
+        tracker.startSession(startSoc: 40)
+        let session = try XCTUnwrap(tracker.currentSession)
+        XCTAssertEqual(session.samples.count, 1, "The session starts with a curve point at its starting SOC")
+
+        var snapshot = TelemetrySnapshot()
+        snapshot.stateOfChargePct = 41
+        snapshot.isCharging = true
+        snapshot.chargePowerKW = 50
+        snapshot.timestamp = Date()
+
+        tracker.recordSnapshot(snapshot, chargingPower: 50)
+        XCTAssertEqual(session.samples.count, 2, "A full percent of SOC adds a curve point")
+
+        tracker.recordSnapshot(snapshot, chargingPower: 50)
+        XCTAssertEqual(session.samples.count, 2, "Repeated identical readings are not stored")
+
+        XCTAssertTrue(tracker.stopSession(endSoc: 42))
+        let saved = try ModelContext(container).fetch(FetchDescriptor<ChargingSessionModel>())
+        XCTAssertEqual(saved.count, 1)
+        XCTAssertEqual(saved.first?.samples.count, 2)
+        XCTAssertEqual(saved.first?.samples.map(\.powerKW).max(), 50)
+    }
+
+    @MainActor
+    func testMigratedStoreKeepsTripAndChargingCurveData() throws {
+        let url = storeDirectory.appendingPathComponent("migration.store")
+        let schema = Schema(versionedSchema: VoltLinkSchemaV2.self)
+
+        do {
+            let configuration = ModelConfiguration(schema: schema, url: url)
+            let first = try ModelContainer(for: schema, configurations: configuration)
+            let context = ModelContext(first)
+            let trip = TripModel(startTime: Date(timeIntervalSince1970: 1_700_000_000), distanceKm: 12, startSocPct: 80)
+            trip.endTime = trip.startTime.addingTimeInterval(600)
+            let session = ChargingSessionModel(startTime: trip.startTime, startSocPct: 30)
+            session.endTime = session.startTime.addingTimeInterval(1_800)
+            session.samples = [ChargingSampleModel(timestamp: session.startTime, socPct: 30, powerKW: 60)]
+            context.insert(trip)
+            context.insert(session)
+            try context.save()
+        }
+
+        let configuration = ModelConfiguration(schema: schema, url: url)
+        let reopened = try ModelContainer(for: schema, configurations: configuration)
+        let context = ModelContext(reopened)
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<TripModel>()), 1)
+        let sessions = try context.fetch(FetchDescriptor<ChargingSessionModel>())
+        XCTAssertEqual(sessions.count, 1)
+        XCTAssertEqual(sessions.first?.samples.count, 1)
+        XCTAssertEqual(sessions.first?.samples.first?.powerKW, 60)
     }
 }

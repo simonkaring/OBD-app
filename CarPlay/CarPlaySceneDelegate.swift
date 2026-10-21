@@ -20,7 +20,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     /// Last rendered dial image per metric, keyed with the value it was rendered at, so a
     /// telemetry tick that doesn't meaningfully change a metric skips the (expensive)
     /// `ImageRenderer` pass for that tile.
-    private var dialImageCache: [TelemetryMetric: (value: Double, image: UIImage)] = [:]
+    private var dialImageCache: [TelemetryMetric: (value: Double, unit: String, image: UIImage)] = [:]
 
     public func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
@@ -165,7 +165,8 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         let hasChargePower = isConnected && vehicleData.hasChargePower
         let isCharging = hasChargePower && (snapshot.isCharging || snapshot.chargePowerKW > 0)
         let powerKW = snapshot.chargePowerKW
-        let powerStr = hasChargePower ? String(format: "%.1f kW", powerKW) : "-- kW"
+        let units = UnitPreferences.shared
+        let powerStr = hasChargePower ? units.power(kilowatts: powerKW) : "-- \(units.powerUnit.symbol)"
         let socStr = hasSOC ? String(format: "%.1f%%", snapshot.stateOfChargePct) : "--%"
 
         let statusStr: String
@@ -193,7 +194,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         }
 
         let hasBatteryTemperature = vehicleData.isDemoMode || vehicleData.liveMetrics.contains(.batteryTemp)
-        let tempStr = isConnected && hasBatteryTemperature ? String(format: "%.1f °C", snapshot.batteryTempC) : "Unavailable"
+        let tempStr = isConnected && hasBatteryTemperature ? units.temperature(celsius: snapshot.batteryTempC, decimals: 1) : "Unavailable"
 
         return [
             CPInformationItem(title: "STATUS", detail: statusStr),
@@ -228,10 +229,13 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         switch tile {
         case .metric(let metric):
             guard isDemoMode || supportedMetrics.contains(metric) else { return nil }
-            let value = metric.value(in: snapshot)
+            let presentation = UnitPreferences.shared.metricValue(metric, value: metric.value(in: snapshot))
             let available = metric.isAvailable(in: snapshot, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now)
-            let image = available ? cachedDialImage(for: metric, value: value) : renderDialImage(for: metric, value: 0, isUnavailable: true)
-            let valueStr = available ? String(format: "%.1f %@", value, metric.unitSymbol) : "-- \(metric.unitSymbol)"
+            let image =
+                available
+                ? cachedDialImage(for: metric, value: presentation.value, unit: presentation.unit)
+                : renderDialImage(for: metric, value: 0, isUnavailable: true)
+            let valueStr = available ? String(format: "%.1f %@", presentation.value, presentation.unit) : "-- \(presentation.unit)"
             return CPGridButton(titleVariants: [metric.displayName.uppercased(), valueStr], image: image) { _ in }
 
         case .health:
@@ -252,20 +256,22 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     /// Reuses the previous render when `value` hasn't moved meaningfully — `ImageRenderer`
     /// is expensive and `rebuildInterface()` can run up to 5x/sec while driving.
     @MainActor
-    private func cachedDialImage(for metric: TelemetryMetric, value: Double) -> UIImage {
-        if let cached = dialImageCache[metric], abs(cached.value - value) < 0.5 {
+    private func cachedDialImage(for metric: TelemetryMetric, value: Double, unit: String) -> UIImage {
+        if let cached = dialImageCache[metric], cached.unit == unit, abs(cached.value - value) < 0.5 {
             return cached.image
         }
         let image = renderDialImage(for: metric, value: value)
-        dialImageCache[metric] = (value, image)
+        dialImageCache[metric] = (value, unit, image)
         return image
     }
 
     @MainActor
     private func renderDialImage(for metric: TelemetryMetric, value: Double, isUnavailable: Bool = false) -> UIImage {
-        let range = metric.defaultRange
+        let range = UnitPreferences.shared.metricRange(metric)
         let mode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional
-        let dialView = MetricDialView(value: value, range: range, mode: mode, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: isUnavailable)
+        let dialView = MetricDialView(
+            value: value, range: range, mode: mode, unit: UnitPreferences.shared.metricUnit(metric), label: metric.displayName,
+            isUnavailable: isUnavailable)
 
         let container =
             dialView

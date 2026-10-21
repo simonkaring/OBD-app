@@ -24,7 +24,7 @@ jobs:
       - name: OKF conformance and drift
         run: swift run VoltLinkCLI okf check
       - name: swift-format
-        run: swift format lint --strict --recursive --configuration .swift-format Package.swift App CarPlay Core Data Services UI Tests UITests Tools
+        run: swift format lint --strict --recursive --configuration .swift-format Package.swift App CarPlay Core Data Services UI Widgets Tests UITests Tools
 
   ios:
     name: iOS simulator build and UI smoke test

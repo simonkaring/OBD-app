@@ -24,7 +24,7 @@ xcodebuild test -scheme VoltLink \
 swift run VoltLinkCLI okf export                                              # regenerate knowledge/
 swift run VoltLinkCLI okf check                                               # validate knowledge/
 swift format lint --strict --recursive --configuration .swift-format \
-  Package.swift App CarPlay Core Data Services UI Tests UITests Tools        # formatting gate
+  Package.swift App CarPlay Core Data Services UI Widgets Tests UITests Tools        # formatting gate
 ```
 
 Run `swift test` after changing PID decoders, ISO-TP parsing, SwiftData models,
@@ -39,10 +39,13 @@ iOS-only code (`UI`, `CarPlay`, `App`).
 | `MercedesEQAOBDbProfileTests`, `VolkswagenMEBProfileTests` | Profile decoders and plausible ranges |
 | `GenericOBD2ProfileTests` | SAE J1979 fallback |
 | `TripAndTelemetryTests` | Snapshot state machine, charging estimates, sessions |
-| `TripPersistenceTests` | SwiftData trip/charge persistence in demo mode |
+| `TripPersistenceTests` | SwiftData trip/charge persistence, schema V2 curve samples, save failures |
 | `VehicleProfileCalibrationTests` | Initialization, calibration, SOC reference |
 | `ConsumptionTelemetryTests` | Efficiency and demo simulation |
 | `TripExportTests` | Trip GPX/CSV and charging CSV export formats |
+| `UnitPreferencesTests` | Distance/speed/temperature/power conversion and persistence |
+| `TripHistoryInsightsTests` | Monthly distance, net energy, weighted efficiency, cost |
+| `SharedTelemetryStoreTests` | App-group snapshot round trip and legacy decoding |
 | `KnowledgeBundleTests` | OKF conformance and drift against generated concepts |
 | `DashboardLayoutTests`, `ABRPProfileLoaderTests`, `BluetoothManagerTests` | Layout, equation loading, connection handling |
 | `UITests/VoltLinkSmokeUITests` | First-run demo mode, dashboard header, Diagnostics tab |
@@ -60,6 +63,15 @@ iOS-only code (`UI`, `CarPlay`, `App`).
 - Assert on absence (`hasChargePower == false`) rather than on zero-valued
   sentinels when a value is unknown.
 - When a test reproduces a bug, keep it: the suite encodes behavior contracts.
+
+# Widget extension
+
+The widget/Live Activity target is built by the Xcode scheme, not by
+`swift test`; widget sources are excluded from `VoltLinkEngine` so their
+`@main` bundle cannot conflict with the app. Live Activity updates and app-group
+sharing therefore need a manual simulator run (or the UI test scheme build) to
+verify. App-group data sharing requires the group to be provisioned for signed
+builds.
 
 # CI
 

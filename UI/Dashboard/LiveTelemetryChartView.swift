@@ -30,6 +30,7 @@ public struct LiveTelemetryChartView: View {
     }
 
     public var body: some View {
+        let units = UnitPreferences.shared
         let activeMetrics = seriesMetrics.filter { metric in
             telemetryHistory.last.map { metric.isAvailable(in: $0, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now) } ?? false
         }
@@ -49,7 +50,7 @@ public struct LiveTelemetryChartView: View {
                     ForEach(
                         telemetryHistory.suffix(30).filter { metric.isAvailable(in: $0, liveMetrics: liveMetrics, isDemoMode: isDemoMode) }, id: \.timestamp
                     ) { item in
-                        let value = metric.value(in: item)
+                        let value = units.metricValue(metric, value: metric.value(in: item)).value
                         let seriesColor = color(for: metric, value: value, seriesIndex: seriesIndex)
 
                         LineMark(
@@ -79,6 +80,7 @@ public struct LiveTelemetryChartView: View {
                     AxisValueLabel().foregroundStyle(Theme.textSecondary)
                 }
             }
+            .chartYAxisLabel(activeMetrics.first.map { units.metricUnit($0) } ?? "", position: .leading)
             .chartXAxis {
                 AxisMarks(position: .bottom) { _ in
                     AxisGridLine().foregroundStyle(Theme.chartGrid)

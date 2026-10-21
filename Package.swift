@@ -44,6 +44,7 @@ let package = Package(
                 "Tools",
                 "Tests",
                 "UITests",
+                "Widgets",
                 "App/Info.plist",
                 "App/Assets.xcassets",
                 "App/VoltLink.entitlements",

@@ -28,7 +28,17 @@ sources:
    telemetry reports charging while stationary, records snapshots, and stops
    after three consecutive non-charging snapshots (`endSessionSnapshotThreshold`)
    to avoid splitting one charge into fragments. A row stores start/end SOC,
-   delivered kWh, peak/average power, and a reverse-geocoded location.
+   delivered kWh, peak/average power, a reverse-geocoded location, and a
+   power-vs-SOC curve (`ChargingSampleModel`, schema V2).
+
+# Curve capture
+
+`ChargingTrackingManager.appendCurveSample` stores one point per 1% SOC change
+or 60 seconds, whichever comes first, capped at 720 points per session. The
+session starts with a point at its start SOC. `ChargingSessionDetailView` plots
+the curve with SOC on the x-axis and power converted through
+`UnitPreferences` on the y-axis. Sessions recorded before schema V2 simply have
+no samples and hide the chart.
 
 # Detection and estimation
 

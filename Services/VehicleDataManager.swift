@@ -33,6 +33,8 @@ public final class VehicleDataManager: OBDConnectionDelegate {
     public var obdConnection: OBDConnectionProtocol
     /// Close recordings before changing their source. A failed save keeps the current mode.
     public var prepareDemoModeChange: ((Bool) -> Bool)?
+    /// Fired when the adapter drops without the user asking to disconnect.
+    @ObservationIgnored public var onUnexpectedDisconnect: (() -> Void)?
     public let chargingTracker = ChargingSessionTracker()
 
     public var vehicleName: String {
@@ -786,11 +788,13 @@ public final class VehicleDataManager: OBDConnectionDelegate {
             publishTelemetry(TelemetrySnapshot())
             chargingEstimator.reset()
             resetTelemetryValidity()
+            onUnexpectedDisconnect?()
         } else if case .error = state {
             stopPolling()
             publishTelemetry(TelemetrySnapshot())
             chargingEstimator.reset()
             resetTelemetryValidity()
+            onUnexpectedDisconnect?()
         }
     }
 

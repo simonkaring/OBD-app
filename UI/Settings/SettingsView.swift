@@ -12,6 +12,13 @@ public struct SettingsView: View {
 
     @AppStorage("developerModeEnabled") private var developerModeEnabled: Bool = false
     @AppStorage("keepScreenAwake") private var keepScreenAwake = false
+    @AppStorage("electricityPricePerKWh") private var electricityPricePerKWh: Double = 0
+    @AppStorage(BluetoothManager.autoReconnectKey) private var autoReconnectToAdapter = true
+    @AppStorage(NotificationService.PreferenceKey.chargingFinished) private var notifyChargingFinished = true
+    @AppStorage(NotificationService.PreferenceKey.adapterDisconnected) private var notifyAdapterDisconnected = true
+    @AppStorage(NotificationService.PreferenceKey.faultCodes) private var notifyFaultCodes = true
+
+    private var units: UnitPreferences { .shared }
     @ObservedObject private var keyStore = AIAPIKeyStore.shared
     @State private var aiApiKey = ""
 
@@ -57,7 +64,7 @@ public struct SettingsView: View {
                         .pickerStyle(.menu)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Simulated Speed: \(Int(targetSpeed)) km/h")
+                            Text("Simulated Speed: \(units.speed(kilometersPerHour: targetSpeed, decimals: 0))")
                                 .font(.subheadline)
                             Slider(value: $targetSpeed, in: 0...160, step: 5) { _ in
                                 engine.userSpeedOverride = targetSpeed
@@ -123,6 +130,92 @@ public struct SettingsView: View {
                     Text("Display")
                 } footer: {
                     Text("Prevents the screen from dimming and locking while VoltLink is open. This may increase battery use.")
+                }
+
+                Section {
+                    Picker(
+                        "Distance & Speed",
+                        selection: Binding(
+                            get: { units.distanceUnit },
+                            set: { units.distanceUnit = $0 })
+                    ) {
+                        ForEach(DistanceUnit.allCases) { unit in
+                            Text("\(unit.displayName) (\(unit.symbol))").tag(unit)
+                        }
+                    }
+
+                    Picker(
+                        "Temperature",
+                        selection: Binding(
+                            get: { units.temperatureUnit },
+                            set: { units.temperatureUnit = $0 })
+                    ) {
+                        ForEach(TemperatureUnit.allCases) { unit in
+                            Text("\(unit.displayName) (\(unit.symbol))").tag(unit)
+                        }
+                    }
+
+                    Picker(
+                        "Power",
+                        selection: Binding(
+                            get: { units.powerUnit },
+                            set: { units.powerUnit = $0 })
+                    ) {
+                        ForEach(PowerUnit.allCases) { unit in
+                            Text("\(unit.displayName) (\(unit.symbol))").tag(unit)
+                        }
+                    }
+                } header: {
+                    Text("Units")
+                } footer: {
+                    Text("Telemetry is recorded in metric units; only the display changes. Exports always keep metric values for interoperability.")
+                }
+
+                Section {
+                    HStack {
+                        Text("Electricity Price")
+                        Spacer()
+                        TextField("0.00", value: $electricityPricePerKWh, format: .number.precision(.fractionLength(2)))
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 110)
+                        Text("per kWh")
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                } header: {
+                    Text("Trip Cost Estimate")
+                } footer: {
+                    Text("Used for the cost summary on the Log tab. Set it to 0 to hide the estimate.")
+                }
+
+                Section {
+                    Toggle(
+                        "Charging Finished",
+                        isOn: Binding(
+                            get: { notifyChargingFinished },
+                            set: { enabled in
+                                notifyChargingFinished = enabled
+                                if enabled { Task { await NotificationService.shared.requestAuthorizationIfNeeded() } }
+                            }))
+                    Toggle(
+                        "Adapter Disconnected During a Trip",
+                        isOn: Binding(
+                            get: { notifyAdapterDisconnected },
+                            set: { enabled in
+                                notifyAdapterDisconnected = enabled
+                                if enabled { Task { await NotificationService.shared.requestAuthorizationIfNeeded() } }
+                            }))
+                    Toggle(
+                        "Fault Codes Found",
+                        isOn: Binding(
+                            get: { notifyFaultCodes },
+                            set: { enabled in
+                                notifyFaultCodes = enabled
+                                if enabled { Task { await NotificationService.shared.requestAuthorizationIfNeeded() } }
+                            }))
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("VoltLink asks for permission the first time one of these is enabled. Notifications never include raw vehicle data.")
                 }
 
                 Section("GPS Route Recording") {
@@ -251,10 +344,15 @@ public struct SettingsView: View {
                         "\(vehicleData.selectedVehicle.id).\(vehicleData.selectedModelYear ?? 0).\(vehicleData.selectedProfileID.rawValue).\(vehicleData.isDemoMode)"
                     )
 
-                Section("Bluetooth Adapter") {
+                Section {
                     NavigationLink("Scan Nearby BLE Devices") {
                         AdapterScanView(vehicleData: vehicleData)
                     }
+                    Toggle("Reconnect to Last Adapter", isOn: $autoReconnectToAdapter)
+                } header: {
+                    Text("Bluetooth Adapter")
+                } footer: {
+                    Text("VoltLink reconnects to the adapter used last when Bluetooth becomes available, without scanning again.")
                 }
 
                 Section("Developer & Reverse Engineering") {

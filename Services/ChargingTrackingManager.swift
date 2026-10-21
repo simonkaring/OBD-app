@@ -23,6 +23,9 @@ public final class ChargingTrackingManager: ObservableObject {
     private var lastSaveTime: Date?
     private var nonChargingSnapshotCount = 0
     private var geocoder = CLGeocoder()
+    /// Most recent curve point, used to throttle sample capture to meaningful changes.
+    private var lastCurveSample: (timestamp: Date, socPct: Double)?
+    static let maxCurveSamples = 720
 
     public init(locationManager: TripLocationManager = TripLocationManager()) {
         self.locationManager = locationManager
@@ -54,6 +57,8 @@ public final class ChargingTrackingManager: ObservableObject {
 
         context?.insert(session)
         save()
+        Haptics.impact()
+        appendCurveSample(socPct: session.startSocPct, powerKW: 0, at: session.startTime)
 
         // Reverse-geocode location if coordinate is available. The completion runs
         // off the main actor, so it only captures Sendable values and re-enters the
@@ -96,13 +101,23 @@ public final class ChargingTrackingManager: ObservableObject {
             session.averagePowerKW = session.totalKWhDelivered / durationHours
         }
 
-        guard save() else { return false }
+        guard save() else {
+            Haptics.error()
+            return false
+        }
         if isDemoMode { demoSessions.insert(session, at: 0) }
+        #if os(iOS)
+        if !isDemoMode, session.totalKWhDelivered >= 0.5 || session.endSocPct - session.startSocPct >= 1 {
+            NotificationService.shared.notifyChargingFinished(endSocPct: session.endSocPct)
+        }
+        #endif
 
         self.currentSession = nil
         self.isRecordingSession = false
         self.lastSnapshotTime = nil
+        self.lastCurveSample = nil
         self.nonChargingSnapshotCount = 0
+        Haptics.success()
         return true
     }
 
@@ -127,6 +142,15 @@ public final class ChargingTrackingManager: ObservableObject {
         session.totalKWhDelivered = 28
         session.peakPowerKW = 78
         session.averagePowerKW = 42
+        let curve: [(soc: Double, power: Double)] = [
+            (43, 78), (48, 77), (52, 72), (58, 64), (64, 55), (71, 44), (77, 30), (82, 14),
+        ]
+        session.samples = curve.enumerated().map { index, point in
+            ChargingSampleModel(
+                timestamp: start.addingTimeInterval(Double(index) * 5 * 60),
+                socPct: point.soc,
+                powerKW: point.power)
+        }
         return session
     }
 
@@ -233,9 +257,25 @@ public final class ChargingTrackingManager: ObservableObject {
         if telemetry.stateOfChargePct > 0 {
             session.endSocPct = telemetry.stateOfChargePct
         }
+        appendCurveSample(socPct: telemetry.stateOfChargePct, powerKW: chargingPower, at: now)
         if let lastSaveTime, now.timeIntervalSince(lastSaveTime) >= 30 {
             save()
             self.lastSaveTime = now
         }
+    }
+
+    /// Adds at most one point per percent of SOC or minute, whichever comes first, so a
+    /// long session stores a readable curve without one row per poll cycle.
+    private func appendCurveSample(socPct: Double, powerKW: Double, at date: Date) {
+        guard let session = currentSession, session.endTime == nil, socPct.isFinite, socPct > 0 else { return }
+        guard session.samples.count < Self.maxCurveSamples else { return }
+        if let last = lastCurveSample {
+            let socChanged = abs(socPct - last.socPct) >= 1
+            let timeElapsed = date.timeIntervalSince(last.timestamp) >= 60
+            guard socChanged || timeElapsed else { return }
+        }
+        let sample = ChargingSampleModel(timestamp: date, socPct: socPct, powerKW: max(0, powerKW))
+        session.samples.append(sample)
+        lastCurveSample = (date, socPct)
     }
 }

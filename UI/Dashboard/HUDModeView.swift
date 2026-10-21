@@ -45,12 +45,15 @@ public struct HUDModeView: View {
                 Spacer()
 
                 VStack(spacing: 10) {
-                    Text(String(format: "%.0f", speedKmH))
+                    let units = UnitPreferences.shared
+
+                    Text(String(format: "%.0f", units.speedValue(fromKilometersPerHour: speedKmH)))
                         .font(.system(size: speedFontSize, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Theme.regenGreen)
+                        .accessibilityLabel(units.speed(kilometersPerHour: speedKmH, decimals: 0))
 
-                    Text("KM/H")
+                    Text(units.distanceUnit.perHourSymbol.uppercased())
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(Theme.textPrimary)
@@ -68,7 +71,7 @@ public struct HUDModeView: View {
                     }
 
                     VStack {
-                        Text(String(format: "%.1f kW", powerKW))
+                        Text(UnitPreferences.shared.power(kilowatts: powerKW))
                             .font(.system(size: metricFontSize, weight: .semibold))
                             .monospacedDigit()
                             .foregroundStyle(powerKW < 0 ? Theme.regenGreen : Theme.highPowerAmber)

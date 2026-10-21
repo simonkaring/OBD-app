@@ -15,7 +15,7 @@ xcodebuild test -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhon
   -only-testing:VoltLinkUITests                                                  # demo-mode UI smoke test
 python3 scratch/make_xcodeproj.py                                                # regenerate project + scheme
 swift format lint --strict --recursive --configuration .swift-format \
-  Package.swift App CarPlay Core Data Services UI Tests UITests Tools           # formatting gate
+  Package.swift App CarPlay Core Data Services UI Widgets Tests UITests Tools           # formatting gate
 open VoltLink.xcodeproj                                                          # open in Xcode (Cmd+R to run; CarPlay via Simulator I/O > External Displays > CarPlay)
 ./scratch/repack_ipa.sh                                                          # archive & package build/VoltLink.ipa
 ```
@@ -47,8 +47,13 @@ Data flows one direction: BLE adapter → parser → vehicle profile → manager
 - **`Services/TripTrackingManager`** + **`Core/Location/TripLocationManager`** — CoreLocation-based trip recording; background location updates are only enabled after `.authorizedAlways` is confirmed via `locationManagerDidChangeAuthorization` (not requested proactively — see recent fix in git log).
 - **`App/AppEnvironment`** — composition root holding `VehicleDataManager`, `TripTrackingManager`, `ChargingTrackingManager`, and `DTCScannerService`. `vehicleData` and `tripTracker` are injected with `.environment(...)` (iOS 17 Observation); the remaining observable managers use `@EnvironmentObject`.
 - **`CarPlay/CarPlaySceneDelegate`** — separate `CPTemplateApplicationSceneDelegate` scene rendering a `CPGridTemplate` glanceable dashboard (SOC%, power kW, speed, health) from the same `VehicleDataManager`.
-- **`Widgets/VoltLinkLiveActivity`** — ActivityKit Live Activity / Dynamic Island attributes for trip/charging state.
-- Persistence is SwiftData: `TripModel`, `TelemetryPointModel`, `ChargingSessionModel`, `SavedDTCModel`, registered in `VoltLinkSchemaV1` and opened with `VoltLinkMigrationPlan` in `App/AppEnvironment`. Add a new versioned schema + migration stage before changing persisted fields.
+- **`Widgets/`** — WidgetKit extension: `VoltLinkStatusWidget` (Home Screen + accessory families) and `VoltLinkLiveActivityWidget` (Lock Screen + Dynamic Island). The app writes a compact `SharedTelemetrySnapshot` into the `group.com.simonkaring.voltlink` app group (`Core/Sharing/SharedTelemetryStore.swift`); the extension never opens SwiftData or CoreBluetooth. `Services/LiveActivityCoordinator` owns the single activity and is updated from `AppEnvironment`'s telemetry subscription.
+- **`Core/Units/UnitPreferences`** — metric/imperial distance, °C/°F, and kW/hp display conversions. Telemetry and exports stay SI; only presentation converts. Injected as a shared `@Observable` singleton read from views.
+- **`Core/Notifications/NotificationService`** — opt-in local notifications for charging finished, adapter loss during a trip, and fault codes found. Permission is requested only when the matching Settings toggle is enabled.
+- **`Services/AppIntents.swift`** — App Intents/App Shortcuts for charge status, start trip, and stop trip.
+- Persistence is SwiftData: `TripModel`, `TelemetryPointModel`, `ChargingSessionModel`, `ChargingSampleModel`, `SavedDTCModel`, registered in `VoltLinkSchemaV2` and opened through `VoltLinkCurrentSchema` in `App/AppEnvironment`. Additive changes rely on SwiftData's inferred lightweight migration; do not add a `SchemaMigrationPlan` whose versions share model classes (Core Data aborts instead of migrating). A destructive change needs distinct legacy model copies plus a real migration stage.
+- The app group (`group.com.simonkaring.voltlink`) must be enabled for both `com.simonkaring.voltlink` and `com.simonkaring.voltlink.widgets` in the developer portal. Without it the widget shows its placeholder; the app still works.
+- Charging sessions store a throttled power-vs-SOC curve (`ChargingSampleModel`, one point per 1% SOC or 60 s) rendered in `ChargingSessionDetailView`.
 - Trip GPX/CSV and charging CSV export live in `Core/Export/TripExport.swift` and are exposed through `ShareLink` on the detail screens.
 - `App/PrivacyInfo.xcprivacy` must stay in the app target; `App/Localizable.xcstrings` is the source string catalog.
 

@@ -39,7 +39,24 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
    consumers (`AppEnvironment` recorders, CarPlay) also subscribe to
    `telemetryPublisher`, a `PassthroughSubject` emitted once per published snapshot.
 7. `AppEnvironment` is the composition root that wires the manager, trip tracking,
-   charging tracking, and DTC scanning together.
+   charging tracking, and DTC scanning together. It also mirrors telemetry into
+   three side outputs (throttled to one write every two seconds):
+   - `SharedTelemetryStore` writes a compact snapshot into the
+     `group.com.simonkaring.voltlink` app group for the widget extension.
+   - `SharedWidgetRefresher` asks WidgetKit for a new timeline at most every ten
+     seconds.
+   - `LiveActivityCoordinator` starts/updates/ends the single trip-or-charging
+     Live Activity (charging wins when both are active).
+
+   The app group carries only that compact snapshot. `AppEnvironment` pins the
+   SwiftData history store to the app's own Application Support directory so
+   adding (or changing) an app group cannot make SwiftData open a new, empty
+   store and orphan trips recorded by an earlier version.
+8. Local notifications are edge-triggered from their owners:
+   `ChargingTrackingManager` (session finished), `VehicleDataManager` via
+   `onUnexpectedDisconnect` (adapter lost while a trip is recording), and
+   `DTCScannerService` (fault codes found). `NotificationService` gates each on
+   its Settings preference.
 
 # Freshness and availability
 
@@ -60,7 +77,11 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
   map it in `metrics(for:)` and `TelemetryPlausibility.isPlausible(_:)`, then
   surface it through a `TelemetryMetric`.
 - New UI value: read `manager.displayedTelemetry` or `manager.latestTelemetry`
-  and gate on `TelemetryMetric.isAvailable`, never on a zero sentinel.
+  and gate on `TelemetryMetric.isAvailable`, never on a zero sentinel. Render
+  through `UnitPreferences` so metric/imperial choices apply.
+- New widget field: extend `SharedTelemetrySnapshot` with a defaulted or
+  `decodeIfPresent` field, then fill it in `AppEnvironment.publishSharedState`.
+  Never read SwiftData or CoreBluetooth from the extension.
 - New non-UI consumer: subscribe to `manager.telemetryPublisher` instead of
   polling `latestTelemetry`, so it runs once per applied snapshot on the main
   actor.

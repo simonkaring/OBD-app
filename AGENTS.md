@@ -19,7 +19,7 @@ open VoltLink.xcodeproj
 swift run VoltLinkCLI okf export   # regenerate the knowledge/ OKF bundle
 swift run VoltLinkCLI okf check    # validate conformance and drift
 swift format lint --strict --recursive --configuration .swift-format \
-  Package.swift App CarPlay Core Data Services UI Tests UITests Tools
+  Package.swift App CarPlay Core Data Services UI Widgets Tests UITests Tools
 ```
 
 Run `swift test` after changing PID decoders, ISO-TP parsing, or SwiftData
@@ -71,10 +71,23 @@ manager -> SwiftUI/CarPlay view.
 - `Services/DTCScannerService`: DTC scanning and clearing.
 - `Services/TripTrackingManager` and `Core/Location/TripLocationManager`:
   trip recording and location authorization.
+- `Core/Units/UnitPreferences`: display-unit conversion (km/mi, °C/°F,
+  kW/hp). Telemetry stays SI; exports always use SI.
+- `Core/Notifications/NotificationService`: opt-in local alerts (charging
+  finished, adapter lost mid-trip, fault codes).
+- `Core/Sharing/`: app-group telemetry snapshot and Live Activity attributes
+  shared with the widget extension.
+- `Services/AppIntents`: Siri/Shortcuts actions for charge status and trip
+  control.
 - `App/AppEnvironment`: shared observable-object composition root.
 - `CarPlay/`: CarPlay scene/dashboard.
-- `Data/Models/`: SwiftData models; register new models in the app's model
-  container.
+- `Widgets/`: WidgetKit extension (Home Screen widget + Live Activity). Only
+  `Core/Sharing` compiles into both the app and the extension; widget sources
+  stay out of the app target so their `@main` bundle does not conflict.
+- `Data/Models/`: SwiftData models; register new models in the current
+  versioned schema (`VoltLinkSchemaV2` via `VoltLinkCurrentSchema`). Additive
+  changes use inferred lightweight migration; destructive changes need distinct
+  legacy model copies plus a migration stage.
 - `UI/DesignSystem/Theme.swift`: shared colors and UI tokens.
 
 ## Implementation Rules
@@ -92,6 +105,11 @@ manager -> SwiftUI/CarPlay view.
   HIG and the existing glass/material styling.
 - Background location updates require confirmed `.authorizedAlways` status;
   do not enable or request them proactively.
+- Widget data crosses targets only through the
+  `group.com.simonkaring.voltlink` app group (`SharedTelemetryStore`); never
+  add SwiftData or CoreBluetooth code to the extension.
+- Request notification permission only from a user action (enabling the
+  Settings toggle), never at launch.
 
 ## Change Discipline
 

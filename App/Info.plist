@@ -26,6 +26,8 @@
 	<string>VoltLink uses GPS location to track your trip routes and map vehicle energy efficiency.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>VoltLink requires background location access to log continuous trip data when the app is minimized.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

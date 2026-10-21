@@ -3,28 +3,28 @@
    <BuildAction parallelizeBuildables = "YES" buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
-            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "175F598C65264F0DBBCD7DD4" BuildableName = "VoltLink.app" BlueprintName = "VoltLink" ReferencedContainer = "container:VoltLink.xcodeproj"/>
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "A3BA99D80C8840A1BF7906AA" BuildableName = "VoltLink.app" BlueprintName = "VoltLink" ReferencedContainer = "container:VoltLink.xcodeproj"/>
          </BuildActionEntry>
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "NO" buildForProfiling = "NO" buildForArchiving = "NO" buildForAnalyzing = "NO">
-            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "E87E220F0FCA428D85442E4E" BuildableName = "VoltLinkUITests.xctest" BlueprintName = "VoltLinkUITests" ReferencedContainer = "container:VoltLink.xcodeproj"/>
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "5458749677A44EC29E3E3927" BuildableName = "VoltLinkUITests.xctest" BlueprintName = "VoltLinkUITests" ReferencedContainer = "container:VoltLink.xcodeproj"/>
          </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
          <TestableReference skipped = "NO">
-            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "E87E220F0FCA428D85442E4E" BuildableName = "VoltLinkUITests.xctest" BlueprintName = "VoltLinkUITests" ReferencedContainer = "container:VoltLink.xcodeproj"/>
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "5458749677A44EC29E3E3927" BuildableName = "VoltLinkUITests.xctest" BlueprintName = "VoltLinkUITests" ReferencedContainer = "container:VoltLink.xcodeproj"/>
          </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle = "0" useCustomWorkingDirectory = "NO" ignoresPersistentStateOnLaunch = "NO" debugDocumentVersioning = "YES" debugServiceExtension = "internal" allowLocationSimulation = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
-         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "175F598C65264F0DBBCD7DD4" BuildableName = "VoltLink.app" BlueprintName = "VoltLink" ReferencedContainer = "container:VoltLink.xcodeproj"/>
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "A3BA99D80C8840A1BF7906AA" BuildableName = "VoltLink.app" BlueprintName = "VoltLink" ReferencedContainer = "container:VoltLink.xcodeproj"/>
       </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction buildConfiguration = "Release" shouldUseLaunchSchemeArgsEnv = "YES" savedToolIdentifier = "" useCustomWorkingDirectory = "NO" debugDocumentVersioning = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
-         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "175F598C65264F0DBBCD7DD4" BuildableName = "VoltLink.app" BlueprintName = "VoltLink" ReferencedContainer = "container:VoltLink.xcodeproj"/>
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "A3BA99D80C8840A1BF7906AA" BuildableName = "VoltLink.app" BlueprintName = "VoltLink" ReferencedContainer = "container:VoltLink.xcodeproj"/>
       </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction buildConfiguration = "Debug"/>

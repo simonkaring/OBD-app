@@ -57,7 +57,7 @@ xcrun simctl boot "iPhone 17"
 #### 3. Running Tests via Terminal
 
 ```bash
-# Run the engine/unit suite via SwiftPM (212 tests)
+# Run the engine/unit suite via SwiftPM (228 tests)
 swift test
 
 # Run the iOS UI smoke test (first-run demo mode + diagnostics)
@@ -154,6 +154,28 @@ Don't have an OBD-II adapter nearby? No problem!
 
 ---
 
+### 🧩 Widgets, Live Activities & Shortcuts
+
+- A Home Screen widget shows state of charge, estimated range, and charging
+  power (small, medium, and Lock Screen accessory families).
+- While a trip or charging session is active, a Live Activity mirrors the same
+  state on the Lock Screen and in the Dynamic Island.
+- Siri / Shortcuts can report charge status and start or stop a trip recording.
+- The widget and app share a compact snapshot through the
+  `group.com.simonkaring.voltlink` app group. Enable that group for both bundle
+  identifiers in the Apple Developer portal; unsigned Simulator builds fall
+  back gracefully and show the widget placeholder until it is provisioned.
+
+### ⚙️ Units, Curves & Alerts
+
+- Settings → Units switches distance/speed (km or mi), temperature (°C/°F),
+  and power (kW or hp) without touching stored telemetry.
+- Settings → Trip Cost Estimate sets a price per kWh; the Log tab then adds a
+  monthly cost figure (in the device's currency) next to distance, energy, and efficiency.
+- Charging session details chart the recorded power-vs-SOC curve (schema V2).
+- Notifications for charging finished, adapter loss during a trip, and fault
+  codes are opt-in and requested on first enable.
+
 ## 🛠️ Architecture & Tech Stack
 
 - **UI Framework**: SwiftUI + Swift Charts + SF Symbols 5/6, Observation (`@Observable`)
@@ -161,8 +183,11 @@ Don't have an OBD-II adapter nearby? No problem!
 - **Concurrency**: Swift 6 language mode for both SPM and Xcode targets; `@MainActor` adapter contracts and a cancellable async polling loop
 - **Vehicle Profiles**: Mercedes EQA 250 UDS (ISO 14229 Service 22) PIDs + Generic SAE J1979 Mode 01–0A
 - **CarPlay**: `CPTemplateApplicationSceneDelegate` + `CPGridTemplate`
-- **Dynamic Island**: ActivityKit (`VoltLinkActivityAttributes`)
-- **Persistence**: Versioned SwiftData schema (`TripModel`, `ChargingSessionModel`, `SavedDTCModel`) with a migration plan
+- **Widgets & Live Activities**: WidgetKit extension (`Widgets/`) with a Home Screen status widget and ActivityKit Lock Screen/Dynamic Island presentations, fed by an app-group snapshot
+- **Siri & Shortcuts**: App Intents for charge status, start trip, and stop trip
+- **Persistence**: Versioned SwiftData schema V2 (`TripModel`, `ChargingSessionModel` with curve samples, `SavedDTCModel`) using inferred lightweight migration
+- **Units**: User-selectable metric/imperial distance, °C/°F, and kW/hp through `Core/Units/UnitPreferences`
+- **Notifications**: Optional local alerts for charging finished, adapter disconnects during a trip, and newly found fault codes
 - **Export**: Trip GPX/CSV and charging-session CSV via `Transferable` share sheets
 - **Localization**: `App/Localizable.xcstrings` source catalog (310 extracted strings)
 

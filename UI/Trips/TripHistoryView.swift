@@ -19,6 +19,19 @@ public struct TripHistoryView: View {
     @State private var tripToDelete: TripModel?
     @State private var chargeToDelete: ChargingSessionModel?
 
+    @AppStorage("electricityPricePerKWh") private var electricityPricePerKWh: Double = 0
+
+    private var units: UnitPreferences { UnitPreferences.shared }
+
+    /// Completed trips only, aggregated for the current calendar month.
+    private var monthlyInsights: TripHistoryInsights {
+        TripHistoryInsights.summarize(
+            trips: displayedTrips,
+            since: TripHistoryInsights.startOfMonth(),
+            pricePerKWh: electricityPricePerKWh
+        )
+    }
+
     @Query(filter: #Predicate<TripModel> { $0.endTime != nil }, sort: \TripModel.startTime, order: .reverse)
     private var persistedTrips: [TripModel]
 
@@ -172,7 +185,7 @@ public struct TripHistoryView: View {
                             VStack(alignment: .leading) {
                                 Text("Distance")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.1f km", active.distanceKm))
+                                Text(units.distance(kilometers: active.distanceKm))
                                     .font(.title3.weight(.semibold))
                                     .foregroundStyle(Theme.textPrimary)
                             }
@@ -180,7 +193,7 @@ public struct TripHistoryView: View {
                             VStack(alignment: .leading) {
                                 Text("Energy Used")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.2f kWh", active.totalKWhUsed))
+                                Text(units.energy(kilowattHours: active.totalKWhUsed))
                                     .font(.title3.weight(.semibold))
                                     .foregroundStyle(Theme.textPrimary)
                             }
@@ -198,6 +211,37 @@ public struct TripHistoryView: View {
                     .glassCard()
                     .padding(.horizontal)
                 }
+            }
+
+            if monthlyInsights.tripCount > 0 {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("THIS MONTH")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.electricCyan)
+                        Spacer()
+                        Text("\(monthlyInsights.tripCount) trip\(monthlyInsights.tripCount == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+
+                    HStack(spacing: 0) {
+                        insightColumn(title: "Distance", value: units.distance(kilometers: monthlyInsights.distanceKm))
+                        insightColumn(title: "Energy", value: units.energy(kilowattHours: monthlyInsights.energyKWh, decimals: 1))
+                        insightColumn(
+                            title: "Efficiency",
+                            value: units.efficiency(kilowattHoursPer100Kilometers: monthlyInsights.efficiencyKWhPer100Km))
+                        if monthlyInsights.hasCost {
+                            insightColumn(
+                                title: "Cost",
+                                value: monthlyInsights.cost.formatted(
+                                    .currency(code: Locale.current.currency?.identifier ?? "EUR")))
+                        }
+                    }
+                }
+                .padding()
+                .glassCard()
+                .padding(.horizontal)
             }
 
             if displayedTrips.isEmpty {
@@ -224,16 +268,16 @@ public struct TripHistoryView: View {
                                     Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
                                         .font(.subheadline.weight(.bold))
                                     Spacer()
-                                    Text(String(format: "%.1f km", trip.distanceKm))
+                                    Text(units.distance(kilometers: trip.distanceKm))
                                         .font(.headline)
                                         .foregroundStyle(Theme.electricCyan)
                                 }
                                 HStack {
-                                    Text(String(format: "Efficiency: %.1f kWh/100km", trip.efficiencyKWhPer100Km))
+                                    Text("Efficiency: \(units.efficiency(kilowattHoursPer100Kilometers: trip.efficiencyKWhPer100Km))")
                                         .font(.caption)
                                         .foregroundStyle(Theme.textSecondary)
                                     Spacer()
-                                    Text(String(format: "%.1f kWh", trip.totalKWhUsed))
+                                    Text(units.energy(kilowattHours: trip.totalKWhUsed, decimals: 1))
                                         .font(.caption)
                                         .foregroundStyle(Theme.textSecondary)
                                 }
@@ -262,6 +306,20 @@ public struct TripHistoryView: View {
         }
     }
 
+    private func insightColumn(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(Theme.textSecondary)
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     // MARK: - Charging View Content
 
     @ViewBuilder
@@ -282,7 +340,7 @@ public struct TripHistoryView: View {
                             VStack(alignment: .leading) {
                                 Text("Energy Added")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.2f kWh", active.totalKWhDelivered))
+                                Text(units.energy(kilowattHours: active.totalKWhDelivered))
                                     .font(.title3.weight(.semibold))
                                     .foregroundStyle(Theme.regenGreen)
                             }
@@ -290,7 +348,7 @@ public struct TripHistoryView: View {
                             VStack(alignment: .leading) {
                                 Text("Peak Power")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(String(format: "%.1f kW", active.peakPowerKW))
+                                Text(units.power(kilowatts: active.peakPowerKW))
                                     .font(.title3.weight(.semibold))
                                     .foregroundStyle(Theme.highPowerAmber)
                             }
@@ -334,7 +392,7 @@ public struct TripHistoryView: View {
                                     Text(session.startTime.formatted(date: .abbreviated, time: .shortened))
                                         .font(.subheadline.weight(.bold))
                                     Spacer()
-                                    Text(String(format: "+%.2f kWh", session.totalKWhDelivered))
+                                    Text("+" + units.energy(kilowattHours: session.totalKWhDelivered))
                                         .font(.headline)
                                         .foregroundStyle(Theme.regenGreen)
                                 }
@@ -344,7 +402,7 @@ public struct TripHistoryView: View {
                                         .foregroundStyle(Theme.textSecondary)
                                         .lineLimit(1)
                                     Spacer()
-                                    Text(String(format: "Peak: %.1f kW", session.peakPowerKW))
+                                    Text("Peak: \(units.power(kilowatts: session.peakPowerKW))")
                                         .font(.caption)
                                         .foregroundStyle(Theme.textSecondary)
                                 }

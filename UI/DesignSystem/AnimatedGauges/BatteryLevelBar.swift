@@ -46,7 +46,7 @@ public struct BatteryLevelBar: View {
                     HStack(spacing: 4) {
                         Image(systemName: "thermometer.medium")
                             .foregroundStyle(batteryTempC > 38.0 ? Theme.criticalRed : Theme.textSecondary)
-                        Text(String(format: "HV: %.1f°C", batteryTempC))
+                        Text("HV: \(UnitPreferences.shared.temperature(celsius: batteryTempC, decimals: 1))")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.textPrimary)
                     }
@@ -95,7 +95,7 @@ public struct BatteryLevelBar: View {
 
     private var accessibilityValue: String {
         guard let socPct else { return "Unavailable" }
-        let temperature = batteryTempC.map { String(format: ", %.1f degrees Celsius", $0) } ?? ""
+        let temperature = batteryTempC.map { ", \(UnitPreferences.shared.temperature(celsius: $0, decimals: 1))" } ?? ""
         let started = startSocPct.map { String(format: ", started charging at %.0f percent", $0) } ?? ""
         return String(format: "%.0f percent", socPct) + temperature + started + (isCharging ? ", charging" : "")
     }

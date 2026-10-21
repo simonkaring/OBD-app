@@ -44,23 +44,25 @@ public struct DashboardWidgetTile: View {
         let isAvailable =
             isSupported && (isConnected || metric == .tripAverageConsumption)
             && metric.isAvailable(in: snapshot, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now)
-        let value = metric.value(in: snapshot)
-        let range = metric.defaultRange
+        let units = UnitPreferences.shared
+        let presentation = units.metricValue(metric, value: metric.value(in: snapshot))
+        let value = presentation.value
+        let range = units.metricRange(metric)
         let dialMode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional
 
         Group {
             switch config.style {
             case .numeric:
                 MetricNumericTileView(
-                    value: value, unit: metric.unitSymbol, label: metric.displayName, decimalPlaces: metric.decimalPlaces, isUnavailable: !isAvailable)
+                    value: value, unit: presentation.unit, label: metric.displayName, decimalPlaces: metric.decimalPlaces, isUnavailable: !isAvailable)
             case .dial:
                 MetricDialView(
-                    value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable,
+                    value: value, range: range, mode: dialMode, unit: presentation.unit, label: metric.displayName, metric: metric, isUnavailable: !isAvailable,
                     estimatedFullRangeKm: estimatedFullRangeKm
                 )
                 .frame(height: config.preferredHeight, alignment: .center)
             case .bar:
-                MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
+                MetricBarView(value: value, range: range, unit: presentation.unit, label: metric.displayName, isUnavailable: !isAvailable)
             }
         }
         .overlay(alignment: .topTrailing) {

@@ -43,6 +43,11 @@ must compile for both.
   `MainActor.assumeIsolated` inside framework/timer closures.
 - `ChargingSessionTracker` remains `@unchecked Sendable` because its
   synchronization is owned by `VehicleDataManager`, which is main-actor isolated.
+- `LiveActivityCoordinator` is main-actor isolated and uses
+  `@preconcurrency import ActivityKit`: `Activity` is thread-safe but not yet
+  annotated `Sendable` in the SDK. Widget files (`Widgets/`) compile only into
+  the extension; `Core/Sharing` compiles into both targets and must stay free of
+  app-only dependencies.
 
 # Platform boundaries
 

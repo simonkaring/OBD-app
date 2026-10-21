@@ -103,10 +103,14 @@ public struct ChargingLiveView: View {
                                 .font(.headline)
                                 .foregroundStyle(isCharging ? Theme.regenGreen : Theme.textSecondary)
 
-                            Text(hasChargePower ? String(format: "%.1f kW", vehicleData.latestTelemetry.chargePowerKW) : "— kW")
-                                .font(.system(size: powerFontSize, weight: .semibold))
-                                .monospacedDigit()
-                                .foregroundStyle(isCharging ? Theme.regenGreen : Theme.textPrimary)
+                            Text(
+                                hasChargePower
+                                    ? UnitPreferences.shared.power(kilowatts: vehicleData.latestTelemetry.chargePowerKW)
+                                    : "— \(UnitPreferences.shared.powerUnit.symbol)"
+                            )
+                            .font(.system(size: powerFontSize, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(isCharging ? Theme.regenGreen : Theme.textPrimary)
 
                             if vehicleData.latestTelemetry.chargePowerSource == .socEstimate {
                                 Text("Estimated from battery level change, not AC wall power.")
@@ -141,7 +145,7 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Usable Capacity")
                                             .font(.caption).foregroundStyle(Theme.textSecondary)
-                                        Text(hasCapacity ? String(format: "%.1f kWh", usableCapacityKWh) : "Unknown")
+                                        Text(hasCapacity ? UnitPreferences.shared.energy(kilowattHours: usableCapacityKWh, decimals: 1) : "Unknown")
                                             .font(.title3.weight(.semibold))
                                             .foregroundStyle(Theme.textPrimary)
                                     }
@@ -149,9 +153,13 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .trailing, spacing: 4) {
                                         Text("Current Stored Energy")
                                             .font(.caption).foregroundStyle(Theme.textSecondary)
-                                        Text(hasSOC && hasCapacity ? String(format: "%.1f kWh", storedEnergyKWh) : "— kWh")
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(Theme.textPrimary)
+                                        Text(
+                                            hasSOC && hasCapacity
+                                                ? UnitPreferences.shared.energy(kilowattHours: storedEnergyKWh, decimals: 1)
+                                                : "— kWh"
+                                        )
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(Theme.textPrimary)
                                     }
                                 }
 
@@ -161,9 +169,13 @@ public struct ChargingLiveView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Energy Needed to 100%")
                                             .font(.caption).foregroundStyle(Theme.textSecondary)
-                                        Text(hasSOC && hasCapacity ? String(format: "%.1f kWh", energyNeededToFullKWh) : "— kWh")
-                                            .font(.headline)
-                                            .foregroundStyle(Theme.highPowerAmber)
+                                        Text(
+                                            hasSOC && hasCapacity
+                                                ? UnitPreferences.shared.energy(kilowattHours: energyNeededToFullKWh, decimals: 1)
+                                                : "— kWh"
+                                        )
+                                        .font(.headline)
+                                        .foregroundStyle(Theme.highPowerAmber)
                                     }
                                     Spacer()
                                     VStack(alignment: .trailing, spacing: 4) {

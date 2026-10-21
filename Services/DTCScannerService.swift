@@ -84,6 +84,7 @@ public final class DTCScannerService: ObservableObject {
             scanProgress = 1.0
             lastScanDate = Date()
             scanErrorMessage = "Scan failed — no response from vehicle ECUs."
+            Haptics.error()
             restoreProfileAddressing(connection: connection, commands: restoreCommands, completion: completion)
             return
         }
@@ -101,6 +102,14 @@ public final class DTCScannerService: ObservableObject {
                 combined.append(code)
             }
             self.scannedCodes = combined
+            #if os(iOS)
+            NotificationService.shared.notifyFaultCodes(count: combined.count)
+            #endif
+            if combined.isEmpty {
+                Haptics.success()
+            } else {
+                Haptics.warning()
+            }
             self.restoreProfileAddressing(connection: connection, commands: restoreCommands, completion: completion)
         }
     }

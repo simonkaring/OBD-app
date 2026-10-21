@@ -88,6 +88,7 @@ public final class TripTrackingManager {
         if !isDemoMode { locationManager.startTracking() }
         context?.insert(trip)
         save()
+        Haptics.impact()
     }
 
     @discardableResult
@@ -100,7 +101,10 @@ public final class TripTrackingManager {
         trip.averageSpeedKmH = trip.computedAverageSpeedKmH
         locationManager.stopTracking()
         resetStationaryTimer()
-        guard save() else { return false }
+        guard save() else {
+            Haptics.error()
+            return false
+        }
         if isDemoMode { demoTrips.insert(trip, at: 0) }
 
         self.currentTrip = nil
@@ -108,6 +112,7 @@ public final class TripTrackingManager {
         self.averageConsumption = nil
         self.lastSampleTime = nil
         resetStationaryTimer()
+        Haptics.success()
         return true
     }
 
