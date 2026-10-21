@@ -2,6 +2,7 @@ import XCTest
 @testable import VoltLinkEngine
 
 /// Records every command written and replies with one canned response.
+@MainActor
 private final class ScriptedConnection: OBDConnectionProtocol {
     var state: BLEConnectionState = .ready(deviceName: "Scripted")
     weak var delegate: OBDConnectionDelegate?
@@ -9,7 +10,7 @@ private final class ScriptedConnection: OBDConnectionProtocol {
     private let response: Result<String, Error>
     var responses: [String: Result<String, Error>] = [:]
     var heldCommand: String?
-    var heldCompletion: ((Result<String, Error>) -> Void)?
+    var heldCompletion: (@MainActor @Sendable (Result<String, Error>) -> Void)?
 
     init(response: Result<String, Error>) {
         self.response = response
@@ -18,19 +19,26 @@ private final class ScriptedConnection: OBDConnectionProtocol {
     func connect(peripheralName: String?) {}
     func disconnect() { state = .disconnected }
 
-    func sendCommand(_ command: String, completion: ((Result<String, Error>) -> Void)?) {
+    func sendCommand(_ command: String, completion: (@MainActor @Sendable (Result<String, Error>) -> Void)?) {
         sentCommands.append(command)
         if command == heldCommand { heldCompletion = completion; return }
-        if let result = responses[command] { completion?(result) }
-        else if command == "AT Z" { completion?(.success("ELM327 v2.2\r\n>")) }
-        else if command.hasPrefix("AT") { completion?(.success("OK\r\n>")) }
-        else if command == "07" { completion?(.success("47 00\r\n>")) }
-        else { completion?(response) }
+        if let result = responses[command] {
+            completion?(result)
+        } else if command == "AT Z" {
+            completion?(.success("ELM327 v2.2\r\n>"))
+        } else if command.hasPrefix("AT") {
+            completion?(.success("OK\r\n>"))
+        } else if command == "07" {
+            completion?(.success("47 00\r\n>"))
+        } else {
+            completion?(response)
+        }
     }
 }
 
+@MainActor
 final class OBDParserTests: XCTestCase {
-    
+
     func testISO15765ParserSingleFrame() {
         let parser = ISO15765Parser()
         let raw = "7E8 03 41 0D 32\r\n>"
@@ -93,9 +101,11 @@ final class OBDParserTests: XCTestCase {
     func testISO15765ParserRejectsIncompleteAndInterruptedMultiFrames() {
         let parser = ISO15765Parser()
         let firstFrame = "7E8 10 0A 62 01 05 0E 74 03"
-        for suffix in ["", "\r7E8 21 E8", "\r7E8 21", "\r7E8 03 41 0D 32",
-                       "\r7E8 10 08 62 01 0A 00 00 00\r7E8 21 11 22",
-                       "\r7E8 62 01 05 E8 00 00 00"] {
+        for suffix in [
+            "", "\r7E8 21 E8", "\r7E8 21", "\r7E8 03 41 0D 32",
+            "\r7E8 10 08 62 01 0A 00 00 00\r7E8 21 11 22",
+            "\r7E8 62 01 05 E8 00 00 00",
+        ] {
             XCTAssertTrue(parser.assembleISOTPPayloads(firstFrame + suffix).isEmpty, suffix)
         }
         for frame in ["7E8 10", "7E8 10 0A", "7E8 10 00 62", "7E8 10 01 62"] {
@@ -110,7 +120,7 @@ final class OBDParserTests: XCTestCase {
             "21 62 01 0A 0D 3E",
             "7E8 03 41 0D 32\r7E8 21 00",
             "7E8 10 08 62 01 0A 0D 3E 00\r7E8 21 00 00\r7E8 22 00",
-            "7E8 10 0E 62 01 0A 0D 3E 00\r7E8 21 00 00 00 00 00 00 00\r7E8 21 00"
+            "7E8 10 0E 62 01 0A 0D 3E 00\r7E8 21 00 00 00 00 00 00 00\r7E8 21 00",
         ] {
             XCTAssertTrue(parser.assembleISOTPPayloads(raw).isEmpty, raw)
         }
@@ -126,7 +136,7 @@ final class OBDParserTests: XCTestCase {
                 "7E8 10 \(token) 62 01 0A 00 00 00",
                 "7E8 10 08 62 01 0A \(token) 00 00\r7E8 21 11 22",
                 "7E8 10 08 62 01 0A 00 00 00\r7E8 21 11 \(token)",
-                "62 01 0A 0D \(token)"
+                "62 01 0A 0D \(token)",
             ] {
                 XCTAssertTrue(parser.assembleISOTPPayloads(raw).isEmpty, raw)
             }
@@ -135,9 +145,11 @@ final class OBDParserTests: XCTestCase {
 
     func testISO15765ParserInvalidFramesDoNotDiscardOtherECUs() {
         let parser = ISO15765Parser()
-        for invalid in ["7E8 03 41 0D", "7E8 10 0A 62 01 05 0E 74 03",
-                        "7E8 21 00", "7E8 03 41 0D GG",
-                        "7E8 10 08 62 01 0A 00 00 00\r7E8 22 11 22"] {
+        for invalid in [
+            "7E8 03 41 0D", "7E8 10 0A 62 01 05 0E 74 03",
+            "7E8 21 00", "7E8 03 41 0D GG",
+            "7E8 10 08 62 01 0A 00 00 00\r7E8 22 11 22",
+        ] {
             let results = parser.assembleISOTPPayloads(invalid + "\r7E9 03 41 0D 32")
             XCTAssertEqual(results.map(\.ecu), ["7E9"], invalid)
             XCTAssertEqual(results.map(\.payload), ["410D32"], invalid)
@@ -158,8 +170,9 @@ final class OBDParserTests: XCTestCase {
         for sequence in 1...16 {
             frames.append(String(format: "7E8 %02X 00 00 00 00 00 00 00", 0x20 | (sequence & 0x0F)))
         }
-        XCTAssertEqual(parser.assembleISOTPPayload(frames.joined(separator: "\r")),
-                       "62010A" + String(repeating: "00", count: 115))
+        XCTAssertEqual(
+            parser.assembleISOTPPayload(frames.joined(separator: "\r")),
+            "62010A" + String(repeating: "00", count: 115))
     }
 
     func testISO15765ParserPreservesHeaderlessFormattedPayloadsAndGenericProfiles() {
@@ -229,12 +242,12 @@ final class OBDParserTests: XCTestCase {
     func testISO15765ParserKeepsSeparateMultiFrameContextsPerECU() {
         let parser = ISO15765Parser()
         let raw = """
-        7E8 10 0A 62 01 05 0E 74 03\r
-        7E9 10 09 62 01 0A 0D 3E 00\r
-        7E8 21 E8 00 00 00 00 00 00\r
-        7E9 21 11 22 33\r
-        >
-        """
+            7E8 10 0A 62 01 05 0E 74 03\r
+            7E9 10 09 62 01 0A 0D 3E 00\r
+            7E8 21 E8 00 00 00 00 00 00\r
+            7E9 21 11 22 33\r
+            >
+            """
         let results = parser.assembleISOTPPayloads(raw)
         let byECU = Dictionary(uniqueKeysWithValues: results.map { ($0.ecu, $0.payload) })
         XCTAssertEqual(byECU["7E8"], "6201050E7403E8000000")
@@ -372,7 +385,7 @@ final class OBDParserTests: XCTestCase {
     func testHyundaiKiaEGMPParsesSOCFrom220105() {
         let profile = HyundaiKiaEGMPProfile()
         var bytes = [String](repeating: "00", count: 40)
-        bytes[32] = "64" // 100 -> /2 = 50.0%
+        bytes[32] = "64"  // 100 -> /2 = 50.0%
         let raw = "62 01 05 " + bytes.joined(separator: " ") + "\r\n>"
 
         guard case .soc(let pct)? = profile.parseResponse(command: "220105", rawResponse: raw) else {
@@ -387,38 +400,46 @@ final class OBDParserTests: XCTestCase {
         let profile = HyundaiKiaEGMPProfile()
 
         var payload101 = [String](repeating: "00", count: 31)
-        payload101[10] = "FF"; payload101[11] = "9C" // current -10.0 A
-        payload101[13] = "0E"; payload101[14] = "74" // voltage 370.0 V
-        payload101[30] = "8A" // aux12V -> 138 * 0.1 = 13.8 V
+        payload101[10] = "FF"; payload101[11] = "9C"  // current -10.0 A
+        payload101[13] = "0E"; payload101[14] = "74"  // voltage 370.0 V
+        payload101[30] = "8A"  // aux12V -> 138 * 0.1 = 13.8 V
         let raw101 = "62 01 01 " + payload101.joined(separator: " ") + "\r\n>"
         let updates101 = profile.parseResponses(command: "220101", rawResponse: raw101)
 
         XCTAssertEqual(updates101.count, 2)
-        guard case .power(let voltage, let current, let powerKW)? = updates101.first(where: {
-            if case .power = $0 { return true } else { return false }
-        }) else { return XCTFail("Expected power update, got \(updates101)") }
+        guard
+            case .power(let voltage, let current, let powerKW)? = updates101.first(where: {
+                if case .power = $0 { return true } else { return false }
+            })
+        else { return XCTFail("Expected power update, got \(updates101)") }
         XCTAssertEqual(voltage, 370.0, accuracy: 0.01)
         XCTAssertEqual(current, -10.0, accuracy: 0.01)
         XCTAssertEqual(powerKW, -3.7, accuracy: 0.01)
-        guard case .aux12V(let aux)? = updates101.first(where: {
-            if case .aux12V = $0 { return true } else { return false }
-        }) else { return XCTFail("Expected aux12V update, got \(updates101)") }
+        guard
+            case .aux12V(let aux)? = updates101.first(where: {
+                if case .aux12V = $0 { return true } else { return false }
+            })
+        else { return XCTFail("Expected aux12V update, got \(updates101)") }
         XCTAssertEqual(aux, 13.8, accuracy: 0.01)
 
         var payload105 = [String](repeating: "00", count: 33)
-        payload105[26] = "03"; payload105[27] = "DE" // soh 990/10 = 99.0
-        payload105[32] = "64" // soc 100/2 = 50.0
+        payload105[26] = "03"; payload105[27] = "DE"  // soh 990/10 = 99.0
+        payload105[32] = "64"  // soc 100/2 = 50.0
         let raw105 = "62 01 05 " + payload105.joined(separator: " ") + "\r\n>"
         let updates105 = profile.parseResponses(command: "220105", rawResponse: raw105)
 
         XCTAssertEqual(updates105.count, 2)
-        guard case .soc(let soc)? = updates105.first(where: {
-            if case .soc = $0 { return true } else { return false }
-        }) else { return XCTFail("Expected soc update, got \(updates105)") }
+        guard
+            case .soc(let soc)? = updates105.first(where: {
+                if case .soc = $0 { return true } else { return false }
+            })
+        else { return XCTFail("Expected soc update, got \(updates105)") }
         XCTAssertEqual(soc, 50.0, accuracy: 0.01)
-        guard case .soh(let soh)? = updates105.first(where: {
-            if case .soh = $0 { return true } else { return false }
-        }) else { return XCTFail("Expected soh update, got \(updates105)") }
+        guard
+            case .soh(let soh)? = updates105.first(where: {
+                if case .soh = $0 { return true } else { return false }
+            })
+        else { return XCTFail("Expected soh update, got \(updates105)") }
         XCTAssertEqual(soh, 99.0, accuracy: 0.01)
 
         XCTAssertTrue(profile.supportedMetrics.isSuperset(of: [.soh, .aux12V]))
@@ -443,16 +464,20 @@ final class OBDParserTests: XCTestCase {
         XCTAssertTrue(generic.definitionSource?.contains("Wal33D") == true)
         let decoded = try JSONDecoder().decode(DTCCode.self, from: JSONEncoder().encode(generic))
         XCTAssertEqual(decoded.definitionSource, generic.definitionSource)
-        XCTAssertEqual(db.lookup(code: "P1105", manufacturer: "Mercedes-Benz").title,
-                       "Atmospheric Pressure Sensor In Control Module")
-        XCTAssertEqual(db.lookup(code: "P1105", manufacturer: "Ford").title,
-                       "Dual Alternator Upper Fault")
+        XCTAssertEqual(
+            db.lookup(code: "P1105", manufacturer: "Mercedes-Benz").title,
+            "Atmospheric Pressure Sensor In Control Module")
+        XCTAssertEqual(
+            db.lookup(code: "P1105", manufacturer: "Ford").title,
+            "Dual Alternator Upper Fault")
         for manufacturer in [nil, "Unknown brand", "GENERIC"] as [String?] {
-            XCTAssertEqual(db.lookup(code: "P1105", manufacturer: manufacturer).title,
-                           "Diagnostic Code P1105")
+            XCTAssertEqual(
+                db.lookup(code: "P1105", manufacturer: manufacturer).title,
+                "Diagnostic Code P1105")
         }
-        XCTAssertEqual(db.lookup(code: "P1000").title, "Diagnostic Code P1000",
-                       "Manufacturer-controlled placeholders must not look like definitions")
+        XCTAssertEqual(
+            db.lookup(code: "P1000").title, "Diagnostic Code P1000",
+            "Manufacturer-controlled placeholders must not look like definitions")
     }
 
     func testDTCScanUsesManufacturerForStoredAndPendingAndResetsContext() {
@@ -461,8 +486,9 @@ final class OBDParserTests: XCTestCase {
         connection.responses["07"] = .success("47 01 14 81\r>")
         scanner.scanDTCs(connection: connection, manufacturer: "Mercedes-Benz")
         XCTAssertTrue(scanner.scanSucceeded)
-        XCTAssertEqual(scanner.scannedCodes.map(\.title),
-                       ["Atmospheric Pressure Sensor In Control Module", "Glow Plug Failure"])
+        XCTAssertEqual(
+            scanner.scannedCodes.map(\.title),
+            ["Atmospheric Pressure Sensor In Control Module", "Glow Plug Failure"])
         scanner.scanDTCs(connection: connection)
         XCTAssertEqual(scanner.scannedCodes.first?.title, "Diagnostic Code P1105")
     }
@@ -566,7 +592,9 @@ final class OBDParserTests: XCTestCase {
         manager.stopPolling()
         XCTAssertTrue(cleared)
         XCTAssertFalse(manager.isCommandSessionActive)
-        let expected = BluetoothManager.diagnosticSetupCommands(for: manager.selectedProfile.initializationCommands) + ["04"] + manager.selectedProfile.initializationCommands
+        let expected =
+            BluetoothManager.diagnosticSetupCommands(for: manager.selectedProfile.initializationCommands) + ["04"]
+            + manager.selectedProfile.initializationCommands
         XCTAssertEqual(Array(connection.sentCommands.prefix(expected.count)), expected)
         XCTAssertFalse(scanner.scanSucceeded, "Clearing is not a complete diagnostic rescan")
     }
@@ -636,13 +664,13 @@ final class OBDParserTests: XCTestCase {
     /// `NSExpression(format:)` where they raise an uncatchable ObjC exception.
     func testABRPStillRejectsMalformedEquations() throws {
         let json = """
-        {
-            "init_commands": {"command": ["ATZ"]},
-            "data_commands": {"command": ["22DDBC"]},
-            "obd_protocol": "6",
-            "soc": {"equation": "GARBAGE(A;B", "minValue": "0", "maxValue": "100", "type": "Number", "command": "22DDBC"}
-        }
-        """
+            {
+                "init_commands": {"command": ["ATZ"]},
+                "data_commands": {"command": ["22DDBC"]},
+                "obd_protocol": "6",
+                "soc": {"equation": "GARBAGE(A;B", "minValue": "0", "maxValue": "100", "type": "Number", "command": "22DDBC"}
+            }
+            """
         let def = try JSONDecoder().decode(ABRPProfileDefinition.self, from: try XCTUnwrap(json.data(using: .utf8)))
         let profile = ABRPGenericVehicleProfile(name: "Malformed", capacityKWh: 50.0, definition: def)
         XCTAssertNil(profile.parseResponse(command: "22DDBC", rawResponse: "607 05 62 DD BC 02 EE\r\n>"))
@@ -654,7 +682,7 @@ final class OBDParserTests: XCTestCase {
     func testABRPEvaluatesLowercaseTwoLetterTokens() throws {
         let hkmc = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "hkmc_hkmc2019.json"))
         var payload = [String](repeating: "00", count: 32)
-        payload[31] = "A0" // af -> byte 31; 0xA0 = 160 -> /2 = 80.0
+        payload[31] = "A0"  // af -> byte 31; 0xA0 = 160 -> /2 = 80.0
         let raw = "62 01 05 " + payload.joined(separator: " ") + "\r\n>"
         let updates = hkmc.parseResponses(command: "220105", rawResponse: raw)
 
@@ -683,24 +711,30 @@ final class OBDParserTests: XCTestCase {
         let ioniq5 = try XCTUnwrap(ABRPProfileLoader.loadProfile(filename: "hkmc_Ioniq5.json"))
         var payload = [String](repeating: "00", count: 15)
         payload[9] = "02"  // {j:1} charging bit set
-        payload[10] = "FF"; payload[11] = "9C" // current -10.0 A
-        payload[13] = "0E"; payload[14] = "74" // voltage 370.0 V
+        payload[10] = "FF"; payload[11] = "9C"  // current -10.0 A
+        payload[13] = "0E"; payload[14] = "74"  // voltage 370.0 V
         let raw = "62 01 01 " + payload.joined(separator: " ") + "\r\n>"
         let updates = ioniq5.parseResponses(command: "220101", rawResponse: raw)
 
-        guard case .packCurrent(let amps)? = updates.first(where: {
-            if case .packCurrent = $0 { return true } else { return false }
-        }) else { return XCTFail("Expected packCurrent update, got \(updates)") }
+        guard
+            case .packCurrent(let amps)? = updates.first(where: {
+                if case .packCurrent = $0 { return true } else { return false }
+            })
+        else { return XCTFail("Expected packCurrent update, got \(updates)") }
         XCTAssertEqual(amps, -10.0, accuracy: 0.01)
 
-        guard case .packVoltage(let volts)? = updates.first(where: {
-            if case .packVoltage = $0 { return true } else { return false }
-        }) else { return XCTFail("Expected packVoltage update, got \(updates)") }
+        guard
+            case .packVoltage(let volts)? = updates.first(where: {
+                if case .packVoltage = $0 { return true } else { return false }
+            })
+        else { return XCTFail("Expected packVoltage update, got \(updates)") }
         XCTAssertEqual(volts, 370.0, accuracy: 0.01)
 
-        guard case .chargingStats(let kwRate, _)? = updates.first(where: {
-            if case .chargingStats = $0 { return true } else { return false }
-        }) else { return XCTFail("Expected chargingStats update, got \(updates)") }
+        guard
+            case .chargingStats(let kwRate, _)? = updates.first(where: {
+                if case .chargingStats = $0 { return true } else { return false }
+            })
+        else { return XCTFail("Expected chargingStats update, got \(updates)") }
         XCTAssertNil(kwRate)
     }
 
@@ -753,8 +787,9 @@ final class OBDParserTests: XCTestCase {
             if model.telemetrySupport != .generic {
                 // A missing/undecodable ABRP JSON silently falls back to the generic
                 // profile, which would leave the car advertising telemetry it can't read.
-                XCTAssertNotEqual(profile.vehicleName, GenericEVProfile().vehicleName,
-                                  "\(model.fullName) claims \(model.telemetrySupport) support but fell back to the generic profile")
+                XCTAssertNotEqual(
+                    profile.vehicleName, GenericEVProfile().vehicleName,
+                    "\(model.fullName) claims \(model.telemetrySupport) support but fell back to the generic profile")
             }
         }
         XCTAssertTrue(models.contains { $0.powertrain == .ice }, "ICE entry was filtered out by the capacity check")

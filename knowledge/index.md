@@ -4,7 +4,7 @@ okf_version: "0.2"
 
 # Architecture
 * [Charging and sessions](architecture/charging.md) - Live charging state, persisted charge sessions, power estimation, and the start-SOC indicator.
-* [Concurrency rules](architecture/concurrency.md) - Swift 6 strict-concurrency constraints for managers, profiles, BLE callbacks, and iOS-only APIs.
+* [Concurrency rules](architecture/concurrency.md) - Swift 6 language-mode constraints for managers, profiles, BLE callbacks, and iOS-only APIs.
 * [Demo mode](architecture/demo-mode.md) - How the mock adapter and physics simulation replace a real BLE connection, and what stays testable.
 * [One-way data flow](architecture/data-flow.md) - How adapter bytes become published telemetry, from BLE through ISO-TP and a vehicle profile to SwiftUI and CarPlay.
 * [Testing and verification](architecture/testing.md) - Which commands to run, what each suite covers, and the OKF knowledge-bundle drift test.

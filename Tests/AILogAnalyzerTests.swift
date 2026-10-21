@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class AILogAnalyzerTests: XCTestCase {
     @MainActor
     func testAPIKeyMigrationOnlyRemovesLegacyValueAfterSuccessfulKeychainWrite() throws {
@@ -8,9 +9,11 @@ final class AILogAnalyzerTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set("test-key", forKey: "aiApiKey")
-        let failed = AIAPIKeyStore(defaults: defaults, read: { "" }, write: { _ in
-            throw NSError(domain: "KeychainTest", code: -1)
-        })
+        let failed = AIAPIKeyStore(
+            defaults: defaults, read: { "" },
+            write: { _ in
+                throw NSError(domain: "KeychainTest", code: -1)
+            })
         XCTAssertNotNil(failed.errorMessage)
         XCTAssertEqual(defaults.string(forKey: "aiApiKey"), "test-key")
 
@@ -27,7 +30,7 @@ final class AILogAnalyzerTests: XCTestCase {
     func testPromptConstructionIncludesSentAndResponse() {
         let entries = [
             OBDLogEntry(timestamp: Date(), sent: "22010A", response: "62 01 0A 0F 8C\r\n>"),
-            OBDLogEntry(timestamp: Date(), sent: "220210", response: "62 02 10 04 00 00 39 90\r\n>")
+            OBDLogEntry(timestamp: Date(), sent: "220210", response: "62 02 10 04 00 00 39 90\r\n>"),
         ]
 
         let prompt = AILogAnalyzer.buildAnalysisPrompt(log: entries, vehicleContext: "Mercedes-Benz EQA 250")

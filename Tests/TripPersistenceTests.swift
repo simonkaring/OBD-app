@@ -3,6 +3,7 @@ import SwiftData
 import Combine
 @testable import VoltLinkEngine
 
+@MainActor
 final class TripPersistenceTests: XCTestCase {
 
     @MainActor
@@ -43,7 +44,7 @@ final class TripPersistenceTests: XCTestCase {
         env.tripTracker.stopTrip()
         env.chargingTracker.startSession()
         env.chargingTracker.stopSession()
-        env.tripTracker.startTrip() // Also discard active demo records on exit.
+        env.tripTracker.startTrip()  // Also discard active demo records on exit.
         env.chargingTracker.startSession()
         env.vehicleData.toggleDemoMode(false)
         XCTAssertTrue(env.tripTracker.demoTrips.isEmpty)
@@ -54,12 +55,24 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<ChargingSessionModel>()), 1)
     }
 
+    /// Opens the test store read-only so a real save failure can be exercised.
+    ///
+    /// Core Data logs one permission error per attempted save in this scenario. Those
+    /// lines are the expected boundary being asserted (failed saves must surface through
+    /// `persistenceError` and keep the recording), not evidence of a broken test store.
+    /// Confining the read-only setup here keeps that noise attributable. Any *other*
+    /// SwiftData error printed during `swift test` still points at a real problem.
+    private func makeReadOnlyContainer() throws -> ModelContainer {
+        let configuration = ModelConfiguration(
+            schema: container.schema,
+            url: storeDirectory.appendingPathComponent("trips.store"),
+            allowsSave: false)
+        return try ModelContainer(for: container.schema, configurations: configuration)
+    }
+
     @MainActor
     func testFailedSaveRetainsRecordingAndBlocksDemoSwitch() throws {
-        let configuration = ModelConfiguration(schema: container.schema,
-            url: storeDirectory.appendingPathComponent("trips.store"), allowsSave: false)
-        let readOnly = try ModelContainer(for: container.schema, configurations: configuration)
-        let env = AppEnvironment(modelContainer: readOnly)
+        let env = AppEnvironment(modelContainer: try makeReadOnlyContainer())
         env.tripTracker.isAutoTripEnabled = false
         env.tripTracker.startTrip()
         let trip = try XCTUnwrap(env.tripTracker.currentTrip)
@@ -131,8 +144,9 @@ final class TripPersistenceTests: XCTestCase {
         older.maxPowerKW = 35
         older.maxRegenKW = -5
         older.samples = [
-            TelemetryPointModel(timestamp: start.addingTimeInterval(100), latitude: 52.1, longitude: 13.1, speedKmH: 40, powerKW: -5, socPct: 89, batteryTempC: 26),
-            TelemetryPointModel(timestamp: start, latitude: 52, longitude: 13, speedKmH: 30, powerKW: 35, socPct: 90, batteryTempC: 25)
+            TelemetryPointModel(
+                timestamp: start.addingTimeInterval(100), latitude: 52.1, longitude: 13.1, speedKmH: 40, powerKW: -5, socPct: 89, batteryTempC: 26),
+            TelemetryPointModel(timestamp: start, latitude: 52, longitude: 13, speedKmH: 30, powerKW: 35, socPct: 90, batteryTempC: 25),
         ]
         let newer = TripModel(startTime: start.addingTimeInterval(900), distanceKm: 5, startSocPct: 85)
         let end = start.addingTimeInterval(1200)
@@ -144,7 +158,7 @@ final class TripPersistenceTests: XCTestCase {
         newer.maxRegenKW = -10
         newer.samples = [
             TelemetryPointModel(timestamp: end, latitude: 53.1, longitude: 14.1, speedKmH: 20, powerKW: -10, socPct: 82, batteryTempC: 28),
-            TelemetryPointModel(timestamp: newer.startTime, latitude: 53, longitude: 14, speedKmH: 60, powerKW: 45, socPct: 85, batteryTempC: 27)
+            TelemetryPointModel(timestamp: newer.startTime, latitude: 53, longitude: 14, speedKmH: 60, powerKW: 45, socPct: 85, batteryTempC: 27),
         ]
         for trip in insertNewerFirst ? [newer, older] : [older, newer] {
             context.insert(trip)
@@ -205,8 +219,10 @@ final class TripPersistenceTests: XCTestCase {
 
     private func sampleValues(_ samples: [TelemetryPointModel]) -> [[Double]] {
         samples.sorted { $0.timestamp < $1.timestamp }.map {
-            [$0.timestamp.timeIntervalSince1970, $0.latitude, $0.longitude,
-             $0.speedKmH, $0.powerKW, $0.socPct, $0.batteryTempC]
+            [
+                $0.timestamp.timeIntervalSince1970, $0.latitude, $0.longitude,
+                $0.speedKmH, $0.powerKW, $0.socPct, $0.batteryTempC,
+            ]
         }
     }
 
@@ -244,9 +260,7 @@ final class TripPersistenceTests: XCTestCase {
         context.insert(unrelated)
         try context.save()
 
-        let configuration = ModelConfiguration(schema: container.schema,
-                                             url: storeDirectory.appendingPathComponent("trips.store"), allowsSave: false)
-        let readOnlyContainer = try ModelContainer(for: container.schema, configurations: configuration)
+        let readOnlyContainer = try makeReadOnlyContainer()
         let readOnlyContext = ModelContext(readOnlyContainer)
         readOnlyContext.autosaveEnabled = false
         let undoManager = useExistingUndoManager ? UndoManager() : nil
@@ -261,7 +275,7 @@ final class TripPersistenceTests: XCTestCase {
         let pendingSession = try XCTUnwrap(readOnlyContext.fetch(FetchDescriptor<ChargingSessionModel>()).first)
         undoManager?.beginUndoGrouping()
         pendingSession.locationName = "Pending edit"
-        destination.distanceKm = 12 // A pre-existing edit on a merged model must survive too.
+        destination.distanceKm = 12  // A pre-existing edit on a merged model must survive too.
         let tracker = TripTrackingManager()
         tracker.modelContext = readOnlyContext
 

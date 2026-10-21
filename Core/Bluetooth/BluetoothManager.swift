@@ -9,6 +9,7 @@ public struct OBDLogEntry: Identifiable, Sendable {
     public let response: String
 }
 
+@MainActor
 public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionProtocol {
     @Published public private(set) var state: BLEConnectionState = .disconnected
     @Published public private(set) var discoveredDevices: [CBPeripheral] = []
@@ -35,7 +36,7 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
 
     private struct QueuedCommand {
         let command: String
-        let completion: ((Result<String, Error>) -> Void)?
+        let completion: (@MainActor @Sendable (Result<String, Error>) -> Void)?
         let timeout: TimeInterval
     }
     private var commandQueue: [QueuedCommand] = []
@@ -97,15 +98,15 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         do {
             try files.createDirectory(at: directory, withIntermediateDirectories: true)
             let header = """
-            # VoltLink OBD diagnostic capture
-            # Vehicle: \(vehicleContext)
-            # Started: \(Date().formatted(Self.captureDateFormat))
-            # Start-forward only; previous live history is not included.
-            # Timestamps are command completion times (UTC, milliseconds).
-            # Raw responses follow each TX line; original line endings are preserved.
+                # VoltLink OBD diagnostic capture
+                # Vehicle: \(vehicleContext)
+                # Started: \(Date().formatted(Self.captureDateFormat))
+                # Start-forward only; previous live history is not included.
+                # Timestamps are command completion times (UTC, milliseconds).
+                # Raw responses follow each TX line; original line endings are preserved.
 
 
-            """
+                """
             // Prepare and flush the new file before touching the previous capture.
             try Data(header.utf8).write(to: stagingURL, options: .atomic)
             let opened = try openCaptureFile(stagingURL)
@@ -123,7 +124,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         } catch {
             try? handle?.close()
             try? files.removeItem(at: stagingURL)
-            captureError = "Could not start capture: \(error.localizedDescription)"
+            captureError =
+                "Could not start capture: \(error.localizedDescription)"
                 + (captureFileURL == nil ? "" : " The previous capture is still available to export.")
         }
     }
@@ -183,11 +185,13 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     private func startConnectionTimeout(deviceName: String) {
         connectionTimeoutTimer?.invalidate()
         connectionTimeoutTimer = Timer.scheduledTimer(withTimeInterval: BLEConstants.connectionTimeout, repeats: false) { [weak self] _ in
-            guard let self = self else { return }
-            if case .connecting = self.state {
-                self.disconnect()
-                self.state = .error("Connection to \(deviceName) timed out")
-                self.delegate?.obdConnectionStateDidChange(self.state)
+            MainActor.assumeIsolated {
+                guard let self = self else { return }
+                if case .connecting = self.state {
+                    self.disconnect()
+                    self.state = .error("Connection to \(deviceName) timed out")
+                    self.delegate?.obdConnectionStateDidChange(self.state)
+                }
             }
         }
     }
@@ -220,7 +224,7 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
         failedQueue.forEach { $0.completion?(.failure(error)) }
     }
 
-    public func sendCommand(_ command: String, completion: ((Result<String, Error>) -> Void)?) {
+    public func sendCommand(_ command: String, completion: (@MainActor @Sendable (Result<String, Error>) -> Void)?) {
         guard state.isConnected else {
             completion?(.failure(NSError(domain: "BluetoothManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "BLE Not connected"])))
             return
@@ -246,7 +250,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
 
         let payload = next.command + "\r"
         guard let data = payload.data(using: .utf8) else {
-            completeInFlight(.failure(NSError(domain: "BluetoothManager", code: -4, userInfo: [NSLocalizedDescriptionKey: "Bad command encoding"])), rawResponse: nil)
+            completeInFlight(
+                .failure(NSError(domain: "BluetoothManager", code: -4, userInfo: [NSLocalizedDescriptionKey: "Bad command encoding"])), rawResponse: nil)
             return
         }
 
@@ -259,7 +264,10 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
 
         commandTimer?.invalidate()
         commandTimer = Timer.scheduledTimer(withTimeInterval: next.timeout, repeats: false) { [weak self] _ in
-            self?.completeInFlight(.failure(NSError(domain: "BluetoothManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Command Timeout"])), rawResponse: nil)
+            MainActor.assumeIsolated {
+                self?.completeInFlight(
+                    .failure(NSError(domain: "BluetoothManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Command Timeout"])), rawResponse: nil)
+            }
         }
     }
 
@@ -323,7 +331,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
                 try handle.write(contentsOf: Data(record.utf8))
             } catch {
                 stopCapture()
-                captureError = "Capture stopped: \(error.localizedDescription). Export the capture file to recover partial data; the last record may be incomplete."
+                captureError =
+                    "Capture stopped: \(error.localizedDescription). Export the capture file to recover partial data; the last record may be incomplete."
             }
         }
         log.append(entry)
@@ -333,7 +342,7 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     }
 }
 
-extension BluetoothManager: CBCentralManagerDelegate {
+extension BluetoothManager: @preconcurrency CBCentralManagerDelegate {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn {
             if case .scanning = state {
@@ -346,7 +355,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
         }
     }
 
-    public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+    public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         guard case .scanning = state else { return }
         if !discoveredDevices.contains(where: { $0.identifier == peripheral.identifier }) {
             discoveredDevices.append(peripheral)
@@ -395,7 +404,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 }
 
-extension BluetoothManager: CBPeripheralDelegate {
+extension BluetoothManager: @preconcurrency CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard peripheral === activePeripheral, case .connecting = state else { return }
         guard error == nil else {
@@ -477,7 +486,8 @@ extension BluetoothManager: CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard peripheral === activePeripheral, characteristic === notifyCharacteristic, error == nil else { return }
         guard let data = characteristic.value else { return }
-        let str = String(data: data, encoding: .utf8)
+        let str =
+            String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .ascii)
             ?? String(data: data, encoding: .isoLatin1)
             ?? ""

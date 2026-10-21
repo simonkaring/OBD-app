@@ -10,6 +10,9 @@ public struct MetricNumericTileView: View {
     public var accentColor: Color = Theme.textSecondary
     public var isUnavailable: Bool = false
 
+    /// Honors Dynamic Type for the large readout while keeping the original 36 pt base.
+    @ScaledMetric(relativeTo: .largeTitle) private var valueFontSize: CGFloat = 36
+
     public init(value: Double, unit: String, label: String, decimalPlaces: Int = 0, accentColor: Color = Theme.textSecondary, isUnavailable: Bool = false) {
         self.value = value
         self.unit = unit
@@ -23,19 +26,19 @@ public struct MetricNumericTileView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.subheadline)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
 
             Text(isUnavailable ? "--" : String(format: "%.\(decimalPlaces)f", value))
-                .font(.system(size: 36, weight: .semibold))
+                .font(.system(size: valueFontSize, weight: .semibold))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
-                .foregroundColor(Theme.textPrimary)
+                .foregroundStyle(Theme.textPrimary)
                 .contentTransition(.numericText())
 
             Text(unit)
                 .font(.subheadline)
-                .foregroundColor(accentColor)
+                .foregroundStyle(accentColor)
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

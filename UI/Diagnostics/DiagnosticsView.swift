@@ -2,7 +2,7 @@ import SwiftUI
 
 public struct DiagnosticsView: View {
     @ObservedObject public var dtcService: DTCScannerService
-    @ObservedObject public var vehicleData: VehicleDataManager
+    public var vehicleData: VehicleDataManager
 
     @State private var selectedDTC: DTCCode?
     @State private var showClearConfirmation = false
@@ -25,14 +25,17 @@ public struct DiagnosticsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Vehicle diagnostics")
                                     .font(.subheadline)
-                                    .foregroundColor(Theme.textSecondary)
-                                Text(dtcService.lastScanDate == nil ? "Not Scanned Yet" : "Last Scan: \(dtcService.lastScanDate!.formatted(date: .numeric, time: .shortened))")
-                                    .font(.headline)
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textSecondary)
+                                Text(
+                                    dtcService.lastScanDate == nil
+                                        ? "Not Scanned Yet" : "Last Scan: \(dtcService.lastScanDate!.formatted(date: .numeric, time: .shortened))"
+                                )
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
                                 if let error = dtcService.scanErrorMessage {
                                     Text(error)
                                         .font(.subheadline)
-                                        .foregroundColor(Theme.criticalRed)
+                                        .foregroundStyle(Theme.criticalRed)
                                 }
                             }
                             Spacer()
@@ -52,7 +55,7 @@ public struct DiagnosticsView: View {
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
                                 .background(Theme.electricCyan)
-                                .foregroundColor(.black)
+                                .foregroundStyle(Theme.onAccent)
                                 .cornerRadius(10)
                             }
                             .disabled(dtcService.isScanning || vehicleData.isCommandSessionActive || !vehicleData.connectionState.isConnected)
@@ -67,13 +70,13 @@ public struct DiagnosticsView: View {
                             Spacer()
                             Image(systemName: dtcService.scanSucceeded ? "checkmark.shield.fill" : "stethoscope")
                                 .font(.system(size: 60))
-                                .foregroundColor(dtcService.scanSucceeded ? Theme.regenGreen : Theme.textSecondary)
+                                .foregroundStyle(dtcService.scanSucceeded ? Theme.regenGreen : Theme.textSecondary)
                             Text(dtcService.scanSucceeded ? "No Fault Codes Detected" : "Scan Required")
                                 .font(.title3.weight(.semibold))
-                                .foregroundColor(Theme.textPrimary)
+                                .foregroundStyle(Theme.textPrimary)
                             Text(dtcService.healthSummary)
                                 .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundStyle(Theme.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 30)
                             Spacer()
@@ -88,26 +91,26 @@ public struct DiagnosticsView: View {
                                         VStack(alignment: .leading, spacing: 4) {
                                             HStack {
                                                 Text(code.code)
-                                                    .font(.system(size: 18, weight: .bold, design: .monospaced))
-                                                    .foregroundColor(Theme.criticalRed)
+                                                    .font(.headline.weight(.bold).monospaced())
+                                                    .foregroundStyle(Theme.criticalRed)
 
                                                 Text(code.severity.rawValue)
                                                     .font(.caption)
                                                     .padding(.horizontal, 6)
                                                     .padding(.vertical, 2)
                                                     .background(Theme.criticalRed.opacity(0.2))
-                                                    .foregroundColor(Theme.criticalRed)
+                                                    .foregroundStyle(Theme.criticalRed)
                                                     .cornerRadius(4)
                                             }
 
                                             Text(code.title)
                                                 .font(.headline)
-                                                .foregroundColor(Theme.textPrimary)
+                                                .foregroundStyle(Theme.textPrimary)
                                         }
 
                                         Spacer()
                                         Image(systemName: "chevron.right")
-                                            .foregroundColor(Theme.textSecondary)
+                                            .foregroundStyle(Theme.textSecondary)
                                     }
                                 }
                                 .listRowBackground(Theme.cardBackground)
@@ -121,7 +124,7 @@ public struct DiagnosticsView: View {
                         } label: {
                             Text("Clear Diagnostic Trouble Codes")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundColor(Theme.criticalRed)
+                                .foregroundStyle(Theme.criticalRed)
                                 .padding()
                                 .frame(maxWidth: .infinity)
                                 .glassCard()
@@ -168,15 +171,15 @@ public struct DTCDetailSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text(dtc.code)
-                            .font(.system(size: 32, weight: .black, design: .monospaced))
-                            .foregroundColor(Theme.criticalRed)
+                            .font(.largeTitle.weight(.black).monospaced())
+                            .foregroundStyle(Theme.criticalRed)
                         Spacer()
                         Text(dtc.category)
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
                             .background(Theme.electricCyan.opacity(0.2))
-                            .foregroundColor(Theme.electricCyan)
+                            .foregroundStyle(Theme.electricCyan)
                             .cornerRadius(8)
                     }
 
@@ -186,25 +189,25 @@ public struct DTCDetailSheet: View {
                     if let source = dtc.definitionSource {
                         Text(source)
                             .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
 
                     Divider()
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text("DESCRIPTION")
-                            .font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                            .font(.caption).fontWeight(.bold).foregroundStyle(Theme.textSecondary)
                         Text(dtc.description)
-                            .font(.system(size: 15))
+                            .font(.subheadline)
                     }
 
                     if !dtc.symptoms.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("POSSIBLE SYMPTOMS")
-                                .font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                                .font(.caption).fontWeight(.bold).foregroundStyle(Theme.textSecondary)
                             ForEach(dtc.symptoms, id: \.self) { sym in
                                 Label(sym, systemImage: "exclamationmark.triangle")
-                                    .font(.system(size: 14))
+                                    .font(.subheadline)
                             }
                         }
                     }
@@ -212,10 +215,10 @@ public struct DTCDetailSheet: View {
                     if !dtc.possibleFixes.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("RECOMMENDED REPAIR STEPS")
-                                .font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                                .font(.caption).fontWeight(.bold).foregroundStyle(Theme.textSecondary)
                             ForEach(dtc.possibleFixes, id: \.self) { fix in
                                 Label(fix, systemImage: "wrench.and.screwdriver")
-                                    .font(.system(size: 14))
+                                    .font(.subheadline)
                             }
                         }
                     }

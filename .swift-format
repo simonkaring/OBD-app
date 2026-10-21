@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "indentation": {
+    "spaces": 4
+  },
+  "indentConditionalCompilationBlocks": false,
+  "lineLength": 160,
+  "maximumBlankLines": 2,
+  "respectsExistingLineBreaks": true,
+  "reflowMultilineStringLiterals": "never",
+  "rules": {
+    "AllPublicDeclarationsHaveDocumentation": false,
+    "BeginDocumentationCommentWithOneLineSummary": false,
+    "NoBlockComments": false,
+    "NeverUseForceTry": false,
+    "NeverForceUnwrap": false,
+    "NeverUseImplicitlyUnwrappedOptionals": false
+  }
+}

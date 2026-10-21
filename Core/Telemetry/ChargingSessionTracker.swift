@@ -26,7 +26,7 @@ public struct ChargingSessionState: Sendable {
     public var peakPowerKW: Double = 0.0
     public var totalEnergyKWh: Double = 0.0
     public var history: [ChargingDataPoint] = []
-    
+
     public var sessionDuration: TimeInterval {
         guard let start = startTime else { return 0 }
         return Date().timeIntervalSince(start)
@@ -64,7 +64,7 @@ public final class ChargingSessionTracker: @unchecked Sendable {
         isStationary: Bool
     ) -> ChargingSessionState {
         let now = Date()
-        
+
         let livePowerKW: Double
         if let p = powerKW {
             livePowerKW = p
@@ -103,7 +103,7 @@ public final class ChargingSessionTracker: @unchecked Sendable {
             // Integrate kWh over dt
             if let lastTime = lastUpdateTimestamp {
                 let dtHours = now.timeIntervalSince(lastTime) / 3600.0
-                if dtHours > 0 && dtHours < (5.0 / 60.0) { // Discard abnormal gaps > 5 mins
+                if dtHours > 0 && dtHours < (5.0 / 60.0) {  // Discard abnormal gaps > 5 mins
                     state.totalEnergyKWh += livePowerKW * dtHours
                 }
             }
@@ -153,16 +153,17 @@ public final class ChargingSessionTracker: @unchecked Sendable {
     /// Estimates time (in seconds) to reach target SoC based on battery capacity and current charging power
     public func estimatedSecondsToTarget(targetSOC: Double, batteryCapacityKWh: Double) -> TimeInterval? {
         guard state.isCharging,
-              let currentSOC = state.currentSOC,
-              currentSOC < targetSOC,
-              state.currentPowerKW > 0.5,
-              batteryCapacityKWh > 0 else {
+            let currentSOC = state.currentSOC,
+            currentSOC < targetSOC,
+            state.currentPowerKW > 0.5,
+            batteryCapacityKWh > 0
+        else {
             return nil
         }
 
         let neededPercentage = (targetSOC - currentSOC) / 100.0
         let neededKWh = batteryCapacityKWh * neededPercentage
-        
+
         let effectivePowerKW: Double
         if targetSOC > 80.0 && currentSOC >= 80.0 {
             effectivePowerKW = max(1.0, state.currentPowerKW * 0.5)

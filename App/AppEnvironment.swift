@@ -20,12 +20,18 @@ public final class AppEnvironment: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private static func makeModelContainer() -> (ModelContainer, String?) {
-        let schema = Schema([TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, SavedDTCModel.self])
+        let schema = Schema(versionedSchema: VoltLinkSchemaV1.self)
         do {
-            return (try ModelContainer(for: schema), nil)
+            return (try ModelContainer(for: schema, migrationPlan: VoltLinkMigrationPlan.self), nil)
         } catch {
-            let warning = "Persistent history is unavailable: \(error.localizedDescription). New recordings are temporary and will be lost when VoltLink closes."
-            return (try! ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning)
+            let warning =
+                "Persistent history is unavailable: \(error.localizedDescription). New recordings are temporary and will be lost when VoltLink closes."
+            return (
+                try! ModelContainer(
+                    for: schema,
+                    migrationPlan: VoltLinkMigrationPlan.self,
+                    configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning
+            )
         }
     }
 
@@ -55,25 +61,38 @@ public final class AppEnvironment: ObservableObject {
             return tTracker.setDemoMode(enabled, endSoc: soc) && cTracker.setDemoMode(enabled, endSoc: soc)
         }
 
-        vData.$latestTelemetry
+        // `Published` used to replay its current value on subscription; mirror that so
+        // recorders start from the same initial snapshot after the Observation switch.
+        let initialSnapshot = vData.latestTelemetry
+        tTracker.processTelemetrySnapshot(
+            initialSnapshot,
+            vehicleName: vData.vehicleName,
+            hasPowerData: vData.isDemoMode,
+            requiresPowerForAutoStart: vData.supportedMetrics.contains(.power)
+        )
+        cTracker.processTelemetrySnapshot(initialSnapshot)
+
+        vData.telemetryPublisher
             .sink { [weak tTracker, weak cTracker, weak vData] snapshot in
                 let hasPower = vData?.isDemoMode == true || (vData?.liveMetrics.contains(.power) == true && snapshot.hasFreshPower)
-                tTracker?.processTelemetrySnapshot(snapshot, vehicleName: vData?.vehicleName ?? "Vehicle", hasPowerData: hasPower, requiresPowerForAutoStart: vData?.supportedMetrics.contains(.power) == true)
+                tTracker?.processTelemetrySnapshot(
+                    snapshot, vehicleName: vData?.vehicleName ?? "Vehicle", hasPowerData: hasPower,
+                    requiresPowerForAutoStart: vData?.supportedMetrics.contains(.power) == true)
                 cTracker?.processTelemetrySnapshot(snapshot)
             }
             .store(in: &cancellables)
 
         // Re-evaluate freshness even when the adapter stops returning telemetry.
-        Publishers.Merge(
-            vData.objectWillChange.map { _ in () },
-            Timer.publish(every: 1, on: .main, in: .common).autoconnect().map { _ in () }
-        )
+        // Observation replaced `objectWillChange`, so the one-second sweep is the
+        // authoritative expiry clock.
+        Timer.publish(every: 1, on: .main, in: .common).autoconnect().map { _ in () }
             .receive(on: DispatchQueue.main)
             .sink { [weak vData] _ in
                 guard let vData else { return }
                 vData.expireExternalSpeed()
                 if case .ready = vData.connectionState, vData.hasSelectedVehicle,
-                   !vData.isDemoMode, vData.needsExternalSpeed() {
+                    !vData.isDemoMode, vData.needsExternalSpeed()
+                {
                     locationManager.startSpeedMonitoring()
                 } else {
                     locationManager.stopSpeedMonitoring()
@@ -86,9 +105,10 @@ public final class AppEnvironment: ObservableObject {
             .compactMap { $0 }
             .sink { location in
                 guard location.speed >= 0,
-                      vData.hasSelectedVehicle,
-                      vData.connectionState.isConnected,
-                      !vData.isDemoMode else { return }
+                    vData.hasSelectedVehicle,
+                    vData.connectionState.isConnected,
+                    !vData.isDemoMode
+                else { return }
                 vData.applyExternalSpeed(location.speed * 3.6, timestamp: location.timestamp)
             }
             .store(in: &cancellables)

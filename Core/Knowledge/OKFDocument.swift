@@ -102,7 +102,8 @@ public enum OKFDocument {
     /// Render a string as a double-quoted YAML scalar. Quoting everything keeps titles with
     /// colons, quotes, and leading symbols valid without a full YAML emitter.
     public static func yamlScalar(_ value: String) -> String {
-        let escaped = value
+        let escaped =
+            value
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
             .replacingOccurrences(of: "\n", with: " ")
@@ -117,9 +118,11 @@ public enum OKFDocument {
         guard let first = lines.first, first.trimmingCharacters(in: .whitespaces) == "---" else {
             return nil
         }
-        guard let closing = lines.indices.dropFirst().first(where: {
-            lines[$0].trimmingCharacters(in: .whitespaces) == "---"
-        }) else {
+        guard
+            let closing = lines.indices.dropFirst().first(where: {
+                lines[$0].trimmingCharacters(in: .whitespaces) == "---"
+            })
+        else {
             return nil
         }
 
@@ -127,7 +130,8 @@ public enum OKFDocument {
         for line in lines[1..<closing] {
             // Only top-level keys; nested `sources:` entries and list items are skipped.
             guard !line.hasPrefix(" "), !line.hasPrefix("\t"), !line.hasPrefix("-"),
-                  let colon = line.firstIndex(of: ":") else { continue }
+                let colon = line.firstIndex(of: ":")
+            else { continue }
             let key = String(line[..<colon]).trimmingCharacters(in: .whitespaces)
             guard !key.isEmpty else { continue }
             let raw = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
@@ -147,7 +151,8 @@ public enum OKFDocument {
             guard let target = Range(match.range(at: 1), in: text) else { return nil }
             let link = String(text[target])
             guard !link.hasPrefix("http://"), !link.hasPrefix("https://"),
-                  !link.hasPrefix("mailto:"), !link.hasPrefix("#") else { return nil }
+                !link.hasPrefix("mailto:"), !link.hasPrefix("#")
+            else { return nil }
             return link
         }
     }

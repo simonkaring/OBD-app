@@ -9,42 +9,43 @@ struct ScanCommand: @unchecked Sendable {
         private var central: CBCentralManager!
         private var discovered: [(name: String, id: UUID, rssi: Int, isOBD: Bool)] = []
         private var isDone = false
-        
+
         func run(seconds: Double) async -> [(name: String, id: UUID, rssi: Int, isOBD: Bool)] {
             central = CBCentralManager(delegate: self, queue: nil)
             try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
             central.stopScan()
             return discovered
         }
-        
+
         func centralManagerDidUpdateState(_ central: CBCentralManager) {
             if central.state == .poweredOn {
                 central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
             }
         }
-        
-        func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+
+        func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
             let name = peripheral.name ?? advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? "<Unnamed>"
             let lower = name.lowercased()
             let keywords = ["vlink", "ios-vlink", "icar", "obd", "ble", "veepeak", "link", "elm", "konnwei", "lelink"]
             let isOBD = keywords.contains { lower.contains($0) }
-            
+
             if !discovered.contains(where: { $0.id == peripheral.identifier }) {
                 discovered.append((name: name, id: peripheral.identifier, rssi: RSSI.intValue, isOBD: isOBD))
             }
         }
     }
-    
+
+    @MainActor
     static func run(args: [String]) async {
         print("🔍 Scanning for Bluetooth LE devices (5s)...")
         let scanner = Scanner()
         let devices = await scanner.run(seconds: 5.0)
-        
+
         if devices.isEmpty {
             print("No BLE devices discovered.")
             return
         }
-        
+
         print("\nDiscovered Devices:")
         print("----------------------------------------------------------------------")
         print(String(format: "%-25s %-38s %-6s %s", "NAME", "UUID", "RSSI", "TYPE"))
@@ -61,18 +62,19 @@ struct ScanCommand: @unchecked Sendable {
 // MARK: - 2. Raw Command
 
 struct RawCommand {
+    @MainActor
     static func run(args: [String]) async {
         guard !args.isEmpty else {
             print("❌ Error: No command specified. Example: voltlink-cli raw \"ATI\" \"ATRV\"")
             return
         }
-        
+
         print("Connecting to OBD adapter...")
         let client = AsyncOBDClient()
         do {
             try await client.connect()
             print("Connected! Sending \(args.count) command(s):\n")
-            
+
             for cmd in args {
                 let start = Date()
                 let response = try await client.sendRaw(cmd)
@@ -80,7 +82,7 @@ struct RawCommand {
                 let clean = response.replacingOccurrences(of: "\r", with: " ").replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces)
                 print("[\(elapsedMs)ms] \(cmd) ➔ \(clean)")
             }
-            
+
             client.disconnect()
         } catch {
             print("❌ Connection / Command Error: \(error.localizedDescription)")
@@ -91,29 +93,31 @@ struct RawCommand {
 // MARK: - 3. Interactive REPL
 
 struct REPLCommand {
+    @MainActor
     static func run(args: [String]) async {
         print("Connecting to OBD adapter...")
         let client = AsyncOBDClient()
         do {
             try await client.connect()
-            print("""
-            =====================================================
-            ⚡️ VoltLink Interactive OBD Shell
-            Type any ELM327 / OBD / UDS command (e.g. 'ATI', 'ATRV', '0100')
-            Type 'exit' or 'quit' to end session.
-            =====================================================
-            """)
-            
+            print(
+                """
+                =====================================================
+                ⚡️ VoltLink Interactive OBD Shell
+                Type any ELM327 / OBD / UDS command (e.g. 'ATI', 'ATRV', '0100')
+                Type 'exit' or 'quit' to end session.
+                =====================================================
+                """)
+
             while true {
                 print("OBD> ", terminator: "")
                 guard let line = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !line.isEmpty else {
                     continue
                 }
-                
+
                 if line.lowercased() == "exit" || line.lowercased() == "quit" {
                     break
                 }
-                
+
                 let start = Date()
                 do {
                     let response = try await client.sendRaw(line)
@@ -124,7 +128,7 @@ struct REPLCommand {
                     print("❌ Error: \(error.localizedDescription)\n")
                 }
             }
-            
+
             client.disconnect()
             print("Disconnected.")
         } catch {
@@ -144,14 +148,15 @@ struct ProbeCommand {
         let payload: String
         let elapsedMs: Int
     }
-    
+
+    @MainActor
     static func run(args: [String]) async {
         var ecus = ["59", "29", "17"]
         var startDID = 0x0100
         var endDID = 0x0130
         var jsonOutput = false
         var showAll = false
-        
+
         var i = 0
         while i < args.count {
             switch args[i] {
@@ -179,42 +184,42 @@ struct ProbeCommand {
             }
             i += 1
         }
-        
+
         if !jsonOutput {
             print("⚡️ Probing UDS DIDs 0x\(String(format: "%04X", startDID)) - 0x\(String(format: "%04X", endDID)) on ECUs: \(ecus.joined(separator: ", "))")
             print("Connecting to OBD adapter...")
         }
-        
+
         let client = AsyncOBDClient()
         let parser = ISO15765Parser()
         var results: [ProbeEntry] = []
-        
+
         do {
             try await client.connect()
             try await client.initializeELM327(protocolNumber: "7")
-            
+
             for ecu in ecus {
                 if !jsonOutput {
                     print("\n--- Testing ECU 0x\(ecu) (Header: 18DA\(ecu)F1) ---")
                 }
                 _ = try? await client.sendRaw("AT SH 18DA\(ecu)F1")
                 _ = try? await client.sendRaw("AT CRA")
-                
+
                 for didVal in startDID...endDID {
                     let didHex = String(format: "%04X", didVal)
                     let cmd = "22 \(didHex)"
                     let start = Date()
                     let raw = (try? await client.sendRaw(cmd)) ?? "TIMEOUT"
                     let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
-                    
+
                     let clean = raw.replacingOccurrences(of: ">", with: "")
                         .replacingOccurrences(of: "\r", with: " ")
                         .replacingOccurrences(of: "\n", with: " ")
                         .trimmingCharacters(in: .whitespaces)
-                    
+
                     let payload = parser.assembleISOTPPayload(raw)
                     let noSpace = clean.replacingOccurrences(of: " ", with: "")
-                    
+
                     let status: String
                     if noSpace.contains("62\(didHex)") || (payload.starts(with: "62") && payload.count > 6) {
                         status = "POSITIVE"
@@ -227,10 +232,10 @@ struct ProbeCommand {
                     } else {
                         status = "UNKNOWN"
                     }
-                    
+
                     let entry = ProbeEntry(ecu: ecu, did: didHex, status: status, rawResponse: clean, payload: payload, elapsedMs: elapsedMs)
                     results.append(entry)
-                    
+
                     if !jsonOutput {
                         if status == "POSITIVE" {
                             print("  ✅ [\(elapsedMs)ms] ECU \(ecu) DID \(didHex) ➔ Payload: \(payload)")
@@ -238,13 +243,13 @@ struct ProbeCommand {
                             print("  ⚠️ [\(elapsedMs)ms] ECU \(ecu) DID \(didHex) ➔ \(status) (\(clean))")
                         }
                     }
-                    
-                    try? await Task.sleep(nanoseconds: 20_000_000) // 20ms pacing
+
+                    try? await Task.sleep(nanoseconds: 20_000_000)  // 20ms pacing
                 }
             }
-            
+
             client.disconnect()
-            
+
             if jsonOutput {
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -269,19 +274,20 @@ struct ProbeCommand {
 // MARK: - 5. DTC Command
 
 struct DTCCommand {
+    @MainActor
     static func run(args: [String]) async {
         let shouldClear = args.contains("--clear") || args.contains("-c")
-        
+
         print("Connecting to OBD adapter...")
         let client = AsyncOBDClient()
         let database = DTCLocalDatabase.shared
-        
+
         do {
             try await client.connect()
             _ = try await client.sendRaw("AT Z")
             _ = try await client.sendRaw("AT E0")
-            _ = try await client.sendRaw("AT SP 0") // Auto protocol for Mode 03
-            
+            _ = try await client.sendRaw("AT SP 0")  // Auto protocol for Mode 03
+
             if shouldClear {
                 print("Clearing Diagnostic Trouble Codes (Mode 04)...")
                 let resp = try await client.sendRaw("04")
@@ -290,19 +296,19 @@ struct DTCCommand {
                 print("Querying Stored DTCs (Mode 03)...")
                 let raw03 = try await client.sendRaw("03")
                 print("Mode 03 Response: \(raw03.trimmingCharacters(in: .whitespacesAndNewlines))")
-                
+
                 print("\nQuerying Pending DTCs (Mode 07)...")
                 let raw07 = try await client.sendRaw("07")
                 print("Mode 07 Response: \(raw07.trimmingCharacters(in: .whitespacesAndNewlines))")
-                
+
                 let parser = ISO15765Parser()
                 let p03 = parser.assembleISOTPPayload(raw03)
                 let p07 = parser.assembleISOTPPayload(raw07)
-                
+
                 var dtcs: [String] = []
                 dtcs.append(contentsOf: parseDTCBytes(p03, servicePrefix: "43"))
                 dtcs.append(contentsOf: parseDTCBytes(p07, servicePrefix: "47"))
-                
+
                 print("\n=====================================================")
                 if dtcs.isEmpty {
                     print("✅ No Diagnostic Trouble Codes reported.")
@@ -315,13 +321,13 @@ struct DTCCommand {
                 }
                 print("=====================================================\n")
             }
-            
+
             client.disconnect()
         } catch {
             print("❌ DTC Scanner error: \(error.localizedDescription)")
         }
     }
-    
+
     private static func parseDTCBytes(_ payload: String, servicePrefix: String) -> [String] {
         guard payload.hasPrefix(servicePrefix) else { return [] }
         var clean = String(payload.dropFirst(servicePrefix.count))
@@ -329,7 +335,7 @@ struct DTCCommand {
         if clean.count % 4 != 0 && clean.count >= 2 {
             clean = String(clean.dropFirst(2))
         }
-        
+
         var dtcs: [String] = []
         var index = clean.startIndex
         while clean.distance(from: index, to: clean.endIndex) >= 4 {
@@ -342,7 +348,7 @@ struct DTCCommand {
         }
         return dtcs
     }
-    
+
     private static func decodeDTC(hexPair: String) -> String? {
         guard hexPair.count == 4, let val = UInt16(hexPair, radix: 16) else { return nil }
         let typeNibble = (val >> 14) & 0x03
@@ -362,27 +368,28 @@ struct DTCCommand {
 // MARK: - 6. Live Monitor Command
 
 struct MonitorCommand {
+    @MainActor
     static func run(args: [String]) async {
         let isGeneric = args.contains("generic")
         let profile: any VehicleProfile = isGeneric ? GenericOBD2Profile() : MercedesEQA250Profile()
-        
+
         print("⚡️ Live Telemetry Monitor using profile: \(profile.vehicleName)")
         print("Connecting to OBD adapter...")
-        
+
         let client = AsyncOBDClient()
-        
+
         do {
             try await client.connect()
             print("Connected! Initializing vehicle profile...\n")
-            
+
             for cmd in profile.initializationCommands {
                 _ = try await client.sendRaw(cmd)
                 try? await Task.sleep(nanoseconds: 50_000_000)
             }
-            
+
             print("Streaming live telemetry (Press Ctrl+C to stop)...\n")
             var snapshot = TelemetrySnapshot()
-            
+
             while true {
                 for cmd in profile.pollingCommands {
                     let raw = try await client.sendRaw(cmd)
@@ -391,20 +398,22 @@ struct MonitorCommand {
                     }
                     try? await Task.sleep(nanoseconds: 30_000_000)
                 }
-                
-                print(String(format: "\r⚡ SoC: %5.1f%% | Pwr: %6.1f kW | Spd: %3.0f km/h | 12V: %4.1fV | BatTemp: %4.1f°C",
-                             snapshot.stateOfChargePct,
-                             snapshot.powerKW,
-                             snapshot.speedKmH,
-                             snapshot.aux12VVolts,
-                             snapshot.batteryTempC), terminator: "")
+
+                print(
+                    String(
+                        format: "\r⚡ SoC: %5.1f%% | Pwr: %6.1f kW | Spd: %3.0f km/h | 12V: %4.1fV | BatTemp: %4.1f°C",
+                        snapshot.stateOfChargePct,
+                        snapshot.powerKW,
+                        snapshot.speedKmH,
+                        snapshot.aux12VVolts,
+                        snapshot.batteryTempC), terminator: "")
                 fflush(stdout)
             }
         } catch {
             print("\n❌ Monitor error: \(error.localizedDescription)")
         }
     }
-    
+
     private static func applyUpdate(_ update: TelemetryUpdate, to snapshot: inout TelemetrySnapshot) {
         switch update {
         case .soc(let val): snapshot.stateOfChargePct = val

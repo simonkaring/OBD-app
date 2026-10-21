@@ -109,7 +109,8 @@ struct LiveDataView: View {
 
     private func power(_ value: Double) -> String {
         guard probe.telemetry.voltageV > 0,
-              probe.liveResponses.contains(where: { $0.did == "010B" && $0.status == .positive }) else { return "Unavailable" }
+            probe.liveResponses.contains(where: { $0.did == "010B" && $0.status == .positive })
+        else { return "Unavailable" }
         return "\(value.formatted(.number.precision(.fractionLength(1)))) kW"
     }
 

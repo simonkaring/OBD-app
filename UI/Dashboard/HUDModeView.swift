@@ -7,6 +7,10 @@ public struct HUDModeView: View {
     public var isDemoMode: Bool = false
     @Binding public var isPresented: Bool
 
+    /// HUD numerals scale with Dynamic Type instead of staying fixed at 110/40 pt.
+    @ScaledMetric(relativeTo: .largeTitle) private var speedFontSize: CGFloat = 110
+    @ScaledMetric(relativeTo: .title) private var metricFontSize: CGFloat = 40
+
     public var body: some View {
         ZStack {
             Theme.backgroundDark.ignoresSafeArea()
@@ -18,13 +22,14 @@ public struct HUDModeView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
+                    .accessibilityLabel("Exit heads-up display")
                     Spacer()
                     if isDemoMode {
                         Text("SIMULATED")
                             .font(.caption2.weight(.bold))
-                            .foregroundColor(Theme.highPowerAmber)
+                            .foregroundStyle(Theme.highPowerAmber)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(Theme.highPowerAmber.opacity(0.15))
@@ -33,7 +38,7 @@ public struct HUDModeView: View {
                     Text("HEAD-UP DISPLAY MODE")
                         .font(.caption)
                         .fontWeight(.bold)
-                        .foregroundColor(Theme.electricCyan)
+                        .foregroundStyle(Theme.electricCyan)
                 }
                 .padding()
 
@@ -41,35 +46,35 @@ public struct HUDModeView: View {
 
                 VStack(spacing: 10) {
                     Text(String(format: "%.0f", speedKmH))
-                        .font(.system(size: 110, weight: .semibold))
+                        .font(.system(size: speedFontSize, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundColor(Theme.regenGreen)
+                        .foregroundStyle(Theme.regenGreen)
 
                     Text("KM/H")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(Theme.textPrimary)
+                        .foregroundStyle(Theme.textPrimary)
                 }
 
                 HStack(spacing: 40) {
                     VStack {
                         Text(socPct.map { "\(Int($0))%" } ?? "--%")
-                            .font(.system(size: 40, weight: .semibold))
+                            .font(.system(size: metricFontSize, weight: .semibold))
                             .monospacedDigit()
-                            .foregroundColor(Theme.electricCyan)
+                            .foregroundStyle(Theme.electricCyan)
                         Text("BATTERY")
                             .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
 
                     VStack {
                         Text(String(format: "%.1f kW", powerKW))
-                            .font(.system(size: 40, weight: .semibold))
+                            .font(.system(size: metricFontSize, weight: .semibold))
                             .monospacedDigit()
-                            .foregroundColor(powerKW < 0 ? Theme.regenGreen : Theme.highPowerAmber)
+                            .foregroundStyle(powerKW < 0 ? Theme.regenGreen : Theme.highPowerAmber)
                         Text("POWER")
                             .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
 
@@ -77,10 +82,10 @@ public struct HUDModeView: View {
 
                 Text("Reflect off windshield at night")
                     .font(.footnote)
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
                     .padding(.bottom, 20)
             }
-            .scaleEffect(x: -1, y: 1) // Mirror display horizontally for windshield reflection
+            .scaleEffect(x: -1, y: 1)  // Mirror display horizontally for windshield reflection
         }
     }
 }

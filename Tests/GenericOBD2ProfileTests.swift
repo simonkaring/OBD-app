@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class GenericOBD2ProfileTests: XCTestCase {
 
     func testEngineLoadParsing() {
@@ -101,15 +102,15 @@ final class GenericOBD2ProfileTests: XCTestCase {
     func testGenericOBD2ProfileDecodesEveryRemainingPolledPID() {
         let profile = GenericOBD2Profile()
         let cases: [(command: String, raw: String, expected: Double)] = [
-            ("010D", "7E8 03 41 0D 32\r\n>", 50.0),                  // Speed: 0x32 = 50 km/h
-            ("010C", "7E8 04 41 0C 1A F8\r\n>", 1726.0),             // RPM: (0x1AF8)/4 = 1726
-            ("0142", "7E8 04 41 42 30 D4\r\n>", 12.5),               // 12V: (0x30D4)/1000 = 12.5 V
-            ("0146", "7E8 03 41 46 46\r\n>", 30.0),                  // Ambient: 0x46(70) - 40 = 30
-            ("0110", "7E8 04 41 10 01 2C\r\n>", 3.0),                // MAF: (0x012C)/100 = 3.0 g/s
-            ("010B", "7E8 03 41 0B 65\r\n>", 101.0),                 // MAP: 0x65 = 101 kPa
-            ("015C", "7E8 03 41 5C 5A\r\n>", 50.0),                  // Oil temp: 0x5A(90) - 40 = 50
-            ("010E", "7E8 03 41 0E 80\r\n>", 0.0),                   // Timing advance: 0x80/2 - 64 = 0
-            ("0133", "7E8 03 41 33 64\r\n>", 100.0)                  // Barometric: 0x64 = 100 kPa
+            ("010D", "7E8 03 41 0D 32\r\n>", 50.0),  // Speed: 0x32 = 50 km/h
+            ("010C", "7E8 04 41 0C 1A F8\r\n>", 1726.0),  // RPM: (0x1AF8)/4 = 1726
+            ("0142", "7E8 04 41 42 30 D4\r\n>", 12.5),  // 12V: (0x30D4)/1000 = 12.5 V
+            ("0146", "7E8 03 41 46 46\r\n>", 30.0),  // Ambient: 0x46(70) - 40 = 30
+            ("0110", "7E8 04 41 10 01 2C\r\n>", 3.0),  // MAF: (0x012C)/100 = 3.0 g/s
+            ("010B", "7E8 03 41 0B 65\r\n>", 101.0),  // MAP: 0x65 = 101 kPa
+            ("015C", "7E8 03 41 5C 5A\r\n>", 50.0),  // Oil temp: 0x5A(90) - 40 = 50
+            ("010E", "7E8 03 41 0E 80\r\n>", 0.0),  // Timing advance: 0x80/2 - 64 = 0
+            ("0133", "7E8 03 41 33 64\r\n>", 100.0),  // Barometric: 0x64 = 100 kPa
         ]
 
         for testCase in cases {
@@ -118,8 +119,9 @@ final class GenericOBD2ProfileTests: XCTestCase {
                 XCTFail("\(testCase.command) produced no decodable update: \(String(describing: update))")
                 continue
             }
-            XCTAssertEqual(value, testCase.expected, accuracy: 0.1,
-                            "\(testCase.command) decoded to \(value), expected \(testCase.expected)")
+            XCTAssertEqual(
+                value, testCase.expected, accuracy: 0.1,
+                "\(testCase.command) decoded to \(value), expected \(testCase.expected)")
         }
     }
 }

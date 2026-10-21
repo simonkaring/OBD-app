@@ -2,6 +2,7 @@ import XCTest
 import CoreBluetooth
 @testable import VoltLinkEngine
 
+@MainActor
 final class BluetoothManagerTests: XCTestCase {
 
     func testBLEConstantsIncludesVLinkerAndIOSVlinkProfiles() {
@@ -179,6 +180,7 @@ final class BluetoothManagerTests: XCTestCase {
     }
 }
 
+@MainActor
 private final class ConnectionStateRecorder: OBDConnectionDelegate {
     var states: [BLEConnectionState] = []
 

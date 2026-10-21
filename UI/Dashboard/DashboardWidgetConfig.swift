@@ -114,13 +114,15 @@ public struct DashboardLayout: Equatable, Sendable {
 extension DashboardLayout: RawRepresentable {
     public init?(rawValue: String) {
         guard let data = rawValue.data(using: .utf8),
-              let widgets = try? JSONDecoder().decode([DashboardWidgetConfig].self, from: data) else { return nil }
+            let widgets = try? JSONDecoder().decode([DashboardWidgetConfig].self, from: data)
+        else { return nil }
         self.widgets = widgets
     }
 
     public var rawValue: String {
         guard let data = try? JSONEncoder().encode(widgets),
-              let string = String(data: data, encoding: .utf8) else { return "[]" }
+            let string = String(data: data, encoding: .utf8)
+        else { return "[]" }
         return string
     }
 }
@@ -129,9 +131,10 @@ extension DashboardLayout {
     /// Persisted widget identities differ across launches; compare the user's presentation.
     public func matchesDefault(for supportedMetrics: Set<TelemetryMetric>) -> Bool {
         let defaults = Self.adaptedDefault(for: supportedMetrics).widgets
-        return widgets.count == defaults.count && zip(widgets, defaults).allSatisfy {
-            $0.kind == $1.kind && $0.style == $1.style && $0.size == $1.size
-        }
+        return widgets.count == defaults.count
+            && zip(widgets, defaults).allSatisfy {
+                $0.kind == $1.kind && $0.style == $1.style && $0.size == $1.size
+            }
     }
 
     /// Familiar driving and charging readouts, filtered by the selected profile.
@@ -140,7 +143,7 @@ extension DashboardLayout {
         DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
         DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .medium),
-        DashboardWidgetConfig(kind: .metric(.tripAverageConsumption), style: .numeric, size: .medium)
+        DashboardWidgetConfig(kind: .metric(.tripAverageConsumption), style: .numeric, size: .medium),
     ])
 
     /// Recognize untouched dashboards saved by older releases without resetting edits.
@@ -150,7 +153,7 @@ extension DashboardLayout {
         DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
         DashboardWidgetConfig(kind: .metric(.packVoltage), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .metric(.batteryTemp), style: .numeric, size: .medium),
-        DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large)
+        DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large),
     ])
 
     /// `.default` filtered down to what the active vehicle profile actually reports, so a
@@ -197,7 +200,7 @@ public func packDashboardWidgetsIntoRows(_ widgets: [DashboardWidgetConfig]) -> 
             } else {
                 pendingMedium = widget
             }
-        } else { // .large
+        } else {  // .large
             if let pending = pendingMedium {
                 rows.append([pending])
                 pendingMedium = nil

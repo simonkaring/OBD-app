@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class TripDetailTests: XCTestCase {
     @MainActor
     func testDisplaySamplingBoundsLongTripsAndPreservesEndpointsWithoutChangingStoredSamples() {
@@ -27,7 +28,7 @@ final class TripDetailTests: XCTestCase {
     func testComputedAverageSpeedAndAveragePower() {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let trip = TripModel(startTime: start, distanceKm: 50.0)
-        trip.endTime = start.addingTimeInterval(3600) // 1 hour duration
+        trip.endTime = start.addingTimeInterval(3600)  // 1 hour duration
         trip.totalKWhUsed = 10.0
 
         // When samples are empty, falls back to distance / time or totalKWhUsed / time
@@ -38,7 +39,7 @@ final class TripDetailTests: XCTestCase {
         trip.samples = [
             TelemetryPointModel(timestamp: start, speedKmH: 40.0, powerKW: 12.0),
             TelemetryPointModel(timestamp: start.addingTimeInterval(10), speedKmH: 60.0, powerKW: 18.0),
-            TelemetryPointModel(timestamp: start.addingTimeInterval(20), speedKmH: 80.0, powerKW: 30.0)
+            TelemetryPointModel(timestamp: start.addingTimeInterval(20), speedKmH: 80.0, powerKW: 30.0),
         ]
 
         // Average speed should be (40 + 60 + 80) / 3 = 60 km/h

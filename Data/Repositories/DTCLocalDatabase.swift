@@ -1,6 +1,8 @@
 import Foundation
 
-public final class DTCLocalDatabase {
+/// Read-only after `init`: the bundled byte tables are loaded once and only queried.
+/// `@unchecked Sendable` reflects that immutability rather than papering over mutation.
+public final class DTCLocalDatabase: @unchecked Sendable {
     public static let shared = DTCLocalDatabase()
 
     private var database: [String: DTCCode] = [:]
@@ -41,16 +43,19 @@ public final class DTCLocalDatabase {
         }
 
         let brand = manufacturer?.uppercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let aliases = ["MERCEDES-BENZ": "MERCEDES", "MERCEDES BENZ": "MERCEDES",
-                       "CHEVROLET": "CHEVY", "VW": "VOLKSWAGEN", "GENERAL MOTORS": "GM"]
+        let aliases = [
+            "MERCEDES-BENZ": "MERCEDES", "MERCEDES BENZ": "MERCEDES",
+            "CHEVROLET": "CHEVY", "VW": "VOLKSWAGEN", "GENERAL MOTORS": "GM",
+        ]
         let manufacturerDefinition = brand == "GENERIC" ? nil : definitions[aliases[brand] ?? brand]?[upperCode]
         // Standard definitions take precedence over brand tables that also repeat SAE codes.
         if let found = database[upperCode] {
             return found
         }
         if let description = definitions["GENERIC"]?[upperCode] ?? manufacturerDefinition {
-            var result = DTCCode(code: upperCode, title: description, category: category,
-                                 severity: .unknown, description: description)
+            var result = DTCCode(
+                code: upperCode, title: description, category: category,
+                severity: .unknown, description: description)
             result.definitionSource = "Wal33D/dtc-database (MIT) · Community definition"
             return result
         }

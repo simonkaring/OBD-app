@@ -1,23 +1,43 @@
 import XCTest
 import Combine
+import Observation
 @testable import VoltLinkEngine
 
+/// `withObservationTracking`'s change handler is `@Sendable` in Swift 6, so the test
+/// counter needs its own synchronization rather than a captured local `var`.
+private final class LockedCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage = 0
+
+    var value: Int { lock.withLock { storage } }
+    func increment() { lock.withLock { storage += 1 } }
+}
+
+@MainActor
 final class TripAndTelemetryTests: XCTestCase {
 
     func testBatchPublishesOneSnapshotAndUnchangedValidityDoesNotPublish() {
         let manager = VehicleDataManager()
         var snapshots: [TelemetrySnapshot] = []
-        var validityChanges = 0
-        let snapshotsSubscription = manager.$latestTelemetry.dropFirst().sink { snapshots.append($0) }
-        let validitySubscription = manager.$liveMetrics.dropFirst().sink { _ in validityChanges += 1 }
+        let validityChanges = LockedCounter()
+        let snapshotsSubscription = manager.telemetryPublisher.sink { snapshots.append($0) }
+        func trackValidity() {
+            withObservationTracking {
+                _ = manager.liveMetrics
+            } onChange: {
+                validityChanges.increment()
+            }
+        }
+        trackValidity()
         manager.applyUpdates([.packVoltage(400), .packCurrent(10)], timestamp: .now)
         XCTAssertEqual(snapshots.count, 1)
         XCTAssertEqual(snapshots.last?.powerKW, 4)
-        let initialChanges = validityChanges
+        let initialChanges = validityChanges.value
+        trackValidity()
         manager.applyUpdates([.packVoltage(401), .packCurrent(11)], timestamp: .now)
         XCTAssertEqual(snapshots.count, 2)
-        XCTAssertEqual(validityChanges, initialChanges)
-        withExtendedLifetime((snapshotsSubscription, validitySubscription)) {}
+        XCTAssertEqual(validityChanges.value, initialChanges, "Re-applying the same metric set must not invalidate observers")
+        withExtendedLifetime(snapshotsSubscription) {}
     }
 
     func testUnknownOrStaleSpeedCannotTurnRegenIntoCharging() {
@@ -117,7 +137,7 @@ final class TripAndTelemetryTests: XCTestCase {
             TelemetryPointModel(timestamp: earlier, latitude: 55.6759, longitude: 12.5681),
             TelemetryPointModel(timestamp: later.addingTimeInterval(1), latitude: 55.6761, longitude: 12.5683),
             TelemetryPointModel(timestamp: later.addingTimeInterval(2), latitude: 0, longitude: 0),
-            TelemetryPointModel(timestamp: later.addingTimeInterval(3), latitude: 91, longitude: 12.5683)
+            TelemetryPointModel(timestamp: later.addingTimeInterval(3), latitude: 91, longitude: 12.5683),
         ]
 
         XCTAssertEqual(trip.routeSamples.count, 2)
@@ -181,12 +201,13 @@ final class TripAndTelemetryTests: XCTestCase {
         tracker.startTrip(startSoc: 90.0)
 
         var telemetry = TelemetrySnapshot()
-        telemetry.powerKW = 36.0 // chosen so 1 second of draw = 0.01 kWh, easy to sanity-check
+        telemetry.powerKW = 36.0  // chosen so 1 second of draw = 0.01 kWh, easy to sanity-check
         telemetry.speedKmH = 50.0
 
         tracker.recordSnapshot(telemetry)
-        XCTAssertEqual(tracker.currentTrip?.totalKWhUsed, 0.0,
-                        "first sample must not assume a fixed 0.5s interval")
+        XCTAssertEqual(
+            tracker.currentTrip?.totalKWhUsed, 0.0,
+            "first sample must not assume a fixed 0.5s interval")
 
         Thread.sleep(forTimeInterval: 0.2)
         tracker.recordSnapshot(telemetry)
@@ -274,10 +295,11 @@ final class TripAndTelemetryTests: XCTestCase {
         // 2026-09-06, 13:24:12-13:25:03 UTC: dashboard 100%, AC cable connected.
         // All 125 replies per DID were identical. Neither DID measures charging power.
         let profile = MercedesEQA250Profile()
-        let voltage = try XCTUnwrap(profile.parseResponse(
-            command: "22010A",
-            rawResponse: "18 DA F1 59 05 62 01 0A 0D 77 \r\r>"
-        ))
+        let voltage = try XCTUnwrap(
+            profile.parseResponse(
+                command: "22010A",
+                rawResponse: "18 DA F1 59 05 62 01 0A 0D 77 \r\r>"
+            ))
         let captureUpdates = profile.parseResponses(
             command: "220210",
             rawResponse: "18 DA F1 59 10 0B 62 02 10 04 00 00 \r18 DA F1 59 21 40 D0 00 00 00 AA AA \r\r>"
@@ -338,8 +360,9 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(manager.chargingSession.socGained, 0.092, accuracy: 0.01)
 
         manager.applyUpdates([.speed(0), .soc(63.000)], timestamp: startedAt.addingTimeInterval(60))
-        XCTAssertEqual(manager.chargingSession.startSOC ?? 0, startSOC, accuracy: 0.0001,
-                       "Later snapshots must not move the session start")
+        XCTAssertEqual(
+            manager.chargingSession.startSOC ?? 0, startSOC, accuracy: 0.0001,
+            "Later snapshots must not move the session start")
     }
 
     func testSelectedVehicleCapacityDrivesChargingEstimate() {
@@ -483,10 +506,10 @@ final class TripAndTelemetryTests: XCTestCase {
     func testDemoModeFlagControllingDemoTrips() {
         let manager = VehicleDataManager()
         XCTAssertFalse(manager.isDemoMode)
-        
+
         manager.toggleDemoMode(true)
         XCTAssertTrue(manager.isDemoMode)
-        
+
         manager.toggleDemoMode(false)
         XCTAssertFalse(manager.isDemoMode)
     }
@@ -604,18 +627,21 @@ final class TripAndTelemetryTests: XCTestCase {
     func testChargingSessionTrackerIntegratesRealMeasuredInterval() {
         let tracker = ChargingSessionTracker()
 
-        let started = tracker.update(soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
-                                      vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        let started = tracker.update(
+            soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
+            vehicleBatteryCapacityKWh: 66.5, isStationary: true)
         XCTAssertEqual(started.totalEnergyKWh, 0.0, "first sample must not assume a fixed interval")
 
         Thread.sleep(forTimeInterval: 0.1)
-        let afterShortGap = tracker.update(soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
-                                            vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        let afterShortGap = tracker.update(
+            soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
+            vehicleBatteryCapacityKWh: 66.5, isStationary: true)
         XCTAssertGreaterThan(afterShortGap.totalEnergyKWh, 0.0)
 
         Thread.sleep(forTimeInterval: 0.3)
-        let afterLongGap = tracker.update(soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
-                                           vehicleBatteryCapacityKWh: 66.5, isStationary: true)
+        let afterLongGap = tracker.update(
+            soc: 50, packVoltage: 400, packCurrent: -25, powerKW: nil,
+            vehicleBatteryCapacityKWh: 66.5, isStationary: true)
         let longGapIncrement = afterLongGap.totalEnergyKWh - afterShortGap.totalEnergyKWh
 
         // The ~0.3s gap should integrate meaningfully more energy than the ~0.1s gap did;

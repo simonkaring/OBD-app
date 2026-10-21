@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class VolkswagenMEBProfileTests: XCTestCase {
     private let profile = VolkswagenMEBProfile()
 
@@ -54,7 +55,7 @@ final class VolkswagenMEBProfileTests: XCTestCase {
         // If A = 200: (1.12 * 200 / 2.5) - 7.16 = 89.6 - 7.16 = 82.44%
         let raw = "17FE007B 04 62 02 8C C8\r\n>"
         let update = profile.parseResponse(command: "0322028C55555555", rawResponse: raw)
-        
+
         guard case .soc(let val)? = update else {
             XCTFail("Expected .soc update, got \(String(describing: update))")
             return
@@ -97,10 +98,10 @@ final class VolkswagenMEBProfileTests: XCTestCase {
     /// otherwise the CAN ID and consecutive-frame PCI byte land inside the payload.
     func testVolkswagenMEBCurrentParsesFromMultiFrameReply() {
         let raw = """
-        17FE007B 10 07 62 1E 3D 00 02\r
-        17FE007B 21 49 F0 55 55 55 55 55\r
-        >
-        """
+            17FE007B 10 07 62 1E 3D 00 02\r
+            17FE007B 21 49 F0 55 55 55 55 55\r
+            >
+            """
         guard case .packCurrent(let a)? = profile.parseResponse(command: "03221E3D55555555", rawResponse: raw) else {
             return XCTFail("Expected .packCurrent update")
         }

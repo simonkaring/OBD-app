@@ -8,7 +8,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         configurationForConnecting connectingSceneSession: UISceneSession,
         options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
-        if connectingSceneSession.role == .carTemplateApplication || connectingSceneSession.role.rawValue == "CPTemplateApplicationSceneSessionRoleApplication" {
+        if connectingSceneSession.role == .carTemplateApplication || connectingSceneSession.role.rawValue == "CPTemplateApplicationSceneSessionRoleApplication"
+        {
             let config = UISceneConfiguration(
                 name: "CarPlaySceneConfiguration",
                 sessionRole: connectingSceneSession.role
@@ -16,7 +17,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             config.delegateClass = CarPlaySceneDelegate.self
             return config
         }
-        
+
         let config = UISceneConfiguration(
             name: "Default Configuration",
             sessionRole: connectingSceneSession.role
@@ -35,8 +36,8 @@ struct VoltLinkApp: App {
         WindowGroup {
             MainTabView()
                 .environmentObject(env)
-                .environmentObject(env.vehicleData)
-                .environmentObject(env.tripTracker)
+                .environment(env.vehicleData)
+                .environment(env.tripTracker)
                 .environmentObject(env.chargingTracker)
                 .environmentObject(env.dtcService)
                 .preferredColorScheme(.dark)
@@ -53,8 +54,8 @@ struct VoltLinkApp: App {
 
 struct MainTabView: View {
     @EnvironmentObject private var env: AppEnvironment
-    @EnvironmentObject private var vehicleData: VehicleDataManager
-    @EnvironmentObject private var tripTracker: TripTrackingManager
+    @Environment(VehicleDataManager.self) private var vehicleData
+    @Environment(TripTrackingManager.self) private var tripTracker
     @EnvironmentObject private var chargingTracker: ChargingTrackingManager
     @EnvironmentObject private var dtcService: DTCScannerService
     @State private var selectedTab: Int = 0

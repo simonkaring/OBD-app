@@ -34,10 +34,10 @@ public struct BatteryLevelBar: View {
                 Label {
                     Text("High Voltage Battery")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                 } icon: {
                     Image(systemName: isCharging ? "bolt.batteryblock.fill" : "batteryblock.fill")
-                        .foregroundColor(barColor)
+                        .foregroundStyle(barColor)
                 }
 
                 Spacer()
@@ -45,10 +45,10 @@ public struct BatteryLevelBar: View {
                 if let batteryTempC {
                     HStack(spacing: 4) {
                         Image(systemName: "thermometer.medium")
-                            .foregroundColor(batteryTempC > 38.0 ? Theme.criticalRed : Theme.textSecondary)
+                            .foregroundStyle(batteryTempC > 38.0 ? Theme.criticalRed : Theme.textSecondary)
                         Text(String(format: "HV: %.1f°C", batteryTempC))
                             .font(.subheadline.weight(.semibold))
-                            .foregroundColor(Theme.textPrimary)
+                            .foregroundStyle(Theme.textPrimary)
                     }
                 }
             }
@@ -65,7 +65,7 @@ public struct BatteryLevelBar: View {
                 Text(socPct.map { String(format: "%.0f%%", $0) } ?? "—")
                     .font(.headline)
                     .monospacedDigit()
-                    .foregroundColor(Theme.textPrimary)
+                    .foregroundStyle(Theme.textPrimary)
                     .fixedSize()
             }
 
@@ -76,12 +76,12 @@ public struct BatteryLevelBar: View {
                         .frame(width: 3, height: 10)
                     Text(String(format: "Charging started at %.0f%%", startSocPct))
                         .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                     Spacer(minLength: 8)
                     if let socGainedPct {
                         Text(String(format: "+%.0f%% gained", socGainedPct))
                             .font(.caption.weight(.semibold))
-                            .foregroundColor(Theme.regenGreen)
+                            .foregroundStyle(Theme.regenGreen)
                     }
                 }
             }
@@ -109,8 +109,9 @@ private struct StartSOCMarker: View {
         GeometryReader { geometry in
             let markerHeight = max(8, geometry.size.height - 4)
             let halfMarkerWidth: CGFloat = 2.5
-            let x = min(max(geometry.size.width * fraction, halfMarkerWidth),
-                        max(halfMarkerWidth, geometry.size.width - halfMarkerWidth))
+            let x = min(
+                max(geometry.size.width * fraction, halfMarkerWidth),
+                max(halfMarkerWidth, geometry.size.width - halfMarkerWidth))
             ZStack {
                 Capsule().fill(Theme.backgroundDark).frame(width: 5, height: markerHeight)
                 Capsule().fill(Theme.textPrimary).frame(width: 3, height: markerHeight)

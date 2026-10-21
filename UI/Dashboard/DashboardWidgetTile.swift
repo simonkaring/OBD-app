@@ -13,7 +13,11 @@ public struct DashboardWidgetTile: View {
     public var isDemoMode: Bool = false
     public var estimatedFullRangeKm: Double? = nil
 
-    public init(config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, telemetryHistory: [TelemetrySnapshot], isConnected: Bool = true, isDemoMode: Bool = false, estimatedFullRangeKm: Double? = nil) {
+    public init(
+        config: DashboardWidgetConfig, snapshot: TelemetrySnapshot, profile: VehicleProfile, supportedMetrics: Set<TelemetryMetric>,
+        liveMetrics: Set<TelemetryMetric>, telemetryHistory: [TelemetrySnapshot], isConnected: Bool = true, isDemoMode: Bool = false,
+        estimatedFullRangeKm: Double? = nil
+    ) {
         self.config = config
         self.snapshot = snapshot
         self.profile = profile
@@ -37,7 +41,9 @@ public struct DashboardWidgetTile: View {
     @ViewBuilder
     private func metricTile(_ metric: TelemetryMetric) -> some View {
         let isSupported = isDemoMode || supportedMetrics.contains(metric)
-        let isAvailable = isSupported && (isConnected || metric == .tripAverageConsumption) && metric.isAvailable(in: snapshot, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now)
+        let isAvailable =
+            isSupported && (isConnected || metric == .tripAverageConsumption)
+            && metric.isAvailable(in: snapshot, liveMetrics: liveMetrics, isDemoMode: isDemoMode, at: .now)
         let value = metric.value(in: snapshot)
         let range = metric.defaultRange
         let dialMode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional
@@ -45,10 +51,14 @@ public struct DashboardWidgetTile: View {
         Group {
             switch config.style {
             case .numeric:
-                MetricNumericTileView(value: value, unit: metric.unitSymbol, label: metric.displayName, decimalPlaces: metric.decimalPlaces, isUnavailable: !isAvailable)
+                MetricNumericTileView(
+                    value: value, unit: metric.unitSymbol, label: metric.displayName, decimalPlaces: metric.decimalPlaces, isUnavailable: !isAvailable)
             case .dial:
-                MetricDialView(value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable, estimatedFullRangeKm: estimatedFullRangeKm)
-                    .frame(height: config.preferredHeight, alignment: .center)
+                MetricDialView(
+                    value: value, range: range, mode: dialMode, unit: metric.unitSymbol, label: metric.displayName, metric: metric, isUnavailable: !isAvailable,
+                    estimatedFullRangeKm: estimatedFullRangeKm
+                )
+                .frame(height: config.preferredHeight, alignment: .center)
             case .bar:
                 MetricBarView(value: value, range: range, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: !isAvailable)
             }
@@ -58,8 +68,8 @@ public struct DashboardWidgetTile: View {
             // `!isDemoMode` here is redundant.
             if isConnected && !isSupported {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11))
-                    .foregroundColor(Theme.highPowerAmber)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.highPowerAmber)
                     .padding(8)
                     .accessibilityLabel("Not supported by \(profile.vehicleName)")
             }

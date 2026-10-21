@@ -29,16 +29,16 @@ public struct VolkswagenMEBProfile: VehicleProfile {
             "AT CP 17",
             "AT CAF 0",
             "AT CF 17FE7",
-            "AT CRA 17FE007B"
+            "AT CRA 17FE007B",
         ]
     }
 
     public var pollingCommands: [String] {
         [
-            "03221E3D55555555", // HV Current
-            "03221E3B55555555", // HV Voltage
-            "0322028C55555555", // Display SOC
-            "0322744855555555"  // Charging status
+            "03221E3D55555555",  // HV Current
+            "03221E3B55555555",  // HV Voltage
+            "0322028C55555555",  // Display SOC
+            "0322744855555555",  // Charging status
         ]
     }
 

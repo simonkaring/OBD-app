@@ -11,7 +11,10 @@ public final class TelemetryPointModel {
     public var socPct: Double
     public var batteryTempC: Double
 
-    public init(timestamp: Date = Date(), latitude: Double = 0.0, longitude: Double = 0.0, speedKmH: Double = 0.0, powerKW: Double = 0.0, socPct: Double = 0.0, batteryTempC: Double = 25.0) {
+    public init(
+        timestamp: Date = Date(), latitude: Double = 0.0, longitude: Double = 0.0, speedKmH: Double = 0.0, powerKW: Double = 0.0, socPct: Double = 0.0,
+        batteryTempC: Double = 25.0
+    ) {
         self.timestamp = timestamp
         self.latitude = latitude
         self.longitude = longitude
@@ -22,9 +25,7 @@ public final class TelemetryPointModel {
     }
 
     public var hasValidCoordinate: Bool {
-        (-90...90).contains(latitude) &&
-            (-180...180).contains(longitude) &&
-            !(latitude == 0 && longitude == 0)
+        (-90...90).contains(latitude) && (-180...180).contains(longitude) && !(latitude == 0 && longitude == 0)
     }
 }
 
@@ -43,7 +44,7 @@ public final class TripModel {
     public var maxPowerKW: Double
     public var maxRegenKW: Double
     public var vehicleName: String
-    
+
     @Relationship(deleteRule: .cascade)
     public var samples: [TelemetryPointModel]
 
@@ -109,7 +110,8 @@ public final class TripModel {
     }
 
     public var routeSamples: [TelemetryPointModel] {
-        let sortedSamples = samples
+        let sortedSamples =
+            samples
             .filter(\.hasValidCoordinate)
             .sorted { $0.timestamp < $1.timestamp }
 

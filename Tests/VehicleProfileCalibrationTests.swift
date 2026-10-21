@@ -2,6 +2,7 @@ import XCTest
 import Combine
 @testable import VoltLinkEngine
 
+@MainActor
 private final class CalibrationMockAdapter: OBDConnectionProtocol {
     var state: BLEConnectionState = .ready(deviceName: "Calibration Mock")
     weak var delegate: OBDConnectionDelegate?
@@ -9,7 +10,7 @@ private final class CalibrationMockAdapter: OBDConnectionProtocol {
     var responses: [String: Result<String, Error>] = [:]
     var sentCommands: [String] = []
     var deferredCommand: String?
-    var pendingCompletion: ((Result<String, Error>) -> Void)?
+    var pendingCompletion: (@MainActor @Sendable (Result<String, Error>) -> Void)?
 
     func connect(peripheralName: String?) {
         state = .ready(deviceName: "Calibration Mock")
@@ -21,7 +22,7 @@ private final class CalibrationMockAdapter: OBDConnectionProtocol {
         delegate?.obdConnectionStateDidChange(.disconnected)
     }
 
-    func sendCommand(_ command: String, completion: ((Result<String, Error>) -> Void)?) {
+    func sendCommand(_ command: String, completion: (@MainActor @Sendable (Result<String, Error>) -> Void)?) {
         sentCommands.append(command)
         if command == deferredCommand {
             pendingCompletion = completion
@@ -33,6 +34,7 @@ private final class CalibrationMockAdapter: OBDConnectionProtocol {
     }
 }
 
+@MainActor
 final class VehicleProfileCalibrationTests: XCTestCase {
 
     @MainActor
@@ -50,8 +52,9 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         manager.applyUpdate(.soc(75))
         XCTAssertTrue(manager.setSOCReference(80))
         XCTAssertEqual(manager.socReferenceOffset, 5)
-        XCTAssertEqual(manager.telemetryForDisplay(TelemetrySnapshot()).stateOfChargePct, 0,
-                       "Display history from before the first SOC reading must not gain an invented value")
+        XCTAssertEqual(
+            manager.telemetryForDisplay(TelemetrySnapshot()).stateOfChargePct, 0,
+            "Display history from before the first SOC reading must not gain an invented value")
         manager.applyUpdate(.soc(65))
         XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 70)
         XCTAssertEqual(manager.latestTelemetry.stateOfChargePct, 65)
@@ -133,19 +136,21 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         manager.stopPolling()
         let now = Date.now
         for seconds in [0, 10, 20] {
-            manager.applyUpdates([.speed(0), .soc(50 + Double(seconds) * 0.004)],
-                                 timestamp: now.addingTimeInterval(Double(seconds) - 30))
+            manager.applyUpdates(
+                [.speed(0), .soc(50 + Double(seconds) * 0.004)],
+                timestamp: now.addingTimeInterval(Double(seconds) - 30))
         }
         var publishedSnapshots = 0
-        let subscription = manager.$latestTelemetry.dropFirst().sink { _ in publishedSnapshots += 1 }
+        let subscription = manager.telemetryPublisher.sink { _ in publishedSnapshots += 1 }
         XCTAssertTrue(manager.setSOCReference(80))
         XCTAssertEqual(publishedSnapshots, 0, "Saving a display reference must not emit synthetic telemetry")
         XCTAssertNil(manager.latestTelemetry.chargePowerSource)
         manager.applyUpdates([.speed(0), .soc(50.12)], timestamp: now)
         XCTAssertEqual(manager.latestTelemetry.stateOfChargePct, 50.12)
         XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 80.04, accuracy: 0.0001)
-        XCTAssertEqual(manager.displayedSOC(fromRaw: 50.12), 80.04, accuracy: 0.0001,
-                       "Recorded start SOC values must land on the displayed scale")
+        XCTAssertEqual(
+            manager.displayedSOC(fromRaw: 50.12), 80.04, accuracy: 0.0001,
+            "Recorded start SOC values must land on the displayed scale")
         XCTAssertEqual(manager.displayedSOC(fromRaw: 98), 100, "The reference must clamp like displayed telemetry")
         XCTAssertEqual(manager.latestTelemetry.chargePowerSource, .socEstimate)
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 9.576, accuracy: 0.0001)
@@ -183,8 +188,9 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         }
         XCTAssertNotNil(mock.pendingCompletion)
         let profile = MercedesEQAOBDbProfile()
-        XCTAssertEqual(Array(mock.sentCommands.dropFirst(profile.initializationCommands.count)),
-                       profile.pollingCommands + Array(profile.pollingCommands.prefix(3)))
+        XCTAssertEqual(
+            Array(mock.sentCommands.dropFirst(profile.initializationCommands.count)),
+            profile.pollingCommands + Array(profile.pollingCommands.prefix(3)))
 
         manager.stopPolling()
         let stoppedCommands = mock.sentCommands
@@ -341,7 +347,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         let mock = CalibrationMockAdapter()
         mock.responses = [
             "ATCRA 18DAF159": .success("OK\r>"),
-            "AT SH 18DA59F1": .success("OK\r>")
+            "AT SH 18DA59F1": .success("OK\r>"),
         ]
         let manager = VehicleDataManager(connection: mock)
         defer { manager.stopPolling() }
@@ -368,7 +374,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         mock.responses = [
             "ATCRA 18DAF159": .success("OK\r>"),
             "AT SH 18DA59F1": .success("OK\r>"),
-            "22010A": .success("18 DA F1 59 05 62 01 0A 0D 3E\r>")
+            "22010A": .success("18 DA F1 59 05 62 01 0A 0D 3E\r>"),
         ]
         let manager = VehicleDataManager(connection: mock)
         defer { manager.stopPolling() }
@@ -404,10 +410,10 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     func testProfileCalibrationFiltersUnsupportedCommands() async {
         let mock = CalibrationMockAdapter()
         mock.responses = [
-            "010D": .success("41 0D 32\r\n>"), // Speed 50 km/h (Supported)
-            "010C": .success("NO DATA\r\n>"),   // RPM (Unsupported)
-            "0105": .failure(NSError(domain: "Test", code: -1, userInfo: nil)), // Coolant (Timeout/Error)
-            "0142": .success("41 42 30 D4\r\n>") // 12V (Supported)
+            "010D": .success("41 0D 32\r\n>"),  // Speed 50 km/h (Supported)
+            "010C": .success("NO DATA\r\n>"),  // RPM (Unsupported)
+            "0105": .failure(NSError(domain: "Test", code: -1, userInfo: nil)),  // Coolant (Timeout/Error)
+            "0142": .success("41 42 30 D4\r\n>"),  // 12V (Supported)
         ]
 
         let manager = VehicleDataManager(connection: mock)
@@ -495,7 +501,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         let mock = CalibrationMockAdapter()
         mock.responses = [
             "22010A": .success("18 DA F1 59 05 62 01 0A 0D 3E\r>"),
-            "220210": .success("18 DA F1 59 05 62 02 10 00 00\r>")
+            "220210": .success("18 DA F1 59 05 62 02 10 00 00\r>"),
         ]
 
         let manager = VehicleDataManager(connection: mock)

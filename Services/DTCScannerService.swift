@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 
+@MainActor
 public final class DTCScannerService: ObservableObject {
     @Published public private(set) var scannedCodes: [DTCCode] = []
     @Published public private(set) var isScanning: Bool = false
@@ -27,16 +28,22 @@ public final class DTCScannerService: ObservableObject {
     }
 
     /// Own the adapter until setup, scanning and profile restoration have all completed.
+    @MainActor
     public func scanDTCs(vehicleData: VehicleDataManager) {
         guard !isScanning, vehicleData.beginCommandSession() else { return }
-        scanDTCs(connection: vehicleData.obdConnection, isDemo: vehicleData.isDemoMode,
-                 restoreCommands: vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.initializationCommands,
-                 manufacturer: vehicleData.selectedVehicle.brandName) { [weak vehicleData] in
-            vehicleData?.endCommandSession(restoreProfile: false)
+        scanDTCs(
+            connection: vehicleData.obdConnection, isDemo: vehicleData.isDemoMode,
+            restoreCommands: vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.initializationCommands,
+            manufacturer: vehicleData.selectedVehicle.brandName
+        ) { [weak vehicleData] in
+            MainActor.assumeIsolated { vehicleData?.endCommandSession(restoreProfile: false) }
         }
     }
 
-    public func scanDTCs(connection: OBDConnectionProtocol, isDemo: Bool = false, restoreCommands: [String] = [], manufacturer: String? = nil, completion: @escaping () -> Void = {}) {
+    public func scanDTCs(
+        connection: OBDConnectionProtocol, isDemo: Bool = false, restoreCommands: [String] = [], manufacturer: String? = nil,
+        completion: @escaping @MainActor @Sendable () -> Void = {}
+    ) {
         guard !isScanning else { return }
         scanManufacturer = manufacturer
         isScanning = true
@@ -47,9 +54,11 @@ public final class DTCScannerService: ObservableObject {
 
         if isDemo {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                guard let self = self else { return }
-                connection.sendCommand("03") { result in
-                    self.finishScan(storedResult: result, connection: connection, restoreCommands: [], completion: completion)
+                MainActor.assumeIsolated {
+                    guard let self = self else { return }
+                    connection.sendCommand("03") { result in
+                        self.finishScan(storedResult: result, connection: connection, restoreCommands: [], completion: completion)
+                    }
                 }
             }
             return
@@ -68,7 +77,9 @@ public final class DTCScannerService: ObservableObject {
         }
     }
 
-    private func finishScan(storedResult: Result<String, Error>, connection: OBDConnectionProtocol, restoreCommands: [String], completion: @escaping () -> Void) {
+    private func finishScan(
+        storedResult: Result<String, Error>, connection: OBDConnectionProtocol, restoreCommands: [String], completion: @escaping @MainActor @Sendable () -> Void
+    ) {
         guard let storedCodes = codes(from: storedResult, serviceByte: 0x43) else {
             scanProgress = 1.0
             lastScanDate = Date()
@@ -94,7 +105,7 @@ public final class DTCScannerService: ObservableObject {
         }
     }
 
-    private func restoreProfileAddressing(connection: OBDConnectionProtocol, commands: [String], completion: @escaping () -> Void) {
+    private func restoreProfileAddressing(connection: OBDConnectionProtocol, commands: [String], completion: @escaping @MainActor @Sendable () -> Void) {
         connection.sendSetupCommands(commands) { [weak self] restored in
             if !restored {
                 self?.scanErrorMessage = "Profile restoration failed. Reconnect the scanner."
@@ -107,7 +118,8 @@ public final class DTCScannerService: ObservableObject {
         }
     }
 
-    public func clearDTCs(vehicleData: VehicleDataManager, completion: @escaping (Bool) -> Void) {
+    @MainActor
+    public func clearDTCs(vehicleData: VehicleDataManager, completion: @escaping @MainActor @Sendable (Bool) -> Void) {
         guard !isScanning, vehicleData.beginCommandSession() else { completion(false); return }
         isScanning = true
         scanSucceeded = false
@@ -116,19 +128,18 @@ public final class DTCScannerService: ObservableObject {
         let setup = vehicleData.isDemoMode ? [] : BluetoothManager.diagnosticSetupCommands(for: restore)
         connection.sendSetupCommands(setup) { [weak self, weak vehicleData] ready in
             guard let self else { return }
-            let finish: (Bool) -> Void = { success in
+            let finish: @MainActor @Sendable (Bool) -> Void = { success in
                 self.scanErrorMessage = success ? nil : "The vehicle did not confirm that codes were cleared."
                 self.restoreProfileAddressing(connection: connection, commands: restore) {
-                    vehicleData?.endCommandSession(restoreProfile: false)
+                    MainActor.assumeIsolated { vehicleData?.endCommandSession(restoreProfile: false) }
                     completion(success && self.scanErrorMessage == nil)
                 }
             }
-            if ready { self.clearDTCs(connection: connection, completion: finish) }
-            else { finish(false) }
+            if ready { self.clearDTCs(connection: connection, completion: finish) } else { finish(false) }
         }
     }
 
-    public func clearDTCs(connection: OBDConnectionProtocol, completion: @escaping (Bool) -> Void) {
+    public func clearDTCs(connection: OBDConnectionProtocol, completion: @escaping @MainActor @Sendable (Bool) -> Void) {
         connection.sendCommand("04") { [weak self] result in
             guard case .success(let raw) = result else {
                 completion(false)
@@ -160,7 +171,8 @@ public final class DTCScannerService: ObservableObject {
 
     private static func isNegativeOrEmpty(_ raw: String) -> Bool {
         let upper = raw.uppercased()
-        return upper.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || ["NO DATA", "ERROR", "?", "STOPPED", "UNABLE TO CONNECT", "7F 03", "7F03", "7F 07", "7F07", "7F 04", "7F04"].contains { upper.contains($0) }
+        return upper.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || ["NO DATA", "ERROR", "?", "STOPPED", "UNABLE TO CONNECT", "7F 03", "7F03", "7F 07", "7F07", "7F 04", "7F04"].contains { upper.contains($0) }
     }
 
     /// `internal` (not `private`) so unit tests can exercise the decoder directly.

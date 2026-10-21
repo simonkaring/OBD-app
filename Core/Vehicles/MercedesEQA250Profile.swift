@@ -13,20 +13,20 @@ public struct MercedesEQA250Profile: VehicleProfile {
 
     public var initializationCommands: [String] {
         [
-            "AT Z",            // Reset ELM327
-            "AT E0",           // Echo Off
-            "AT L0",           // Linefeed Off
-            "AT S1",           // Spaces On (required by the space-delimited ISO-TP token parser)
-            "AT H1",           // Headers On (for CAN ID recognition)
-            "AT CAF 1",        // CAN Auto Formatting
-            "AT SP 7",         // Force ISO 15765-4 CAN (29-bit ID, 500 kbps)
-            "AT CP 18",        // 29-bit CAN Priority
-            "AT ST FF",        // ELM response timeout ~1.02s
+            "AT Z",  // Reset ELM327
+            "AT E0",  // Echo Off
+            "AT L0",  // Linefeed Off
+            "AT S1",  // Spaces On (required by the space-delimited ISO-TP token parser)
+            "AT H1",  // Headers On (for CAN ID recognition)
+            "AT CAF 1",  // CAN Auto Formatting
+            "AT SP 7",  // Force ISO 15765-4 CAN (29-bit ID, 500 kbps)
+            "AT CP 18",  // 29-bit CAN Priority
+            "AT ST FF",  // ELM response timeout ~1.02s
             "ATCRA 18DAF159",  // CAN Receive filter for BMS
             "AT SH 18DA59F1",  // Physical addressing: tester (F1) -> BMS ECU (0x59)
             "AT FCSH 18DA59F1",
             "AT FCSD 300000",
-            "AT FCSM 1"
+            "AT FCSM 1",
         ]
     }
 
@@ -34,8 +34,8 @@ public struct MercedesEQA250Profile: VehicleProfile {
         [
             "ATCRA 18DAF159",
             "AT SH 18DA59F1",
-            "22010A",         // BMS pack voltage (0.1V resolution)
-            "220210"          // Raw capture only; DID meaning/scaling unverified
+            "22010A",  // BMS pack voltage (0.1V resolution)
+            "220210",  // Raw capture only; DID meaning/scaling unverified
         ]
     }
 
@@ -47,9 +47,9 @@ public struct MercedesEQA250Profile: VehicleProfile {
 
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {
         let cleanHex = isoParser.assembleISOTPPayload(rawResponse)
-        
+
         switch command {
-        case "22010A", "22 01 0A": // BMS pack voltage (ECU 0x59)
+        case "22010A", "22 01 0A":  // BMS pack voltage (ECU 0x59)
             if let bytes = cleanHex.hexBytes(after: "62010A", count: 2) {
                 let voltage = (Double(bytes[0]) * 256.0 + Double(bytes[1])) * 0.1
                 return .packVoltage(voltage)

@@ -93,7 +93,8 @@ public struct VehicleModelEntry: Identifiable, Hashable, Codable, Sendable {
         for segment in years.components(separatedBy: "·")[0].components(separatedBy: ",") {
             let label = segment.filter { !$0.isWhitespace }.replacingOccurrences(of: "–", with: "-")
             guard label.range(of: #"^[0-9]{4}(-[0-9]{4}|\+)?$"#, options: .regularExpression) != nil,
-                  let first = Int(label.prefix(4)) else { return [] }
+                let first = Int(label.prefix(4))
+            else { return [] }
             let last = label.hasSuffix("+") ? max(first, latestYear) : Int(label.suffix(4))!
             guard first <= last, last <= 9999 else { return [] }
             result.formUnion(first...last)
@@ -163,7 +164,8 @@ public struct VehicleCatalog {
             let familyName = model.modelFamilyName ?? model.modelName
             return FamilyKey(
                 explicitID: nil,
-                legacyName: familyName.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+                legacyName: familyName.folding(
+                    options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             )
         }
 
@@ -210,7 +212,8 @@ public struct VehicleCatalog {
         profileID: .mercedesEQAOBDb,
         telemetrySupport: .community,
         estimatedRangeKm: 426,
-        notes: "Experimental 11-bit OBDb requests. SOC, voltage, current, wheel speed, 12 V and HV coolant temperature. Validate readings and current direction on your car; coolant is not cell temperature.",
+        notes:
+            "Experimental 11-bit OBDb requests. SOC, voltage, current, wheel speed, 12 V and HV coolant temperature. Validate readings and current direction on your car; coolant is not cell temperature.",
         modelFamilyID: "mercedes_benz-eqa",
         modelFamilyName: "EQA",
         variantDisplayName: "EQA 250 · OBDb community (experimental)"
@@ -225,7 +228,8 @@ public struct VehicleCatalog {
         batteryCapacityKWh: 0.0,
         profileID: .genericEV,
         telemetrySupport: .generic,
-        notes: "Standard OBD readings only, where available. Battery SOC, power and charging telemetry are not guaranteed. Battery capacity and range are unknown.",
+        notes:
+            "Standard OBD readings only, where available. Battery SOC, power and charging telemetry are not guaranteed. Battery capacity and range are unknown.",
         modelFamilyID: "generic-ev",
         modelFamilyName: "Generic EV"
     )
@@ -237,19 +241,20 @@ public struct VehicleCatalog {
         let bundle = Bundle.main
         #endif
 
-        if let url = bundle.url(forResource: "vehicle_catalog", withExtension: "json") ??
-                     bundle.url(forResource: "vehicle_catalog", withExtension: "json", subdirectory: "Seed"),
-           let data = try? Data(contentsOf: url),
-           let container = try? JSONDecoder().decode(VehicleCatalogContainer.self, from: data) {
+        if let url = bundle.url(forResource: "vehicle_catalog", withExtension: "json")
+            ?? bundle.url(forResource: "vehicle_catalog", withExtension: "json", subdirectory: "Seed"),
+            let data = try? Data(contentsOf: url),
+            let container = try? JSONDecoder().decode(VehicleCatalogContainer.self, from: data)
+        {
             let brands = container.brands.compactMap { brand -> VehicleBrand? in
                 let normalized: [VehicleModelEntry] = brand.models.map { $0.id == genericEVModel.id ? genericEVModel : $0 }
                 let models = normalized.filter {
-                        // A zero pack size means a bad dataset row for a BEV/PHEV, but is
-                        // correct for an ICE entry — don't let the sanity check eat those.
-                        ($0.batteryCapacityKWh > 0 || $0.powertrain == .ice || $0.id == genericEVModel.id) &&
-                        ($0.profileID != .mercedesEQA250 || $0.id == defaultModel.id)
-                    }
-                    .sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
+                    // A zero pack size means a bad dataset row for a BEV/PHEV, but is
+                    // correct for an ICE entry — don't let the sanity check eat those.
+                    ($0.batteryCapacityKWh > 0 || $0.powertrain == .ice || $0.id == genericEVModel.id)
+                        && ($0.profileID != .mercedesEQA250 || $0.id == defaultModel.id)
+                }
+                .sorted { $0.modelName.localizedStandardCompare($1.modelName) == .orderedAscending }
                 guard !models.isEmpty else { return nil }
                 return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: models)
             }
@@ -278,7 +283,9 @@ public struct VehicleCatalog {
                 iconSymbol: "wrench.and.screwdriver.fill",
                 models: [
                     genericEVModel,
-                    VehicleModelEntry(id: "generic-sae-j1979", brandName: "Generic", modelName: "Standard SAE J1979 (Gas / Hybrid)", years: "1996+", powertrain: .ice, batteryCapacityKWh: 0.0, profileID: .genericOBD2)
+                    VehicleModelEntry(
+                        id: "generic-sae-j1979", brandName: "Generic", modelName: "Standard SAE J1979 (Gas / Hybrid)", years: "1996+", powertrain: .ice,
+                        batteryCapacityKWh: 0.0, profileID: .genericOBD2),
                 ]
             ),
             VehicleBrand(
@@ -286,7 +293,7 @@ public struct VehicleCatalog {
                 name: "Mercedes-Benz",
                 iconSymbol: "star.circle.fill",
                 models: [defaultModel, eqaOBDbModel]
-            )
+            ),
         ].sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }

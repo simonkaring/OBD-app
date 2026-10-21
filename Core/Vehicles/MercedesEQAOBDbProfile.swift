@@ -22,16 +22,20 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
     public init() {}
 
     public var initializationCommands: [String] {
-        ["AT Z", "AT E0", "AT L0", "AT S1", "AT H1", "AT CAF 1",
-         "AT SP 6", "AT ST FF", "AT CFC 1", "AT FCSM 0",
-         "AT CRA 7ED", "AT SH 7E5"]
+        [
+            "AT Z", "AT E0", "AT L0", "AT S1", "AT H1", "AT CAF 1",
+            "AT SP 6", "AT ST FF", "AT CFC 1", "AT FCSM 0",
+            "AT CRA 7ED", "AT SH 7E5",
+        ]
     }
 
     public var pollingCommands: [String] {
         // Poll wheel speed first so pack-current charging inference has a stationary reading.
-        ["AT CRA 7EA", "AT SH 7E2", "222001", "222002",
-         "AT CRA 7ED", "AT SH 7E5", "226050", "226075", "226053", "222005", "222526", "226502", "226071", "226504",
-         "AT CRA 5A4", "AT SH 624", "220201"]
+        [
+            "AT CRA 7EA", "AT SH 7E2", "222001", "222002",
+            "AT CRA 7ED", "AT SH 7E5", "226050", "226075", "226053", "222005", "222526", "226502", "226071", "226504",
+            "AT CRA 5A4", "AT SH 624", "220201",
+        ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
@@ -48,10 +52,12 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
         let expectedECU = command == "222001" ? "7EA" : "7ED"
         // Headers are required by this profile. Never decode another ECU's reply or
         // search inside an unrelated payload for a coincidental DID byte sequence.
-        guard let payload = ISO15765Parser().assembleISOTPPayloads(rawResponse)
-            .first(where: { $0.ecu.uppercased() == expectedECU })?.payload,
-              payload.hasPrefix("62" + command.dropFirst(2)),
-               let bytes = payload.hexBytes(after: "62" + command.dropFirst(2), count: command == "226502" ? 4 : (command == "222005" ? 1 : 2)) else { return nil }
+        guard
+            let payload = ISO15765Parser().assembleISOTPPayloads(rawResponse)
+                .first(where: { $0.ecu.uppercased() == expectedECU })?.payload,
+            payload.hasPrefix("62" + command.dropFirst(2)),
+            let bytes = payload.hexBytes(after: "62" + command.dropFirst(2), count: command == "226502" ? 4 : (command == "222005" ? 1 : 2))
+        else { return nil }
 
         if command == "226502" {
             // Community definition; validate against the dashboard on the real vehicle.
@@ -61,7 +67,7 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
         if command == "222005" { return .aux12V(Double(bytes[0]) * 25.9 / 255) }
         let raw = UInt16(bytes[0]) << 8 | UInt16(bytes[1])
         switch command {
-        case "222001": return .speed(Double(raw) * 0.05625) // Front-left wheel
+        case "222001": return .speed(Double(raw) * 0.05625)  // Front-left wheel
         case "226050": return raw <= 10_000 ? .soc(Double(raw) / 100) : nil
         case "226075": return .packVoltage(Double(raw) * 0.025)
         case "226053": return .packCurrent(-Double(Int16(bitPattern: raw)) / 10)
@@ -73,9 +79,11 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
     public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
         let command = command.replacingOccurrences(of: " ", with: "").uppercased()
         let ecu = command == "220201" ? "5A4" : (command.hasPrefix("2220") ? "7EA" : "7ED")
-        guard let payload = ISO15765Parser().assembleISOTPPayloads(rawResponse)
-            .first(where: { $0.ecu.uppercased() == ecu })?.payload,
-              payload.hasPrefix("62" + command.dropFirst(2)) else { return [] }
+        guard
+            let payload = ISO15765Parser().assembleISOTPPayloads(rawResponse)
+                .first(where: { $0.ecu.uppercased() == ecu })?.payload,
+            payload.hasPrefix("62" + command.dropFirst(2))
+        else { return [] }
         // Read the whole ISO-TP reply: several published signals share one DID.
         guard let bytes = payload.hexBytes(after: "62" + command.dropFirst(2)) else { return [] }
         func word(_ index: Int, signed: Bool = false) -> Double? {
@@ -89,8 +97,10 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
         switch command {
         case "222001":
             var result = parseResponse(command: command, rawResponse: rawResponse).map { [$0] } ?? []
-            for (index, name) in [TelemetryMetric.frontLeftWheelSpeed, .frontRightWheelSpeed,
-                                  .rearLeftWheelSpeed, .rearRightWheelSpeed].enumerated() {
+            for (index, name) in [
+                TelemetryMetric.frontLeftWheelSpeed, .frontRightWheelSpeed,
+                .rearLeftWheelSpeed, .rearRightWheelSpeed,
+            ].enumerated() {
                 result += metric(name, word(index * 2).map { $0 * 0.05625 })
             }
             return result

@@ -6,11 +6,11 @@ public final class ISO15765Parser: Sendable {
     /// Cleans raw response from ELM327 adapter (removes headers, spaces, linefeeds, prompt >)
     public func cleanELMResponse(_ raw: String) -> String {
         let text = raw.replacingOccurrences(of: ">", with: "")
-                      .replacingOccurrences(of: "\r", with: "\n")
-                      .replacingOccurrences(of: "SEARCHING...", with: "")
-                      .replacingOccurrences(of: "BUS INIT...", with: "")
-                      .replacingOccurrences(of: "STOPPED", with: "")
-                      .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\r", with: "\n")
+            .replacingOccurrences(of: "SEARCHING...", with: "")
+            .replacingOccurrences(of: "BUS INIT...", with: "")
+            .replacingOccurrences(of: "STOPPED", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let lines = text.components(separatedBy: .newlines).filter { !$0.isEmpty }
         return lines.joined(separator: "\n")
@@ -57,11 +57,13 @@ public final class ISO15765Parser: Sendable {
             var hexTokens = tokens
             var ecuKey = Self.headerlessECU
             if tokens.count >= 4, ["18", "19"].contains(tokens[0].uppercased()),
-               tokens[1...3].allSatisfy({ $0.count == 2 && Int($0, radix: 16) != nil }) {
+                tokens[1...3].allSatisfy({ $0.count == 2 && Int($0, radix: 16) != nil })
+            {
                 hexTokens = Array(tokens.dropFirst(4))
                 ecuKey = tokens[0...3].joined().uppercased()
             } else if let first = tokens.first, first.count == 3 || first.count == 8,
-                      Int(first, radix: 16) != nil {
+                Int(first, radix: 16) != nil
+            {
                 // 3 hex chars = 11-bit CAN ID (7E8); 8 hex chars = a 29-bit ID printed as one
                 // token, which is what `AT CAF 0` yields (e.g. VW MEB's 17FE007B).
                 hexTokens = Array(tokens.dropFirst())
@@ -70,7 +72,10 @@ public final class ISO15765Parser: Sendable {
 
             // Headerless non-hex lines are adapter chatter, not CAN frames.
             if ecuKey == Self.headerlessECU,
-               let first = hexTokens.first, UInt8(first, radix: 16) == nil { continue }
+                let first = hexTokens.first, UInt8(first, radix: 16) == nil
+            {
+                continue
+            }
 
             if buckets[ecuKey] == nil {
                 buckets[ecuKey] = Bucket()
@@ -79,12 +84,14 @@ public final class ISO15765Parser: Sendable {
 
             guard !buckets[ecuKey]!.isInvalid else { continue }
             guard !hexTokens.isEmpty,
-                  hexTokens.allSatisfy({ token in
-                      token.utf8.count == 2 && token.utf8.allSatisfy {
-                          (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
-                      }
-                  }),
-                  let firstByte = UInt8(hexTokens[0], radix: 16) else {
+                hexTokens.allSatisfy({ token in
+                    token.utf8.count == 2
+                        && token.utf8.allSatisfy {
+                            (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
+                        }
+                }),
+                let firstByte = UInt8(hexTokens[0], radix: 16)
+            else {
                 buckets[ecuKey]!.isInvalid = true
                 continue
             }
@@ -97,7 +104,7 @@ public final class ISO15765Parser: Sendable {
             }
 
             switch frameType {
-            case 0: // Single Frame (0x0N length)
+            case 0:  // Single Frame (0x0N length)
                 let length = Int(firstByte & 0x0F)
                 guard (1...7).contains(length), hexTokens.count >= 1 + length else {
                     buckets[ecuKey]!.isInvalid = true
@@ -105,7 +112,7 @@ public final class ISO15765Parser: Sendable {
                 }
                 buckets[ecuKey]!.payloadHex += hexTokens[1...length].joined()
 
-            case 1: // First Frame (0x1N NN) — 12-bit total message length
+            case 1:  // First Frame (0x1N NN) — 12-bit total message length
                 guard hexTokens.count > 2, let lowLength = UInt8(hexTokens[1], radix: 16) else {
                     buckets[ecuKey]!.isInvalid = true
                     continue
@@ -120,12 +127,13 @@ public final class ISO15765Parser: Sendable {
                 buckets[ecuKey]!.expectedSeq = 1
                 buckets[ecuKey]!.payloadHex += hexTokens.dropFirst(2).joined()
 
-            case 2: // Consecutive Frame (0x2N sequence index)
+            case 2:  // Consecutive Frame (0x2N sequence index)
                 guard let expected = buckets[ecuKey]!.expectedSeq,
-                      let start = buckets[ecuKey]!.multiFrameStart,
-                      let length = buckets[ecuKey]!.multiFrameHexLength,
-                      Int(firstByte & 0x0F) == expected & 0x0F,
-                      hexTokens.count > 1 else {
+                    let start = buckets[ecuKey]!.multiFrameStart,
+                    let length = buckets[ecuKey]!.multiFrameHexLength,
+                    Int(firstByte & 0x0F) == expected & 0x0F,
+                    hexTokens.count > 1
+                else {
                     buckets[ecuKey]!.isInvalid = true
                     continue
                 }
@@ -139,7 +147,7 @@ public final class ISO15765Parser: Sendable {
                     buckets[ecuKey]!.expectedSeq = nil
                 }
 
-            case 3: // Flow Control (0x30 CTS / 0x31 wait / 0x32 abort) — carries no payload
+            case 3:  // Flow Control (0x30 CTS / 0x31 wait / 0x32 abort) — carries no payload
                 continue
 
             default:
@@ -149,7 +157,8 @@ public final class ISO15765Parser: Sendable {
 
         return order.compactMap { key -> (ecu: String, payload: String)? in
             guard let bucket = buckets[key], !bucket.isInvalid, bucket.expectedSeq == nil,
-                  !bucket.payloadHex.isEmpty else { return nil }
+                !bucket.payloadHex.isEmpty
+            else { return nil }
             return (ecu: key, payload: bucket.payloadHex)
         }
     }

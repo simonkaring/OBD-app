@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class VehicleCatalogSelectionTests: XCTestCase {
     func testExplicitFamilyMetadataGroupsSelectableLeaves() {
         let standard = makeVehicle(
@@ -63,7 +64,7 @@ final class VehicleCatalogSelectionTests: XCTestCase {
             ("2024+", [2026, 2025, 2024]),
             ("2025-2023", []),
             ("unknown", []),
-            ("2023, invalid", [])
+            ("2023, invalid", []),
         ] {
             XCTAssertEqual(makeVehicle(id: "test", modelName: "Test", years: label).modelYears(through: 2026), expected, label)
         }
@@ -200,7 +201,9 @@ final class VehicleCatalogSelectionTests: XCTestCase {
     }
 
     func testSharedDecoderDoesNotInventSpecificationsForSelectedVariant() {
-        let vehicle = VehicleModelEntry(id: "unknown-meb", brandName: "Volkswagen", modelName: "Unknown variant", years: "2025", powertrain: .ev, batteryCapacityKWh: 0, profileID: .volkswagenMEB)
+        let vehicle = VehicleModelEntry(
+            id: "unknown-meb", brandName: "Volkswagen", modelName: "Unknown variant", years: "2025", powertrain: .ev, batteryCapacityKWh: 0,
+            profileID: .volkswagenMEB)
         let manager = VehicleDataManager()
         manager.selectVehicle(vehicle)
         XCTAssertEqual(manager.usableBatteryCapacityKWh, 0)

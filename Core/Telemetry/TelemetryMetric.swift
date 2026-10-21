@@ -39,7 +39,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed,
         .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle,
         .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
-        .converterRequestedVoltage, .serviceDistance
+        .converterRequestedVoltage, .serviceDistance,
     ]
 
     public var id: String { rawValue }
@@ -179,7 +179,9 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         switch self {
         case .packVoltage, .aux12V, .instantEfficiency, .tripAverageConsumption, .regenPower: return 1
         case .power, .packCurrent: return 1
-        case .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle, .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition, .converterRequestedVoltage: return 2
+        case .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle, .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
+            .converterRequestedVoltage:
+            return 2
         default: return 0
         }
     }
@@ -217,9 +219,10 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
             return snapshot.speedKmH >= 1 && !snapshot.isCharging ? max(0, -snapshot.powerKW) : 0
         case .vehicleRange: return snapshot.vehicleRangeKm ?? 0
         case .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed,
-             .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle,
-             .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
-             .converterRequestedVoltage, .serviceDistance: return snapshot.communityValues?[self] ?? 0
+            .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle,
+            .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
+            .converterRequestedVoltage, .serviceDistance:
+            return snapshot.communityValues?[self] ?? 0
         }
     }
 

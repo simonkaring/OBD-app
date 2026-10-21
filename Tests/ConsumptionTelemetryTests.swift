@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class ConsumptionTelemetryTests: XCTestCase {
     func testConsumptionAndRegenRequireFreshInputsAndDistinguishCharging() {
         let manager = VehicleDataManager()
@@ -58,7 +59,10 @@ final class ConsumptionTelemetryTests: XCTestCase {
         let update = try XCTUnwrap(profile.parseResponse(command: "22 65 02", rawResponse: "7ED 07 62 65 02 00 00 01 40"))
         guard case .vehicleRange(let km) = update else { return XCTFail("Expected range") }
         XCTAssertEqual(km, 320)
-        for raw in ["NO DATA", "7ED 03 7F 22 31", "7EC 07 62 65 02 00 00 01 40", "7ED 06 62 65 02 00 00 01", "7ED 07 62 65 02 FF FF FF FF", "7ED 07 62 65 04 00 00 01 40", "62 65 02 00 00 01 40"] {
+        for raw in [
+            "NO DATA", "7ED 03 7F 22 31", "7EC 07 62 65 02 00 00 01 40", "7ED 06 62 65 02 00 00 01", "7ED 07 62 65 02 FF FF FF FF",
+            "7ED 07 62 65 04 00 00 01 40", "62 65 02 00 00 01 40",
+        ] {
             XCTAssertNil(profile.parseResponse(command: "226502", rawResponse: raw), raw)
         }
         XCTAssertNotNil(profile.parseResponse(command: "226502", rawResponse: "7ED 07 62 65 02 00 00 00 00"))
@@ -120,7 +124,7 @@ final class ConsumptionTelemetryTests: XCTestCase {
         XCTAssertNil(tracker.averageConsumption)
         XCTAssertEqual(tracker.currentTrip?.totalKWhRecovered, 0)
 
-        trip.totalKWhRecovered = nil // Legacy recordings retain their original average.
+        trip.totalKWhRecovered = nil  // Legacy recordings retain their original average.
         XCTAssertEqual(trip.efficiencyKWhPer100Km, trip.totalKWhUsed / trip.distanceKm * 100)
     }
 

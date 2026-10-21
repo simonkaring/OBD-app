@@ -4,7 +4,7 @@ import MapKit
 
 public struct TripDetailView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var tripTracker: TripTrackingManager
+    @Environment(TripTrackingManager.self) private var tripTracker
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
     public let trip: TripModel
@@ -45,6 +45,26 @@ public struct TripDetailView: View {
         }
     }
 
+    private var exportMenu: some View {
+        Menu {
+            ShareLink(
+                item: TripGPXExport(trip: trip),
+                preview: SharePreview("Trip GPX", image: Image(systemName: "map"))
+            ) {
+                Label("Export GPX", systemImage: "map")
+            }
+            ShareLink(
+                item: TripCSVExport(trip: trip),
+                preview: SharePreview("Trip CSV", image: Image(systemName: "tablecells"))
+            ) {
+                Label("Export CSV", systemImage: "tablecells")
+            }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+        }
+        .accessibilityLabel("Export trip")
+    }
+
     private var detailContent: some View {
         let samples = trip.samples.filter { $0.timestamp.timeIntervalSince1970.isFinite }
             .sorted { $0.timestamp < $1.timestamp }
@@ -63,30 +83,32 @@ public struct TripDetailView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(trip.vehicleName.uppercased())
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                                 Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textPrimary)
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("DURATION")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundStyle(Theme.textSecondary)
                                 Text(durationText)
                                     .font(.headline)
-                                    .foregroundColor(Theme.regenGreen)
+                                    .foregroundStyle(Theme.regenGreen)
                             }
                         }
 
                         if let end = trip.endTime {
                             HStack {
                                 Image(systemName: "clock.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Theme.textSecondary)
-                                Text("Time Range: \(trip.startTime.formatted(date: .omitted, time: .standard)) - \(end.formatted(date: .omitted, time: .standard))")
                                     .font(.caption)
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundStyle(Theme.textSecondary)
+                                Text(
+                                    "Time Range: \(trip.startTime.formatted(date: .omitted, time: .standard)) - \(end.formatted(date: .omitted, time: .standard))"
+                                )
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
                             }
                         }
 
@@ -96,31 +118,30 @@ public struct TripDetailView: View {
                         HStack(spacing: 16) {
                             VStack(alignment: .leading) {
                                 Text("Distance")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.1f km", trip.distanceKm))
                                     .font(.title2.weight(.semibold))
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                             }
 
                             Spacer()
 
                             VStack(alignment: .leading) {
                                 Text("Energy Used")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", trip.totalKWhUsed))
                                     .font(.title2.weight(.semibold))
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textPrimary)
                             }
 
                             Spacer()
 
                             VStack(alignment: .leading) {
                                 Text("Avg Efficiency")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.1f", trip.efficiencyKWhPer100Km))
                                     .font(.title2.weight(.semibold))
-                                    .foregroundColor(Theme.regenGreen) +
-                                Text(" kWh/100km").font(.caption).foregroundColor(Theme.textSecondary)
+                                    .foregroundStyle(Theme.regenGreen) + Text(" kWh/100km").font(.caption).foregroundStyle(Theme.textSecondary)
                             }
                         }
                     }
@@ -154,18 +175,25 @@ public struct TripDetailView: View {
                         } else {
                             Map(initialPosition: .automatic) {
                                 if routeSamples.count > 1 {
-                                    MapPolyline(coordinates: routeSamples.map {
-                                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                                    })
+                                    MapPolyline(
+                                        coordinates: routeSamples.map {
+                                            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+                                        }
+                                    )
                                     .stroke(Theme.electricCyan, lineWidth: 5)
                                 }
 
                                 if let start = routeSamples.first {
-                                    Marker("Trip start", systemImage: "flag.fill", coordinate: CLLocationCoordinate2D(latitude: start.latitude, longitude: start.longitude))
+                                    Marker(
+                                        "Trip start", systemImage: "flag.fill",
+                                        coordinate: CLLocationCoordinate2D(latitude: start.latitude, longitude: start.longitude))
                                 }
 
                                 if let end = routeSamples.last, routeSamples.count > 1 {
-                                    Marker(trip.endTime == nil ? "Latest location" : "Trip end", systemImage: "mappin.circle.fill", coordinate: CLLocationCoordinate2D(latitude: end.latitude, longitude: end.longitude))
+                                    Marker(
+                                        trip.endTime == nil ? "Latest location" : "Trip end", systemImage: "mappin.circle.fill",
+                                        coordinate: CLLocationCoordinate2D(latitude: end.latitude, longitude: end.longitude)
+                                    )
                                     .tint(Theme.regenGreen)
                                 }
                             }
@@ -181,7 +209,7 @@ public struct TripDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("PERFORMANCE METRICS")
                             .font(.caption.weight(.semibold))
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal)
 
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -234,13 +262,13 @@ public struct TripDetailView: View {
                     if !chartSamples.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("SPEED & POWER CURVES")
-                            .font(.caption.weight(.semibold))
-                                .foregroundColor(Theme.textSecondary)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.textSecondary)
                                 .padding(.horizontal)
 
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Speed Profile (km/h)")
-                                    .font(.caption).fontWeight(.bold).foregroundColor(Theme.electricCyan)
+                                    .font(.caption).fontWeight(.bold).foregroundStyle(Theme.electricCyan)
 
                                 Chart(chartSamples, id: \.persistentModelID) { sample in
                                     LineMark(
@@ -264,10 +292,10 @@ public struct TripDetailView: View {
                                 }
                                 .frame(height: 140)
 
-                                Divider().background(Color.white.opacity(0.1))
+                                Divider().background(Theme.divider)
 
                                 Text("Power Draw & Regen (kW)")
-                                    .font(.caption).fontWeight(.bold).foregroundColor(Theme.regenGreen)
+                                    .font(.caption).fontWeight(.bold).foregroundStyle(Theme.regenGreen)
 
                                 Chart(chartSamples, id: \.persistentModelID) { sample in
                                     LineMark(
@@ -293,21 +321,29 @@ public struct TripDetailView: View {
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
+                exportMenu
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
-                        .foregroundColor(Theme.criticalRed)
+                        .foregroundStyle(Theme.criticalRed)
                 }
+                .accessibilityLabel("Delete trip")
             }
             #else
+            ToolbarItem(placement: .automatic) {
+                exportMenu
+            }
             ToolbarItem(placement: .automatic) {
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
-                        .foregroundColor(Theme.criticalRed)
+                        .foregroundStyle(Theme.criticalRed)
                 }
+                .accessibilityLabel("Delete trip")
             }
             #endif
         }
@@ -334,13 +370,13 @@ private struct TripStatTile: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
                 .font(.caption.weight(.semibold))
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
             Text(value)
                 .font(.headline)
-                .foregroundColor(accentColor)
+                .foregroundStyle(accentColor)
             Text(subtitle)
                 .font(.caption)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)

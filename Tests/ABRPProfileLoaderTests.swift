@@ -1,11 +1,12 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class ABRPProfileLoaderTests: XCTestCase {
     func testLoadBundledProfiles() {
         let profiles = ABRPProfileLoader.loadBundledProfiles()
         XCTAssertFalse(profiles.isEmpty, "Should load bundled ABRP PID profiles")
-        
+
         let names = profiles.map { $0.vehicleName }
         XCTAssertTrue(names.contains(where: { $0.contains("Volkswagen") }))
         XCTAssertTrue(names.contains(where: { $0.contains("Ford") }))
@@ -14,21 +15,22 @@ final class ABRPProfileLoaderTests: XCTestCase {
 
     func testDynamicABRPEvaluation() {
         let jsonStr = """
-        {
-            "init_commands": { "command": ["ATZ", "ATSP6"] },
-            "data_commands": { "command": ["220101", "220105"] },
-            "soc": {
-                "equation": "A*0.5",
-                "command": "220105"
-            },
-            "voltage": {
-                "equation": "((A*256)+B)*0.1",
-                "command": "220101"
+            {
+                "init_commands": { "command": ["ATZ", "ATSP6"] },
+                "data_commands": { "command": ["220101", "220105"] },
+                "soc": {
+                    "equation": "A*0.5",
+                    "command": "220105"
+                },
+                "voltage": {
+                    "equation": "((A*256)+B)*0.1",
+                    "command": "220101"
+                }
             }
-        }
-        """
+            """
         guard let data = jsonStr.data(using: .utf8),
-              let def = try? JSONDecoder().decode(ABRPProfileDefinition.self, from: data) else {
+            let def = try? JSONDecoder().decode(ABRPProfileDefinition.self, from: data)
+        else {
             XCTFail("Failed to decode test ABRP definition")
             return
         }
@@ -134,9 +136,10 @@ final class ABRPProfileLoaderTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(eqa?.variants.count ?? 0, 3)
         XCTAssertEqual(eqa?.variants.filter { $0.telemetrySupport == .verified }.map(\.id), ["mb-eqa-250"])
 
-        XCTAssertTrue(VehicleCatalog.allModels.allSatisfy {
-            $0.modelFamilyID?.isEmpty == false && $0.modelFamilyName?.isEmpty == false
-        })
+        XCTAssertTrue(
+            VehicleCatalog.allModels.allSatisfy {
+                $0.modelFamilyID?.isEmpty == false && $0.modelFamilyName?.isEmpty == false
+            })
         let bmw = try? XCTUnwrap(VehicleCatalog.brands.first { $0.id == "bmw" })
         let i3 = bmw?.modelFamilies.first { $0.id == "bmw-i3" }
         XCTAssertEqual(i3?.variants.count, 3)

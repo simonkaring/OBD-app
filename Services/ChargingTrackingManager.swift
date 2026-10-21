@@ -3,6 +3,7 @@ import Combine
 import SwiftData
 import CoreLocation
 
+@MainActor
 public final class ChargingTrackingManager: ObservableObject {
     @Published public private(set) var currentSession: ChargingSessionModel?
     @Published public private(set) var isRecordingSession: Bool = false
@@ -31,7 +32,7 @@ public final class ChargingTrackingManager: ObservableObject {
         guard currentSession == nil else { return }
         let lat = isDemoMode ? nil : locationManager.currentLocation?.coordinate.latitude
         let lon = isDemoMode ? nil : locationManager.currentLocation?.coordinate.longitude
-        
+
         let validCoord: (lat: Double, lon: Double)? = {
             if let lat = lat, let lon = lon, (-90...90).contains(lat), (-180...180).contains(lon), !(lat == 0 && lon == 0) {
                 return (lat, lon)
@@ -54,25 +55,29 @@ public final class ChargingTrackingManager: ObservableObject {
         context?.insert(session)
         save()
 
-        // Reverse-geocode location if coordinate is available
+        // Reverse-geocode location if coordinate is available. The completion runs
+        // off the main actor, so it only captures Sendable values and re-enters the
+        // actor with the session id instead of a non-Sendable SwiftData model.
         if let coord = validCoord {
             let clLocation = CLLocation(latitude: coord.lat, longitude: coord.lon)
-            geocoder.reverseGeocodeLocation(clLocation) { [weak self, weak session] placemarks, _ in
-                guard let self = self, let session = session else { return }
-                if let placemark = placemarks?.first {
-                    var components: [String] = []
-                    if let name = placemark.name { components.append(name) }
-                    else if let street = placemark.thoroughfare { components.append(street) }
-                    if let locality = placemark.locality { components.append(locality) }
-
-                    let resolvedName = components.isEmpty ? "Charging Station" : components.joined(separator: ", ")
-                    DispatchQueue.main.async {
-                        session.locationName = resolvedName
-                        self.save()
-                    }
+            let sessionID = session.id
+            geocoder.reverseGeocodeLocation(clLocation) { [weak self] placemarks, _ in
+                guard let placemark = placemarks?.first else { return }
+                var components: [String] = []
+                if let name = placemark.name { components.append(name) } else if let street = placemark.thoroughfare { components.append(street) }
+                if let locality = placemark.locality { components.append(locality) }
+                let resolvedName = components.isEmpty ? "Charging Station" : components.joined(separator: ", ")
+                Task { @MainActor [weak self] in
+                    self?.applyGeocodedName(resolvedName, to: sessionID)
                 }
             }
         }
+    }
+
+    private func applyGeocodedName(_ name: String, to sessionID: UUID) {
+        guard let session = currentSession, session.id == sessionID else { return }
+        session.locationName = name
+        save()
     }
 
     @discardableResult
@@ -82,7 +87,7 @@ public final class ChargingTrackingManager: ObservableObject {
             session.endTime = Date()
             if let endSoc { session.endSocPct = endSoc }
         }
-        
+
         // Average power is only meaningful when energy was actually integrated. The old
         // `else` branch fell back to peak power, reporting a flat-out session for a
         // plug-in that delivered nothing.
@@ -114,7 +119,8 @@ public final class ChargingTrackingManager: ObservableObject {
 
     private static func odenseChargingSession() -> ChargingSessionModel {
         let start = Calendar.current.startOfDay(for: .now).addingTimeInterval(-24 * 3600 + 11 * 3600 + 5 * 60)
-        let session = ChargingSessionModel(startTime: start, startSocPct: 43,
+        let session = ChargingSessionModel(
+            startTime: start, startSocPct: 43,
             locationName: "Drejebænken 10, 5260 Odense", latitude: 55.352522, longitude: 10.421215)
         session.endTime = start.addingTimeInterval(40 * 60)
         session.endSocPct = 82
@@ -131,14 +137,14 @@ public final class ChargingTrackingManager: ObservableObject {
             persistenceError = nil
             return true
         } catch {
-            persistenceError = "Charging history could not be saved: \(error.localizedDescription). Your pending changes are still in memory; retry saving before closing VoltLink."
+            persistenceError =
+                "Charging history could not be saved: \(error.localizedDescription). Your pending changes are still in memory; retry saving before closing VoltLink."
             return false
         }
     }
 
     public func retrySaving() {
-        if let session = currentSession, session.endTime != nil { stopSession(endSoc: session.endSocPct) }
-        else { save() }
+        if let session = currentSession, session.endTime != nil { stopSession(endSoc: session.endSocPct) } else { save() }
     }
 
     public func deleteSession(_ session: ChargingSessionModel) {

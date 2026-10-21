@@ -60,8 +60,10 @@ public struct HyundaiKiaEGMPProfile: VehicleProfile {
     /// from the same payload: 12 V aux voltage alongside pack power, and SOH alongside SOC.
     public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
         guard let base = parseResponse(command: command, rawResponse: rawResponse) else { return [] }
-        guard let payload = isoParser.assembleISOTPPayload(rawResponse)
-            .hexBytes(after: command == "220101" ? "620101" : "620105") else { return [base] }
+        guard
+            let payload = isoParser.assembleISOTPPayload(rawResponse)
+                .hexBytes(after: command == "220101" ? "620101" : "620105")
+        else { return [base] }
 
         switch command {
         case "220101":

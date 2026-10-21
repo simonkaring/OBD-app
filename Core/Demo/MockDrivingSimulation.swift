@@ -166,19 +166,19 @@ public final class MockDrivingSimulation: ObservableObject {
         if soc < 55.0 {
             peakKW = 100.0
         } else if soc < 75.0 {
-            peakKW = 100.0 - ((soc - 55.0) / 20.0) * 30.0 // 100 kW -> 70 kW
+            peakKW = 100.0 - ((soc - 55.0) / 20.0) * 30.0  // 100 kW -> 70 kW
         } else if soc < 85.0 {
             peakKW = 70.0 - ((soc - 75.0) / 10.0) * 25.0  // 70 kW -> 45 kW
         } else {
-            peakKW = max(12.0, 45.0 - ((soc - 85.0) / 15.0) * 33.0) // 45 kW -> 12 kW
+            peakKW = max(12.0, 45.0 - ((soc - 85.0) / 15.0) * 33.0)  // 45 kW -> 12 kW
         }
 
         telemetry.chargePowerKW = peakKW
-        telemetry.voltageV = 370.0 + (soc * 0.4) // Voltage rises as battery fills
+        telemetry.voltageV = 370.0 + (soc * 0.4)  // Voltage rises as battery fills
         telemetry.currentA = -1.0 * (peakKW * 1000.0) / telemetry.voltageV
 
         // Fast charge increases SOC rapidly in simulation
-        let chargedKWh = (peakKW * (0.2 / 3600.0)) * 15.0 // Accelerated simulation 15x
+        let chargedKWh = (peakKW * (0.2 / 3600.0)) * 15.0  // Accelerated simulation 15x
         telemetry.stateOfChargePct = min(100.0, telemetry.stateOfChargePct + ((chargedKWh / 66.5) * 100.0))
         telemetry.batteryTempC = min(45.0, 28.0 + (soc * 0.15))
     }

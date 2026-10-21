@@ -4,7 +4,7 @@ import SwiftUI
 /// it claims to support and whether each one is currently arriving live over
 /// the polling loop.
 public struct ProfileMetricStatusView: View {
-    @ObservedObject public var vehicleData: VehicleDataManager
+    public var vehicleData: VehicleDataManager
 
     public init(vehicleData: VehicleDataManager) {
         self.vehicleData = vehicleData
@@ -18,7 +18,9 @@ public struct ProfileMetricStatusView: View {
         List {
             if vehicleData.selectedProfileID == .mercedesEQAOBDb {
                 Section("OBDb community profile") {
-                    Text("Experimental definitions: compare readings with your car. Charging assumes negative pack current means charging and requires fresh stationary wheel speed. Coolant temperature is not battery-cell temperature.")
+                    Text(
+                        "Experimental definitions: compare readings with your car. Charging assumes negative pack current means charging and requires fresh stationary wheel speed. Coolant temperature is not battery-cell temperature."
+                    )
                     Link("Source: OBDb / Mercedes-Benz EQA contributors", destination: MercedesEQAOBDbProfile.sourceURL)
                     Link("Adapted under CC BY-SA 4.0", destination: MercedesEQAOBDbProfile.licenseURL)
                     Text("Adapted to Swift with explicit adapter routing and validity checks. Provided as-is, without warranties.")
@@ -29,11 +31,11 @@ public struct ProfileMetricStatusView: View {
                 ForEach(metrics) { metric in
                     HStack {
                         Image(systemName: metric.sfSymbolName)
-                            .foregroundColor(Theme.electricCyan)
+                            .foregroundStyle(Theme.electricCyan)
                             .frame(width: 24)
 
                         Text(metric.displayName)
-                            .foregroundColor(Theme.textPrimary)
+                            .foregroundStyle(Theme.textPrimary)
 
                         Spacer()
 
@@ -43,7 +45,9 @@ public struct ProfileMetricStatusView: View {
             } header: {
                 Text("\(vehicleData.vehicleName) — \(metrics.count) metrics")
             } footer: {
-                Text("\"Live\" means this metric arrived in the most recent poll cycle. A metric drops back to \"No data\" after 3 consecutive failed polls for its command.")
+                Text(
+                    "\"Live\" means this metric arrived in the most recent poll cycle. A metric drops back to \"No data\" after 3 consecutive failed polls for its command."
+                )
             }
         }
         .navigationTitle("Profile Metric Status")
@@ -56,15 +60,15 @@ public struct ProfileMetricStatusView: View {
             Text("Live")
                 .font(.caption)
                 .bold()
-                .foregroundColor(Theme.regenGreen)
+                .foregroundStyle(Theme.regenGreen)
         } else if vehicleData.connectionState.isConnected || vehicleData.isDemoMode {
             Text("No data")
                 .font(.caption)
-                .foregroundColor(Theme.highPowerAmber)
+                .foregroundStyle(Theme.highPowerAmber)
         } else {
             Text("Not connected")
                 .font(.caption)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
         }
     }
 }

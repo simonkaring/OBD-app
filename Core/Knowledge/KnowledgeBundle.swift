@@ -15,7 +15,7 @@ public enum KnowledgeBundle {
         ("architecture", "Architecture"),
         ("vehicles", "Vehicle Profiles"),
         ("telemetry", "Telemetry Metrics"),
-        ("diagnostics", "Diagnostic Trouble Codes")
+        ("diagnostics", "Diagnostic Trouble Codes"),
     ]
 
     public struct ExportResult: Sendable {
@@ -62,7 +62,7 @@ public enum KnowledgeBundle {
                 "| Electric vehicle | \(profile.isElectricVehicle ? "Yes" : "No") |",
                 "| Usable battery capacity | \(number(profile.batteryUsableCapacityKWh)) kWh |",
                 "| Catalog models | \(models.count) |",
-                "| Polling commands | \(polling.count) |"
+                "| Polling commands | \(polling.count) |",
             ]
 
             if !metrics.isEmpty {
@@ -114,7 +114,7 @@ public enum KnowledgeBundle {
                 tags: ["vehicle-profile", profile.isElectricVehicle ? "ev" : "ice"],
                 sources: [
                     .init(id: "registry", resource: "../Core/Vehicles/VehicleProfileRegistry.swift", title: "Vehicle profile registry"),
-                    .init(id: "catalog", resource: "../Data/Seed/vehicle_catalog.json", title: "Bundled vehicle catalog")
+                    .init(id: "catalog", resource: "../Data/Seed/vehicle_catalog.json", title: "Bundled vehicle catalog"),
                 ],
                 generatedBy: generatedBy,
                 body: body.joined(separator: "\n")
@@ -129,7 +129,8 @@ public enum KnowledgeBundle {
         }
 
         return TelemetryMetric.allCases.sorted { $0.rawValue < $1.rawValue }.map { metric in
-            let supporters = coverage
+            let supporters =
+                coverage
                 .filter { $0.metrics.contains(metric) }
                 .map(\.id)
                 .sorted { lhs, rhs in
@@ -147,7 +148,7 @@ public enum KnowledgeBundle {
                 "| --- | --- |",
                 "| Unit | `\(metric.unitSymbol)` |",
                 "| Typical range | \(range(metric.defaultRange)) |",
-                "| Decimal places | \(metric.decimalPlaces) |"
+                "| Decimal places | \(metric.decimalPlaces) |",
             ]
 
             let notes = metricNotes(metric)
@@ -174,7 +175,8 @@ public enum KnowledgeBundle {
                 type: "Telemetry Metric",
                 title: metric.displayName,
                 description: "\(metric.displayName) telemetry metric in \(metric.unitSymbol), "
-                    + (supporters.isEmpty ? "not produced by any current profile." : "produced by \(supporters.count) vehicle profile\(supporters.count == 1 ? "" : "s")."),
+                    + (supporters.isEmpty
+                        ? "not produced by any current profile." : "produced by \(supporters.count) vehicle profile\(supporters.count == 1 ? "" : "s")."),
                 tags: ["telemetry-metric", TelemetryMetric.eqaCommunityMetrics.contains(metric) ? "experimental" : "core"],
                 sources: [
                     .init(id: "metric-catalog", resource: "../Core/Telemetry/TelemetryMetric.swift", title: "Telemetry metric catalog")
@@ -243,11 +245,13 @@ public enum KnowledgeBundle {
         for (path, text) in files where path.hasSuffix(".md") {
             let name = (path as NSString).lastPathComponent
             guard name != "index.md", name != "log.md",
-                  let frontmatter = OKFDocument.frontmatter(of: text),
-                  let type = frontmatter.fields["type"], !type.isEmpty else { continue }
+                let frontmatter = OKFDocument.frontmatter(of: text),
+                let type = frontmatter.fields["type"], !type.isEmpty
+            else { continue }
 
             let directory = (path as NSString).deletingLastPathComponent
-            let title = frontmatter.fields["title"].flatMap { $0.isEmpty ? nil : $0 }
+            let title =
+                frontmatter.fields["title"].flatMap { $0.isEmpty ? nil : $0 }
                 ?? name.replacingOccurrences(of: ".md", with: "")
             let description = frontmatter.fields["description"].flatMap { $0.isEmpty ? nil : $0 }
             entriesByDirectory[directory, default: []].append(
@@ -464,10 +468,12 @@ public enum KnowledgeBundle {
     }
 
     private static func loadCuratedDTCs() -> [DTCCode] {
-        guard let url = resourceBundle.url(forResource: "dtc_definitions", withExtension: "json") ??
-                        resourceBundle.url(forResource: "dtc_definitions", withExtension: "json", subdirectory: "Seed"),
-              let data = try? Data(contentsOf: url),
-              let codes = try? JSONDecoder().decode([DTCCode].self, from: data) else {
+        guard
+            let url = resourceBundle.url(forResource: "dtc_definitions", withExtension: "json")
+                ?? resourceBundle.url(forResource: "dtc_definitions", withExtension: "json", subdirectory: "Seed"),
+            let data = try? Data(contentsOf: url),
+            let codes = try? JSONDecoder().decode([DTCCode].self, from: data)
+        else {
             return []
         }
         return codes
@@ -490,7 +496,8 @@ public enum KnowledgeBundle {
         for case let url as URL in enumerator where url.pathExtension == "md" {
             let path = url.standardizedFileURL.path
             guard path.hasPrefix(prefix),
-                  let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+                let text = try? String(contentsOf: url, encoding: .utf8)
+            else { continue }
             files[String(path.dropFirst(prefix.count))] = text
         }
         return files

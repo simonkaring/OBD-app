@@ -49,13 +49,15 @@ public struct CarPlayLayout: Equatable, Sendable {
 extension CarPlayLayout: RawRepresentable {
     public init?(rawValue: String) {
         guard let data = rawValue.data(using: .utf8),
-              let tiles = try? JSONDecoder().decode([CarPlayTileKind].self, from: data) else { return nil }
+            let tiles = try? JSONDecoder().decode([CarPlayTileKind].self, from: data)
+        else { return nil }
         self.tiles = tiles
     }
 
     public var rawValue: String {
         guard let data = try? JSONEncoder().encode(tiles),
-              let string = String(data: data, encoding: .utf8) else { return "[]" }
+            let string = String(data: data, encoding: .utf8)
+        else { return "[]" }
         return string
     }
 }
@@ -67,7 +69,8 @@ extension CarPlayLayout {
     /// Reads the persisted layout outside SwiftUI (e.g. from `CarPlaySceneDelegate`, a plain `UIResponder`).
     public static func load() -> CarPlayLayout {
         guard let raw = UserDefaults.standard.string(forKey: storageKey),
-              let layout = CarPlayLayout(rawValue: raw) else {
+            let layout = CarPlayLayout(rawValue: raw)
+        else {
             return .default
         }
         return layout

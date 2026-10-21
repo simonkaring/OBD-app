@@ -5,8 +5,8 @@ import UIKit
 #endif
 
 public struct SettingsView: View {
-    @ObservedObject public var vehicleData: VehicleDataManager
-    @ObservedObject public var tripTracker: TripTrackingManager
+    public var vehicleData: VehicleDataManager
+    @Bindable public var tripTracker: TripTrackingManager
 
     @State private var showVehiclePicker = false
 
@@ -31,19 +31,25 @@ public struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Mode Selection") {
-                    Toggle("Demo / Simulation Mode", isOn: Binding(
-                        get: { vehicleData.isDemoMode },
-                        set: { vehicleData.toggleDemoMode($0) }
-                    ))
+                    Toggle(
+                        "Demo / Simulation Mode",
+                        isOn: Binding(
+                            get: { vehicleData.isDemoMode },
+                            set: { vehicleData.toggleDemoMode($0) }
+                        )
+                    )
                     .disabled(vehicleData.isCommandSessionActive)
                 }
 
                 if vehicleData.isDemoMode, let engine = mockEngine {
                     Section("Demo Simulation Controls") {
-                        Picker("Preset Scenario", selection: Binding(
-                            get: { engine.scenario },
-                            set: { engine.scenario = $0 }
-                        )) {
+                        Picker(
+                            "Preset Scenario",
+                            selection: Binding(
+                                get: { engine.scenario },
+                                set: { engine.scenario = $0 }
+                            )
+                        ) {
                             ForEach(DemoScenario.allCases) { scenario in
                                 Text(scenario.rawValue).tag(scenario)
                             }
@@ -73,7 +79,7 @@ public struct SettingsView: View {
                             targetSpeed = 50.0
                             regenLevel = 0.5
                         }
-                        .foregroundColor(Theme.electricCyan)
+                        .foregroundStyle(Theme.electricCyan)
 
                         HStack {
                             Button("Inject DTC Fault (P0A80)") {
@@ -81,7 +87,7 @@ public struct SettingsView: View {
                                 engine.injectedFaultCode = "P0A80"
                             }
                             .font(.subheadline)
-                            .foregroundColor(.orange)
+                            .foregroundStyle(.orange)
 
                             Spacer()
 
@@ -90,7 +96,7 @@ public struct SettingsView: View {
                                 engine.scenario = .cityDriving
                             }
                             .font(.subheadline)
-                            .foregroundColor(.green)
+                            .foregroundStyle(.green)
                         }
                     }
                 }
@@ -169,15 +175,15 @@ public struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Active Vehicle")
                                     .font(.body)
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textPrimary)
                                 Text(vehicleData.vehicleName)
                                     .font(.caption)
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.secondary)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
                         }
                     }
 
@@ -192,11 +198,11 @@ public struct SettingsView: View {
                                     .scaleEffect(0.8)
                                 Text("Calibrating profile metrics...")
                                     .font(.subheadline)
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                                 Spacer()
                                 Text("\(Int(vehicleData.calibrationProgress * 100))%")
                                     .font(.caption)
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundStyle(Theme.textSecondary)
                             }
                             ProgressView(value: vehicleData.calibrationProgress, total: 1.0)
                                 .tint(Theme.electricCyan)
@@ -207,8 +213,11 @@ public struct SettingsView: View {
                             Button {
                                 vehicleData.startCalibration()
                             } label: {
-                                Label(vehicleData.calibratedCommands == nil ? "Calibrate Live Metrics" : "Re-calibrate Metrics", systemImage: "slider.horizontal.3")
-                                    .foregroundColor(vehicleData.connectionState.isConnected ? Theme.electricCyan : .secondary)
+                                Label(
+                                    vehicleData.calibratedCommands == nil ? "Calibrate Live Metrics" : "Re-calibrate Metrics",
+                                    systemImage: "slider.horizontal.3"
+                                )
+                                .foregroundStyle(vehicleData.connectionState.isConnected ? Theme.electricCyan : .secondary)
                             }
                             .disabled(!vehicleData.connectionState.isConnected)
 
@@ -217,27 +226,30 @@ public struct SettingsView: View {
                             if let summary = vehicleData.calibrationSummary {
                                 Text(summary)
                                     .font(.caption)
-                                    .foregroundColor(Theme.regenGreen)
+                                    .foregroundStyle(Theme.regenGreen)
 
                                 Button {
                                     vehicleData.resetCalibration()
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(Theme.textSecondary)
+                                        .foregroundStyle(Theme.textSecondary)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel("Reset calibration")
                             }
                         }
                         if !vehicleData.connectionState.isConnected {
                             Text("Connect to your OBD adapter or enable Demo Mode to run metric calibration.")
                                 .font(.caption2)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundStyle(Theme.textSecondary)
                         }
                     }
                 }
 
                 SOCReferenceSection(vehicleData: vehicleData)
-                    .id("\(vehicleData.selectedVehicle.id).\(vehicleData.selectedModelYear ?? 0).\(vehicleData.selectedProfileID.rawValue).\(vehicleData.isDemoMode)")
+                    .id(
+                        "\(vehicleData.selectedVehicle.id).\(vehicleData.selectedModelYear ?? 0).\(vehicleData.selectedProfileID.rawValue).\(vehicleData.isDemoMode)"
+                    )
 
                 Section("Bluetooth Adapter") {
                     NavigationLink("Scan Nearby BLE Devices") {
@@ -256,11 +268,11 @@ public struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("AI API Key (Optional)")
                                 .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundStyle(Theme.textSecondary)
                             SecureField("Gemini or OpenAI API Key", text: $aiApiKey)
                                 .autocorrectionDisabled()
                                 #if os(iOS)
-                                .textInputAutocapitalization(.never)
+                            .textInputAutocapitalization(.never)
                                 #endif
                             Button("Save API Key") { keyStore.save(aiApiKey) }
                             if let error = keyStore.errorMessage {
@@ -270,7 +282,7 @@ public struct SettingsView: View {
 
                         Text("API keys are stored in the device Keychain. Save an empty key to remove it. You can also export traces without an API key.")
                             .font(.caption2)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
 
@@ -285,7 +297,7 @@ public struct SettingsView: View {
                         Text("App Version")
                         Spacer()
                         Text("1.0.0")
-                            .foregroundColor(.gray)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
             }
@@ -300,7 +312,7 @@ public struct SettingsView: View {
 }
 
 public struct AdapterScanView: View {
-    @ObservedObject public var vehicleData: VehicleDataManager
+    public var vehicleData: VehicleDataManager
 
     private var bluetoothManager: BluetoothManager? {
         vehicleData.obdConnection as? BluetoothManager
@@ -315,7 +327,7 @@ public struct AdapterScanView: View {
                     Text(statusText)
                         .font(.subheadline)
                         .bold()
-                        .foregroundColor(statusColor)
+                        .foregroundStyle(statusColor)
                 }
 
                 if vehicleData.connectionState.isConnected {
@@ -348,13 +360,13 @@ public struct AdapterScanView: View {
                     ForEach(devices, id: \.identifier) { device in
                         HStack {
                             Image(systemName: "cpu")
-                                .foregroundColor(Theme.electricCyan)
+                                .foregroundStyle(Theme.electricCyan)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(device.name ?? "Unnamed Device")
                                     .font(.headline)
                                 Text(device.identifier.uuidString)
                                     .font(.caption2)
-                                    .foregroundColor(.gray)
+                                    .foregroundStyle(Theme.textSecondary)
                             }
                             Spacer()
                             Button("Connect") {
@@ -369,13 +381,13 @@ public struct AdapterScanView: View {
                         ProgressView()
                             .padding(.trailing, 8)
                         Text("Searching for OBD-II BLE adapters...")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .font(.subheadline)
                     }
                 } else {
                     Text("No devices found yet. Tap scan above to search for nearby OBD-II Bluetooth adapters.")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -416,7 +428,7 @@ public struct AdapterScanView: View {
 }
 
 private struct SOCReferenceSection: View {
-    @ObservedObject var vehicleData: VehicleDataManager
+    var vehicleData: VehicleDataManager
     @State private var dashboardSOC = ""
     @State private var referenceError: String?
     @FocusState private var isInputFocused: Bool
@@ -433,8 +445,12 @@ private struct SOCReferenceSection: View {
             TimelineView(.periodic(from: .now, by: 1)) { _ in
                 let isLive = vehicleData.canSetSOCReference()
                 VStack(alignment: .leading, spacing: 12) {
-                    LabeledContent("OBD-reported SOC", value: isLive ? vehicleData.latestTelemetry.stateOfChargePct.formatted(.number.precision(.fractionLength(1))) + "%" : "Unavailable")
-                    LabeledContent("Adjusted SOC", value: isLive ? vehicleData.displayedTelemetry.stateOfChargePct.formatted(.number.precision(.fractionLength(1))) + "%" : "Unavailable")
+                    LabeledContent(
+                        "OBD-reported SOC",
+                        value: isLive ? vehicleData.latestTelemetry.stateOfChargePct.formatted(.number.precision(.fractionLength(1))) + "%" : "Unavailable")
+                    LabeledContent(
+                        "Adjusted SOC",
+                        value: isLive ? vehicleData.displayedTelemetry.stateOfChargePct.formatted(.number.precision(.fractionLength(1))) + "%" : "Unavailable")
                     if !isLive {
                         Text("Connect to your car with a profile that supplies live SOC. A reading from the last 15 seconds is required.")
                             .font(.caption)
@@ -445,7 +461,7 @@ private struct SOCReferenceSection: View {
 
             TextField("Car dashboard SOC (%)", text: $dashboardSOC)
                 #if os(iOS)
-                .keyboardType(.decimalPad)
+            .keyboardType(.decimalPad)
                 #endif
                 .focused($isInputFocused)
                 .accessibilityLabel("Car dashboard SOC, percent")
@@ -486,7 +502,9 @@ private struct SOCReferenceSection: View {
         } header: {
             Text("SOC Reference")
         } footer: {
-            Text("Enter the percentage currently shown by your car. VoltLink saves the difference for this vehicle, model year and profile, then adjusts live displays and charging-target estimates. Original readings are kept for recordings and charging-power calculations. The adjustment is not applied in Demo Mode.")
+            Text(
+                "Enter the percentage currently shown by your car. VoltLink saves the difference for this vehicle, model year and profile, then adjusts live displays and charging-target estimates. Original readings are kept for recordings and charging-power calculations. The adjustment is not applied in Demo Mode."
+            )
         }
     }
 }

@@ -8,7 +8,9 @@ public struct LiveTelemetryChartView: View {
     public var liveMetrics: Set<TelemetryMetric>
     public var isDemoMode: Bool
 
-    public init(telemetryHistory: [TelemetrySnapshot], seriesMetrics: [TelemetryMetric] = [.power], liveMetrics: Set<TelemetryMetric> = [], isDemoMode: Bool = false) {
+    public init(
+        telemetryHistory: [TelemetrySnapshot], seriesMetrics: [TelemetryMetric] = [.power], liveMetrics: Set<TelemetryMetric> = [], isDemoMode: Bool = false
+    ) {
         self.telemetryHistory = telemetryHistory
         self.seriesMetrics = seriesMetrics
         self.liveMetrics = liveMetrics
@@ -35,16 +37,18 @@ public struct LiveTelemetryChartView: View {
             HStack {
                 Label(headerTitle, systemImage: "chart.xyaxis.line")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
                 Spacer()
                 Text(activeMetrics.isEmpty ? "Waiting" : "Live")
                     .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             }
 
             Chart {
                 ForEach(Array(activeMetrics.enumerated()), id: \.offset) { seriesIndex, metric in
-                    ForEach(telemetryHistory.suffix(30).filter { metric.isAvailable(in: $0, liveMetrics: liveMetrics, isDemoMode: isDemoMode) }, id: \.timestamp) { item in
+                    ForEach(
+                        telemetryHistory.suffix(30).filter { metric.isAvailable(in: $0, liveMetrics: liveMetrics, isDemoMode: isDemoMode) }, id: \.timestamp
+                    ) { item in
                         let value = metric.value(in: item)
                         let seriesColor = color(for: metric, value: value, seriesIndex: seriesIndex)
 
@@ -71,13 +75,13 @@ public struct LiveTelemetryChartView: View {
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { _ in
-                    AxisGridLine().foregroundStyle(Color.white.opacity(0.1))
+                    AxisGridLine().foregroundStyle(Theme.chartGrid)
                     AxisValueLabel().foregroundStyle(Theme.textSecondary)
                 }
             }
             .chartXAxis {
                 AxisMarks(position: .bottom) { _ in
-                    AxisGridLine().foregroundStyle(Color.white.opacity(0.1))
+                    AxisGridLine().foregroundStyle(Theme.chartGrid)
                 }
             }
             .frame(height: 140)

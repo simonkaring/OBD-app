@@ -111,9 +111,8 @@ public final class TripLocationManager: NSObject, ObservableObject, CLLocationMa
     }
 
     private func isUsable(_ location: CLLocation) -> Bool {
-        location.horizontalAccuracy >= 0 &&
-            location.horizontalAccuracy <= Self.maximumHorizontalAccuracyMeters &&
-            abs(location.timestamp.timeIntervalSinceNow) <= Self.maximumLocationAge
+        location.horizontalAccuracy >= 0 && location.horizontalAccuracy <= Self.maximumHorizontalAccuracyMeters
+            && abs(location.timestamp.timeIntervalSinceNow) <= Self.maximumLocationAge
     }
 
     private func updateBackgroundLocationSettings() {

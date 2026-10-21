@@ -37,14 +37,15 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         // All telemetry/validity/diagnostic changes AND vehicle-selection/demo-mode changes
         // share one refresh budget — vehicleData.objectWillChange already fires for those,
         // so first-run -> real UI transitions rebuild through this same subscription.
-        Publishers.MergeMany([env.vehicleData.objectWillChange.eraseToAnyPublisher(),
-                               env.dtcService.objectWillChange.eraseToAnyPublisher(),
-                               env.tripTracker.objectWillChange.eraseToAnyPublisher(),
-                               env.chargingTracker.objectWillChange.eraseToAnyPublisher()])
-            .receive(on: DispatchQueue.main)
-            .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
-            .sink { [weak self] _ in self?.rebuildInterface() }
-            .store(in: &cancellables)
+        Publishers.MergeMany([
+            env.vehicleData.telemetryPublisher.map { _ in () }.eraseToAnyPublisher(),
+            env.dtcService.objectWillChange.eraseToAnyPublisher(),
+            env.chargingTracker.objectWillChange.eraseToAnyPublisher(),
+        ])
+        .receive(on: DispatchQueue.main)
+        .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
+        .sink { [weak self] _ in self?.rebuildInterface() }
+        .store(in: &cancellables)
 
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .receive(on: DispatchQueue.main)
@@ -80,7 +81,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             layout: .twoColumn,
             items: [
                 CPInformationItem(title: "First Time Setup", detail: "Please select your vehicle on your iPhone to continue."),
-                CPInformationItem(title: "Or Try Demo", detail: "Tap 'Start Demo Mode' on your iPhone to simulate a vehicle without an OBD adapter.")
+                CPInformationItem(title: "Or Try Demo", detail: "Tap 'Start Demo Mode' on your iPhone to simulate a vehicle without an OBD adapter."),
             ],
             actions: []
         )
@@ -118,7 +119,9 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
 
         // 1. Driving Mode Template
         let buttons: [CPGridButton] = layout.tiles.compactMap { tile in
-            gridButton(for: tile, supportedMetrics: vehicleData.supportedMetrics, liveMetrics: vehicleData.liveMetrics, snapshot: snapshot, dtcService: dtcService, isDemoMode: vehicleData.isDemoMode)
+            gridButton(
+                for: tile, supportedMetrics: vehicleData.supportedMetrics, liveMetrics: vehicleData.liveMetrics, snapshot: snapshot, dtcService: dtcService,
+                isDemoMode: vehicleData.isDemoMode)
         }
         if let drivingTemplate, let chargingTemplate, let diagnosticsTemplate {
             drivingTemplate.updateGridButtons(buttons)
@@ -175,7 +178,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         } else {
             statusStr = snapshot.chargePowerSource == .socEstimate ? "CHARGING (ESTIMATED)" : "CHARGING ACTIVE"
         }
-        
+
         let remainingPct = max(0.0, 80.0 - snapshot.stateOfChargePct)
         let capacityKWh = vehicleData.usableBatteryCapacityKWh
         let timeMin: String
@@ -197,19 +200,19 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             CPInformationItem(title: "CHARGE RATE", detail: powerStr),
             CPInformationItem(title: "BATTERY SOC", detail: socStr),
             CPInformationItem(title: "EST. TIME TO 80%", detail: timeMin),
-            CPInformationItem(title: "BATTERY TEMP", detail: tempStr)
+            CPInformationItem(title: "BATTERY TEMP", detail: tempStr),
         ]
     }
 
     private func buildHealthItems(dtcService: DTCScannerService) -> [CPInformationItem] {
         let statusStr = dtcService.healthSummary
-        
+
         let lastScanStr = dtcService.lastScanDate?.formatted(date: .abbreviated, time: .shortened) ?? "Never"
-        
+
         var items = [
             CPInformationItem(title: "SYSTEM HEALTH", detail: statusStr),
             CPInformationItem(title: "LAST SCAN", detail: lastScanStr),
-            CPInformationItem(title: "DIAGNOSTIC FAULTS", detail: "\(dtcService.scannedCodes.count) DTCs")
+            CPInformationItem(title: "DIAGNOSTIC FAULTS", detail: "\(dtcService.scannedCodes.count) DTCs"),
         ]
         let env = AppEnvironment.shared
         if let error = env.storageWarning ?? env.tripTracker.persistenceError ?? env.chargingTracker.persistenceError {
@@ -218,7 +221,10 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         return items
     }
 
-    private func gridButton(for tile: CarPlayTileKind, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, snapshot: TelemetrySnapshot, dtcService: DTCScannerService, isDemoMode: Bool = false) -> CPGridButton? {
+    private func gridButton(
+        for tile: CarPlayTileKind, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, snapshot: TelemetrySnapshot,
+        dtcService: DTCScannerService, isDemoMode: Bool = false
+    ) -> CPGridButton? {
         switch tile {
         case .metric(let metric):
             guard isDemoMode || supportedMetrics.contains(metric) else { return nil }
@@ -234,8 +240,9 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             if let cached = healthImageCache, cached.status == statusStr {
                 image = cached.image
             } else {
-                image = renderHealthImage(scannedCodesCount: dtcService.scannedCodes.count,
-                                          isScanned: dtcService.scanSucceeded && !dtcService.isScanning)
+                image = renderHealthImage(
+                    scannedCodesCount: dtcService.scannedCodes.count,
+                    isScanned: dtcService.scanSucceeded && !dtcService.isScanning)
                 healthImageCache = (statusStr, image)
             }
             return CPGridButton(titleVariants: ["SYSTEM HEALTH", statusStr], image: image) { _ in }
@@ -260,7 +267,8 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         let mode: DialMode = range.lowerBound < 0 ? .bidirectional(negativeMax: abs(range.lowerBound)) : .unidirectional
         let dialView = MetricDialView(value: value, range: range, mode: mode, unit: metric.unitSymbol, label: metric.displayName, isUnavailable: isUnavailable)
 
-        let container = dialView
+        let container =
+            dialView
             .padding(4)
             .frame(width: 320, height: 320)
             .background(Color.clear)
@@ -274,10 +282,10 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     private func renderHealthImage(scannedCodesCount: Int, isScanned: Bool) -> UIImage {
         let view = ZStack {
             Circle()
-                .fill(isScanned ? (scannedCodesCount == 0 ? Theme.regenGreen.opacity(0.2) : Theme.criticalRed.opacity(0.2)) : Color.white.opacity(0.1))
+                .fill(isScanned ? (scannedCodesCount == 0 ? Theme.regenGreen.opacity(0.2) : Theme.criticalRed.opacity(0.2)) : Theme.trackBackground)
             Image(systemName: "checkmark.shield.fill")
                 .font(.system(size: 130))
-                .foregroundColor(isScanned ? (scannedCodesCount == 0 ? Theme.regenGreen : Theme.criticalRed) : Theme.textSecondary)
+                .foregroundStyle(isScanned ? (scannedCodesCount == 0 ? Theme.regenGreen : Theme.criticalRed) : Theme.textSecondary)
         }
         .frame(width: 320, height: 320)
 

@@ -38,9 +38,11 @@ final class AIAPIKeyStore: ObservableObject {
     }
 
     private static var query: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: "VoltLink.AILogAnalyzer",
-         kSecAttrAccount as String: "apiKey"]
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "VoltLink.AILogAnalyzer",
+            kSecAttrAccount as String: "apiKey",
+        ]
     }
 
     private static func readKeychain() throws -> String {
@@ -60,8 +62,11 @@ final class AIAPIKeyStore: ObservableObject {
             let result = SecItemDelete(query as CFDictionary)
             status = result == errSecItemNotFound ? errSecSuccess : result
         } else {
-            let attributes = [kSecValueData as String: Data(key.utf8),
-                              kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly] as [String: Any]
+            let attributes =
+                [
+                    kSecValueData as String: Data(key.utf8),
+                    kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+                ] as [String: Any]
             let result = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
             if result == errSecItemNotFound {
                 status = SecItemAdd(query.merging(attributes) { _, new in new } as CFDictionary, nil)
@@ -100,30 +105,34 @@ public enum AILogAnalyzerError: LocalizedError, Sendable {
 }
 
 public struct AILogAnalyzer: Sendable {
+    /// `-latest` aliases keep the analyzer working across provider model retirements;
+    /// hardcoding a dated Flash model broke this feature when Gemini 1.5 was shut down.
+    public static let geminiModel = "gemini-flash-latest"
+    public static let openAIModel = "gpt-4.1-mini"
     public static func buildAnalysisPrompt(log: [OBDLogEntry], vehicleContext: String = "") -> String {
         var text = """
-        You are an expert automotive embedded systems engineer specializing in reverse engineering OBD-II (SAE J1979) and UDS (ISO 14229 / ISO 15765-4) CAN bus diagnostics for Electric Vehicles (EVs) and ICE cars.
+            You are an expert automotive embedded systems engineer specializing in reverse engineering OBD-II (SAE J1979) and UDS (ISO 14229 / ISO 15765-4) CAN bus diagnostics for Electric Vehicles (EVs) and ICE cars.
 
-        Vehicle Context: \(vehicleContext.isEmpty ? "Unknown / Not specified" : vehicleContext)
+            Vehicle Context: \(vehicleContext.isEmpty ? "Unknown / Not specified" : vehicleContext)
 
-        Below is a trace of OBD commands sent to the vehicle and the raw hex responses received:
+            Below is a trace of OBD commands sent to the vehicle and the raw hex responses received:
 
-        ---
-        """
+            ---
+            """
 
         for entry in log {
             text += "\nTimestamp: \(entry.timestamp.ISO8601Format())\nSent: \(entry.sent)\nResponse:\n\(entry.response)\n"
         }
 
         text += """
-        ---
+            ---
 
-        Please analyze the raw response data:
-        1. Identify which ECUs/headers responded (e.g. BMS, Powertrain, Inverter, Charger, Gateway).
-        2. Identify candidate PIDs/DIDs and positive responses (e.g. `62 xx xx` for UDS Service 0x22, `41 xx` for OBD-II Mode 01).
-        3. For key EV metrics (State of Charge %, Pack Voltage, Pack Current / Power kW, Battery Temperatures, 12V Aux Voltage), identify candidate byte positions and formulas (e.g., bit scaling, offsets, signed vs unsigned integers).
-        4. Provide ready-to-use Swift decoding snippet or a `VehicleProfile` implementation for VoltLink.
-        """
+            Please analyze the raw response data:
+            1. Identify which ECUs/headers responded (e.g. BMS, Powertrain, Inverter, Charger, Gateway).
+            2. Identify candidate PIDs/DIDs and positive responses (e.g. `62 xx xx` for UDS Service 0x22, `41 xx` for OBD-II Mode 01).
+            3. For key EV metrics (State of Charge %, Pack Voltage, Pack Current / Power kW, Battery Temperatures, 12V Aux Voltage), identify candidate byte positions and formulas (e.g., bit scaling, offsets, signed vs unsigned integers).
+            4. Provide ready-to-use Swift decoding snippet or a `VehicleProfile` implementation for VoltLink.
+            """
         return text
     }
 
@@ -144,13 +153,15 @@ public struct AILogAnalyzer: Sendable {
     }
 
     private static func queryGemini(prompt: String, apiKey: String) async throws -> String {
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(geminiModel):generateContent") else {
             throw AILogAnalyzerError.invalidURL
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Send the key as a header so it never appears in URLs, proxy logs, or crash reports.
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
 
         let payload: [String: Any] = [
             "contents": [
@@ -162,7 +173,7 @@ public struct AILogAnalyzer: Sendable {
             ],
             "generationConfig": [
                 "temperature": 0.2
-            ]
+            ],
         ]
 
         let httpBody: Data
@@ -182,20 +193,22 @@ public struct AILogAnalyzer: Sendable {
 
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorObj = json["error"] as? [String: Any],
-               let msg = errorObj["message"] as? String {
+                let errorObj = json["error"] as? [String: Any],
+                let msg = errorObj["message"] as? String
+            {
                 throw AILogAnalyzerError.apiError(msg)
             }
             throw AILogAnalyzerError.invalidResponse(httpResponse.statusCode)
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let firstPart = parts.first,
-              let text = firstPart["text"] as? String else {
+            let candidates = json["candidates"] as? [[String: Any]],
+            let firstCandidate = candidates.first,
+            let content = firstCandidate["content"] as? [String: Any],
+            let parts = content["parts"] as? [[String: Any]],
+            let firstPart = parts.first,
+            let text = firstPart["text"] as? String
+        else {
             throw AILogAnalyzerError.decodingError("Unexpected Gemini response structure.")
         }
 
@@ -213,12 +226,12 @@ public struct AILogAnalyzer: Sendable {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
         let payload: [String: Any] = [
-            "model": "gpt-4o-mini",
+            "model": openAIModel,
             "messages": [
                 ["role": "system", "content": "You are an automotive reverse engineering expert specializing in OBD-II and UDS CAN bus diagnostic decoding."],
-                ["role": "user", "content": prompt]
+                ["role": "user", "content": prompt],
             ],
-            "temperature": 0.2
+            "temperature": 0.2,
         ]
 
         let httpBody: Data
@@ -238,18 +251,20 @@ public struct AILogAnalyzer: Sendable {
 
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorObj = json["error"] as? [String: Any],
-               let msg = errorObj["message"] as? String {
+                let errorObj = json["error"] as? [String: Any],
+                let msg = errorObj["message"] as? String
+            {
                 throw AILogAnalyzerError.apiError(msg)
             }
             throw AILogAnalyzerError.invalidResponse(httpResponse.statusCode)
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let firstChoice = choices.first,
-              let message = firstChoice["message"] as? [String: Any],
-              let content = message["content"] as? String else {
+            let choices = json["choices"] as? [[String: Any]],
+            let firstChoice = choices.first,
+            let message = firstChoice["message"] as? [String: Any],
+            let content = message["content"] as? String
+        else {
             throw AILogAnalyzerError.decodingError("Unexpected OpenAI response structure.")
         }
 

@@ -26,35 +26,35 @@ public struct GenericOBD2Profile: VehicleProfile {
             "AT Z",
             "AT E0",
             "AT L0",
-            "AT S1", // Spaces On (required by the space-delimited ISO-TP token parser)
-            "AT SP 0" // Auto-detect protocol
+            "AT S1",  // Spaces On (required by the space-delimited ISO-TP token parser)
+            "AT SP 0",  // Auto-detect protocol
         ]
     }
 
     public var pollingCommands: [String] {
         [
-            "010D", // Vehicle Speed
-            "010C", // Engine RPM
-            "0105", // Engine Coolant Temp
-            "0142", // Control Module Voltage (12V)
-            "0104", // Calculated Engine Load
-            "010F", // Intake Air Temp
-            "0111", // Throttle Position
-            "012F", // Fuel Level
-            "015B", // Hybrid/EV Battery Pack Remaining Life (SAE J1979 standard EV SOC)
-            "0146", // Ambient Air Temp
-            "0110", // Mass Air Flow Rate
-            "010B", // Intake Manifold Absolute Pressure
-            "015C", // Engine Oil Temperature
-            "010E", // Timing Advance
-            "0133"  // Barometric Pressure
+            "010D",  // Vehicle Speed
+            "010C",  // Engine RPM
+            "0105",  // Engine Coolant Temp
+            "0142",  // Control Module Voltage (12V)
+            "0104",  // Calculated Engine Load
+            "010F",  // Intake Air Temp
+            "0111",  // Throttle Position
+            "012F",  // Fuel Level
+            "015B",  // Hybrid/EV Battery Pack Remaining Life (SAE J1979 standard EV SOC)
+            "0146",  // Ambient Air Temp
+            "0110",  // Mass Air Flow Rate
+            "010B",  // Intake Manifold Absolute Pressure
+            "015C",  // Engine Oil Temperature
+            "010E",  // Timing Advance
+            "0133",  // Barometric Pressure
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
         [
             .speed, .motorRpm, .aux12V, .engineLoad, .coolantTemp, .intakeAirTemp, .throttlePosition, .fuelLevel, .soc,
-            .ambientAirTemp, .maf, .manifoldPressure, .oilTemp, .timingAdvance, .barometricPressure
+            .ambientAirTemp, .maf, .manifoldPressure, .oilTemp, .timingAdvance, .barometricPressure,
         ]
     }
 

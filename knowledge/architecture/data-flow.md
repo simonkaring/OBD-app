@@ -22,16 +22,24 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
 ```
 
 1. `Core/Bluetooth/BluetoothManager` owns the CoreBluetooth/ELM327 connection.
-2. `Services/VehicleDataManager.pollNextCommand` sends profile polling commands in
-   round-robin order and keeps a short settling delay between replies.
+2. `Services/TelemetryPollingLoop` sends profile polling commands in round-robin
+   order, awaiting each reply, and keeps a short settling delay. It is a
+   `@MainActor` class whose work runs in a cancellable `Task`; `stopPolling()`
+   cancels it rather than relying on a generation counter.
 3. `Core/OBD/ISO15765Parser` reassembles multi-frame UDS/OBD responses. Never parse
    raw multi-line adapter text directly.
 4. `Core/Vehicles/<Profile>` decodes a reassembled payload into `TelemetryUpdate`
    values (`soc`, `packVoltage`, `chargingStats`, `genericPid`, ...).
-5. `VehicleDataManager.applyUpdates` validates plausibility, merges updates into
-   `TelemetrySnapshot`, and republishes `latestTelemetry` plus `liveMetrics`.
-6. Views observe the manager. `AppEnvironment` is the composition root that wires
-   the manager, trip tracking, charging tracking, and DTC scanning together.
+5. `VehicleDataManager.applyUpdates` merges updates into `TelemetrySnapshot` and
+   republishes `latestTelemetry`, `liveMetrics`, and `chargingSession`. It delegates
+   the stateless pieces to `TelemetryPlausibility`, `ChargingPowerEstimator`, and
+   `SOCReferenceStore`.
+6. Views observe the manager through iOS 17 Observation (`@Observable`), so a view
+   that reads one property is not invalidated by unrelated telemetry. Side-effect
+   consumers (`AppEnvironment` recorders, CarPlay) also subscribe to
+   `telemetryPublisher`, a `PassthroughSubject` emitted once per published snapshot.
+7. `AppEnvironment` is the composition root that wires the manager, trip tracking,
+   charging tracking, and DTC scanning together.
 
 # Freshness and availability
 
@@ -49,10 +57,13 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
 # Extending the flow
 
 - New decoder output: add a `TelemetryUpdate` case, decode it in the profile,
-  map it in `metrics(for:)` and `isPlausible(_:)`, then surface it through a
-  `TelemetryMetric`.
+  map it in `metrics(for:)` and `TelemetryPlausibility.isPlausible(_:)`, then
+  surface it through a `TelemetryMetric`.
 - New UI value: read `manager.displayedTelemetry` or `manager.latestTelemetry`
   and gate on `TelemetryMetric.isAvailable`, never on a zero sentinel.
+- New non-UI consumer: subscribe to `manager.telemetryPublisher` instead of
+  polling `latestTelemetry`, so it runs once per applied snapshot on the main
+  actor.
 - Keep the graph acyclic: views read managers; managers do not import views.
   Device writes go through `BluetoothManager` / `OBDConnectionProtocol`.
 

@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class OBDCaptureTests: XCTestCase {
     @MainActor
     func testCaptureKeepsAll600CommandsWhileLiveTailStaysAt500AndReopensAfterStop() throws {

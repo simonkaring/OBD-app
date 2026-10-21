@@ -25,7 +25,10 @@ public struct MetricDialView: View {
     @State private var showEstimatedRange: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil, isUnavailable: Bool = false, estimatedFullRangeKm: Double? = nil) {
+    public init(
+        value: Double, range: ClosedRange<Double>, mode: DialMode = .unidirectional, unit: String, label: String, metric: TelemetryMetric? = nil,
+        isUnavailable: Bool = false, estimatedFullRangeKm: Double? = nil
+    ) {
         self.value = value
         self.range = range
         self.mode = mode
@@ -119,8 +122,10 @@ public struct MetricDialView: View {
                         case .bidirectional:
                             // Keep the same arc when crossing between draw and regen.
                             Circle()
-                                .trim(from: 0.5 + min(0, normalizedProgress) * 0.35,
-                                      to: 0.5 + max(0, normalizedProgress) * 0.35)
+                                .trim(
+                                    from: 0.5 + min(0, normalizedProgress) * 0.35,
+                                    to: 0.5 + max(0, normalizedProgress) * 0.35
+                                )
                                 .stroke(activeGradient, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                                 .rotationEffect(.degrees(90))
                                 .frame(width: dialDiameter, height: dialDiameter)
@@ -143,26 +148,26 @@ public struct MetricDialView: View {
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
-                            .foregroundColor(isNegativeArc ? Theme.regenGreen : Theme.textPrimary)
+                            .foregroundStyle(isNegativeArc ? Theme.regenGreen : Theme.textPrimary)
                         Text(valAndUnit.displayUnit)
                             .font(.system(size: unitFontSize))
                             .lineLimit(1)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
 
                     HStack(spacing: 3) {
-                         Text(statusText)
-                             .font(.system(size: labelFontSize, weight: .semibold))
-                             .lineLimit(1)
+                        Text(statusText)
+                            .font(.system(size: labelFontSize, weight: .semibold))
+                            .lineLimit(1)
 
-                         if metric == .soc && estimatedFullRangeKm != nil {
-                             Image(systemName: "arrow.triangle.2.circlepath")
-                                 .font(.system(size: labelFontSize * 0.9))
-                         }
+                        if metric == .soc && estimatedFullRangeKm != nil {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: labelFontSize * 0.9))
+                        }
                     }
                     .padding(.horizontal, max(4, minDimension * 0.04))
                     .padding(.vertical, max(2, minDimension * 0.015))
-                    .foregroundColor(metric == .soc || isNegativeArc ? Theme.regenGreen : Theme.gaugeCyan)
+                    .foregroundStyle(metric == .soc || isNegativeArc ? Theme.regenGreen : Theme.gaugeCyan)
                     .background((metric == .soc || isNegativeArc ? Theme.regenGreen : Theme.gaugeCyan).opacity(0.2), in: RoundedRectangle(cornerRadius: 6))
                 }
                 .padding(.horizontal, strokeWidth + 4)

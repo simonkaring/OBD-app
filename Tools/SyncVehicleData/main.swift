@@ -120,7 +120,7 @@ private struct ABRPMapEntry: Decodable {
 
 private let deprecatedProfileAssignments: Set<String> = [
     "mercedes_benz-eqa-0",
-    "mercedes_benz-eqb-0"
+    "mercedes_benz-eqb-0",
 ]
 
 private let familyByProfileID: [String: (slug: String, name: String)] = [
@@ -140,7 +140,7 @@ private let familyByProfileID: [String: (slug: String, name: String)] = [
     "renault_zoe": ("zoe", "Zoe"),
     "renault_zoe2": ("zoe", "Zoe"),
     "volkswagen_eGolf": ("e_golf", "e-Golf"),
-    "volkswagen_eUP": ("e_up", "e-Up!")
+    "volkswagen_eUP": ("e_up", "e-Up!"),
 ]
 
 private struct Options {
@@ -163,36 +163,36 @@ private enum ToolError: Error, CustomStringConvertible {
 }
 
 private let help = """
-VoltLink deterministic vehicle catalog synchronizer
+    VoltLink deterministic vehicle catalog synchronizer
 
-USAGE:
-  swift run SyncVehicleData --openev <file-or-checkout> --output <path> [options]
+    USAGE:
+      swift run SyncVehicleData --openev <file-or-checkout> --output <path> [options]
 
-OPTIONS:
-  --openev <path>       Compiled OpenEV release JSON, or a local checkout that
-                        contains exactly one open-ev-data*.json outside src/.
-                        Layered src/ records are intentionally not consumed;
-                        compile/download a release artifact into the checkout.
-  --existing <path>     Catalog whose IDs, profiles, support labels, and unmatched
-                        entries are retained (default: Data/Seed/vehicle_catalog.json).
-  --abrp-dir <path>     Bundled profile directory containing obdble_cars.json
-                        (default: Data/Seed/abrp_pids).
-  --output <path>       Destination JSON. Generation performs no network access.
-  --allow-overwrite-existing
-                        Permit --output to equal --existing. Existing IDs and
-                        telemetry labels are still checked before writing.
-  -h, --help            Show this help.
+    OPTIONS:
+      --openev <path>       Compiled OpenEV release JSON, or a local checkout that
+                            contains exactly one open-ev-data*.json outside src/.
+                            Layered src/ records are intentionally not consumed;
+                            compile/download a release artifact into the checkout.
+      --existing <path>     Catalog whose IDs, profiles, support labels, and unmatched
+                            entries are retained (default: Data/Seed/vehicle_catalog.json).
+      --abrp-dir <path>     Bundled profile directory containing obdble_cars.json
+                            (default: Data/Seed/abrp_pids).
+      --output <path>       Destination JSON. Generation performs no network access.
+      --allow-overwrite-existing
+                            Permit --output to equal --existing. Existing IDs and
+                            telemetry labels are still checked before writing.
+      -h, --help            Show this help.
 
-Obtain a source artifact independently, for example:
-  git clone https://github.com/open-ev-data/open-ev-data-dataset.git /tmp/open-ev-data
-  # Download a pinned release JSON into that checkout, then:
-  swift run SyncVehicleData --openev /tmp/open-ev-data/open-ev-data-v1.24.0.json \\
-    --output /tmp/vehicle_catalog.json
+    Obtain a source artifact independently, for example:
+      git clone https://github.com/open-ev-data/open-ev-data-dataset.git /tmp/open-ev-data
+      # Download a pinned release JSON into that checkout, then:
+      swift run SyncVehicleData --openev /tmp/open-ev-data/open-ev-data-v1.24.0.json \\
+        --output /tmp/vehicle_catalog.json
 
-New OpenEV vehicles default to generic telemetry. A bundled ABRP mapping can
-promote them to community support. Verified support is only retained from an
-explicitly matching entry in --existing and is never inferred from source data.
-"""
+    New OpenEV vehicles default to generic telemetry. A bundled ABRP mapping can
+    promote them to community support. Verified support is only retained from an
+    explicitly matching entry in --existing and is never inferred from source data.
+    """
 
 private func parseOptions(_ arguments: [String]) throws -> Options {
     var options = Options()
@@ -242,11 +242,13 @@ private func resolveOpenEVArtifact(at path: String) throws -> URL {
     }
     guard isDirectory.boolValue else { return url }
 
-    guard let enumerator = FileManager.default.enumerator(
-        at: url,
-        includingPropertiesForKeys: [.isRegularFileKey],
-        options: [.skipsHiddenFiles]
-    ) else {
+    guard
+        let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        )
+    else {
         throw ToolError.invalid("Cannot enumerate OpenEV checkout: \(url.path)")
     }
     let candidates = enumerator.compactMap { item -> URL? in
@@ -259,7 +261,8 @@ private func resolveOpenEVArtifact(at path: String) throws -> URL {
 
     guard candidates.count == 1 else {
         let detail = candidates.isEmpty ? "none found" : candidates.map(\.path).joined(separator: ", ")
-        throw ToolError.invalid("Expected exactly one compiled open-ev-data*.json in checkout; \(detail). Pass the artifact file directly when multiple versions exist.")
+        throw ToolError.invalid(
+            "Expected exactly one compiled open-ev-data*.json in checkout; \(detail). Pass the artifact file directly when multiple versions exist.")
     }
     return candidates[0]
 }
@@ -292,18 +295,22 @@ private func validate(_ dataset: OpenEVDataset) throws {
             throw ToolError.invalid("\(label): record schema_version does not match the dataset")
         }
         guard validSlug(vehicle.make.slug), validSlug(vehicle.model.slug), validSlug(vehicle.trim.slug),
-              vehicle.make.name.isEmpty == false, vehicle.model.name.isEmpty == false,
-              vehicle.trim.name.isEmpty == false, (1900...2100).contains(vehicle.year) else {
+            vehicle.make.name.isEmpty == false, vehicle.model.name.isEmpty == false,
+            vehicle.trim.name.isEmpty == false, (1900...2100).contains(vehicle.year)
+        else {
             throw ToolError.invalid("\(label): invalid required make/model/trim/year fields")
         }
         guard let capacity = vehicle.battery.netKWh ?? vehicle.battery.grossKWh,
-              capacity.isFinite, capacity > 0 else {
+            capacity.isFinite, capacity > 0
+        else {
             throw ToolError.invalid("\(label): no positive finite net or gross battery capacity")
         }
-        guard !vehicle.sources.isEmpty, vehicle.sources.allSatisfy({ source in
-            ["oem", "regulatory", "press", "community", "testing_org"].contains(source.type)
-                && !source.title.isEmpty && URL(string: source.url)?.scheme != nil && !source.accessedAt.isEmpty
-        }) else {
+        guard !vehicle.sources.isEmpty,
+            vehicle.sources.allSatisfy({ source in
+                ["oem", "regulatory", "press", "community", "testing_org"].contains(source.type)
+                    && !source.title.isEmpty && URL(string: source.url)?.scheme != nil && !source.accessedAt.isEmpty
+            })
+        else {
             throw ToolError.invalid("\(label): missing or malformed provenance sources")
         }
         let identity = vehicle.uniqueCode ?? "\(vehicle.make.slug):\(vehicle.model.slug):\(vehicle.year):\(vehicle.trim.slug):\(vehicle.variant?.slug ?? "")"
@@ -409,13 +416,16 @@ private func loadABRPOverlays(directory: URL) throws -> [(pattern: String, profi
     guard FileManager.default.fileExists(atPath: mapURL.path) else { return [] }
     let map = try read([String: ABRPMapEntry].self, from: mapURL)
     let availableFiles = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-    let profileIDs = Set(availableFiles.filter { $0.pathExtension.lowercased() == "json" && $0.lastPathComponent != "obdble_cars.json" }.map { $0.deletingPathExtension().lastPathComponent })
+    let profileIDs = Set(
+        availableFiles.filter { $0.pathExtension.lowercased() == "json" && $0.lastPathComponent != "obdble_cars.json" }.map {
+            $0.deletingPathExtension().lastPathComponent
+        })
     let aliases = [
         "u5": "aiways_u5", "eGolf": "volkswagen_eGolf", "MEB": "volkswagen_MEB",
         "zoe": "renault_zoe", "zoe2": "renault_zoe2", "Ioniq5": "hkmc_Ioniq5",
         "hkmc2017": "hkmc_hkmc2017", "hkmc2019": "hkmc_hkmc2019", "MachE": "ford_MachE",
         "ipace2021": "jaguar_ipace2021", "bolt17": "gmc_bolt17", "bolt19": "gmc_bolt19",
-        "eUP": "volkswagen_eUP", "mgzsev": "mg_mgzsev", "eny1": "honda_eny1"
+        "eUP": "volkswagen_eUP", "mgzsev": "mg_mgzsev", "eny1": "honda_eny1",
     ]
     return map.compactMap { pattern, entry in
         let profileID = aliases[entry.pids] ?? entry.pids
@@ -435,7 +445,12 @@ private func validateCatalog(_ catalog: Catalog, preserving existing: Catalog) t
     }
     let brandIDs = catalog.brands.map(\.id)
     guard Set(brandIDs).count == brandIDs.count else { throw ToolError.invalid("Generated catalog contains duplicate brand IDs") }
-    guard models.allSatisfy({ !$0.id.isEmpty && !$0.brandName.isEmpty && !$0.modelName.isEmpty && !$0.years.isEmpty && $0.batteryCapacityKWh.isFinite && ($0.batteryCapacityKWh > 0 || $0.powertrain.contains("ICE")) && ["generic", "community", "verified"].contains($0.telemetrySupport) }) else {
+    guard
+        models.allSatisfy({
+            !$0.id.isEmpty && !$0.brandName.isEmpty && !$0.modelName.isEmpty && !$0.years.isEmpty && $0.batteryCapacityKWh.isFinite
+                && ($0.batteryCapacityKWh > 0 || $0.powertrain.contains("ICE")) && ["generic", "community", "verified"].contains($0.telemetrySupport)
+        })
+    else {
         throw ToolError.invalid("Generated catalog failed schema validation")
     }
     let generatedByID = Dictionary(uniqueKeysWithValues: models.map { ($0.id, $0) })
@@ -468,22 +483,25 @@ private func generate(dataset: OpenEVDataset, artifact: URL, existing: Catalog, 
     var generated: [String: [Model]] = [:]
 
     for (key, records) in groups.sorted(by: { lhs, rhs in
-        [lhs.key.make, lhs.key.model, lhs.key.trim, lhs.key.variant, String(lhs.key.capacityHundredths)].lexicographicallyPrecedes([rhs.key.make, rhs.key.model, rhs.key.trim, rhs.key.variant, String(rhs.key.capacityHundredths)])
+        [lhs.key.make, lhs.key.model, lhs.key.trim, lhs.key.variant, String(lhs.key.capacityHundredths)].lexicographicallyPrecedes([
+            rhs.key.make, rhs.key.model, rhs.key.trim, rhs.key.variant, String(rhs.key.capacityHundredths),
+        ])
     }) {
         let records = records.sorted { $0.year < $1.year }
         let representative = records.last!
         let name = displayName(for: representative)
         let semantic = semanticKey(brand: representative.make.name, model: name)
         let generatedID = generatedID(for: key)
-        let old = oldModels.first(where: { $0.id == generatedID && !consumedOldIDs.contains($0.id) })
+        let old =
+            oldModels.first(where: { $0.id == generatedID && !consumedOldIDs.contains($0.id) })
             ?? oldBySemantic[semantic]?
-                .filter { !consumedOldIDs.contains($0.id) }
-                .min {
-                    let targetCapacity = Double(key.capacityHundredths) / 100
-                    let lhsDifference = abs($0.batteryCapacityKWh - targetCapacity)
-                    let rhsDifference = abs($1.batteryCapacityKWh - targetCapacity)
-                    return lhsDifference == rhsDifference ? $0.id < $1.id : lhsDifference < rhsDifference
-                }
+            .filter { !consumedOldIDs.contains($0.id) }
+            .min {
+                let targetCapacity = Double(key.capacityHundredths) / 100
+                let lhsDifference = abs($0.batteryCapacityKWh - targetCapacity)
+                let rhsDifference = abs($1.batteryCapacityKWh - targetCapacity)
+                return lhsDifference == rhsDifference ? $0.id < $1.id : lhsDifference < rhsDifference
+            }
         if let old { consumedOldIDs.insert(old.id) }
 
         let matchKey = "\(normalized(representative.make.slug)):\(normalized(representative.model.slug)):\(representative.year)"
@@ -491,7 +509,8 @@ private func generate(dataset: OpenEVDataset, artifact: URL, existing: Catalog, 
         let inheritedCommunity = oldModels.first(where: {
             $0.telemetrySupport == "community"
                 && normalized($0.brandName) == normalized(representative.make.name)
-                && (normalized($0.modelName).hasPrefix(normalized(representative.model.name)) || normalized(representative.model.name).hasPrefix(normalized($0.modelName)))
+                && (normalized($0.modelName).hasPrefix(normalized(representative.model.name))
+                    || normalized(representative.model.name).hasPrefix(normalized($0.modelName)))
         })
         let isDeprecatedAssignment = old.map { deprecatedProfileAssignments.contains($0.id) } ?? false
         let profileID = isDeprecatedAssignment ? "genericEV" : old?.profileID ?? abrpProfile ?? inheritedCommunity?.profileID ?? "genericEV"
@@ -529,7 +548,8 @@ private func generate(dataset: OpenEVDataset, artifact: URL, existing: Catalog, 
                     .filter({ normalized($0.make.name) == normalized(model.brandName) })
                     .map(\.model)
                     .filter({ normalized(model.modelName).hasPrefix(normalized($0.name)) })
-                    .max(by: { $0.name.count < $1.name.count }) {
+                    .max(by: { $0.name.count < $1.name.count })
+                {
                     retained.modelFamilyID = "\(brand.id)-\(sourceModel.slug)"
                     retained.modelFamilyName = sourceModel.name
                     retained.variantDisplayName = model.modelName

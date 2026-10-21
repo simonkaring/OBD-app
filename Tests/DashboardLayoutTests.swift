@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class DashboardLayoutTests: XCTestCase {
 
     func testDefaultRecognitionSurvivesNewIdentitiesButPreservesCustomization() throws {
@@ -21,7 +22,7 @@ final class DashboardLayoutTests: XCTestCase {
             DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
             DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
             DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .medium),
-            DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large)
+            DashboardWidgetConfig(kind: .chart(series: [.power]), style: .numeric, size: .large),
         ])
         let restored = try XCTUnwrap(DashboardLayout(rawValue: saved.rawValue))
         XCTAssertEqual(restored.widgets, saved.widgets)
@@ -75,12 +76,12 @@ final class DashboardLayoutTests: XCTestCase {
         let widgets = [
             DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
             DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
-            DashboardWidgetConfig(kind: .metric(.soc), style: .dial, size: .large)
+            DashboardWidgetConfig(kind: .metric(.soc), style: .dial, size: .large),
         ]
         let rows = packDashboardWidgetsIntoRows(widgets)
         XCTAssertEqual(rows.count, 2)
-        XCTAssertEqual(rows[0].count, 2) // Speed and Power paired side-by-side
-        XCTAssertEqual(rows[1].count, 1) // SoC on second row
+        XCTAssertEqual(rows[0].count, 2)  // Speed and Power paired side-by-side
+        XCTAssertEqual(rows[1].count, 1)  // SoC on second row
     }
 
     func testAdaptedDefaultDropsUnsupportedMetricWidgets() {
@@ -108,7 +109,7 @@ final class DashboardLayoutTests: XCTestCase {
     func testRowPackingFlushesTrailingSoloMediumWidget() {
         let widgets = [
             DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .large),
-            DashboardWidgetConfig(kind: .metric(.speed), style: .numeric, size: .medium)
+            DashboardWidgetConfig(kind: .metric(.speed), style: .numeric, size: .medium),
         ]
         let rows = packDashboardWidgetsIntoRows(widgets)
         XCTAssertEqual(rows.count, 2)

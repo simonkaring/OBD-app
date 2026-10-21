@@ -30,12 +30,12 @@ public struct MetricBarView: View {
             HStack {
                 Text(label)
                     .font(.subheadline)
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
                 Spacer()
                 Text(isUnavailable ? "--" : String(format: "%.0f %@", value, unit))
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
-                    .foregroundColor(Theme.textPrimary)
+                    .foregroundStyle(Theme.textPrimary)
             }
 
             ProgressView(value: isUnavailable ? 0 : progress)
@@ -47,7 +47,7 @@ public struct MetricBarView: View {
                 Text(String(format: "Max: %.0f%@", range.upperBound, unit))
             }
             .font(.caption)
-            .foregroundColor(Theme.textSecondary)
+            .foregroundStyle(Theme.textSecondary)
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

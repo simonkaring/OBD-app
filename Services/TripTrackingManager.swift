@@ -1,52 +1,55 @@
 import Foundation
 import Combine
+import Observation
 import SwiftData
 import CoreLocation
 
-public final class TripTrackingManager: ObservableObject {
-    @Published public private(set) var currentTrip: TripModel?
-    @Published public private(set) var isRecordingTrip: Bool = false
-    @Published public private(set) var averageConsumption: Double?
+@MainActor
+@Observable
+public final class TripTrackingManager {
+    public private(set) var currentTrip: TripModel?
+    public private(set) var isRecordingTrip: Bool = false
+    public private(set) var averageConsumption: Double?
     private var hasCompleteEnergyData = true
-    @Published public private(set) var demoTrips: [TripModel] = []
-    @Published public private(set) var persistenceError: String?
+    public private(set) var demoTrips: [TripModel] = []
+    public private(set) var persistenceError: String?
     public private(set) var isDemoMode = false
     private var context: ModelContext? { isDemoMode ? nil : modelContext }
 
-    @Published public var isAutoTripEnabled: Bool {
+    public var isAutoTripEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isAutoTripEnabled, forKey: "isAutoTripEnabled")
             if !isAutoTripEnabled { resetStationaryTimer() }
         }
     }
 
-    @Published public var autoStopDelaySeconds: Int {
+    public var autoStopDelaySeconds: Int {
         didSet {
             UserDefaults.standard.set(autoStopDelaySeconds, forKey: "autoStopDelaySeconds")
         }
     }
 
-    @Published public private(set) var stationarySecondsRemaining: Int? = nil
-    @Published public private(set) var locationAuthorizationStatus: CLAuthorizationStatus = .notDetermined
+    public private(set) var stationarySecondsRemaining: Int? = nil
+    public private(set) var locationAuthorizationStatus: CLAuthorizationStatus = .notDetermined
 
-    public var modelContext: ModelContext?
+    @ObservationIgnored public var modelContext: ModelContext?
 
     /// A trip resumed via `merge(_:into:)` within this window of a prior trip's end is
     /// eligible for merging; the merge itself is user-triggered, never automatic.
     public static let mergeWindow: TimeInterval = 30 * 60
 
-    private var cancellables = Set<AnyCancellable>()
-    public let locationManager: TripLocationManager
-    private var stationaryStartDate: Date? = nil
-    private var stationaryTimer: Timer? = nil
+    @ObservationIgnored private var cancellables = Set<AnyCancellable>()
+    @ObservationIgnored public let locationManager: TripLocationManager
+    @ObservationIgnored private var stationaryStartDate: Date? = nil
+    @ObservationIgnored private var stationaryTimer: Timer? = nil
     /// Timestamp of the previous recorded sample, used to integrate energy over the real
     /// elapsed interval instead of an assumed fixed polling period.
-    private var lastSampleTime: Date? = nil
-    private var lastStoredSampleTime: Date?
-    private var lastSaveTime: Date?
+    @ObservationIgnored private var lastSampleTime: Date? = nil
+    @ObservationIgnored private var lastStoredSampleTime: Date?
+    @ObservationIgnored private var lastSaveTime: Date?
     /// Most recent SoC seen by `processTelemetrySnapshot`, so the auto-stop timer can read
     /// the value at fire time rather than the one captured when the countdown started.
-    private var latestSoc: Double = 0.0
+    @ObservationIgnored private var latestSoc: Double = 0.0
 
     public init(locationManager: TripLocationManager = TripLocationManager()) {
         self.locationManager = locationManager
@@ -57,7 +60,9 @@ public final class TripTrackingManager: ObservableObject {
         self.locationAuthorizationStatus = locationManager.authorizationStatus
 
         locationManager.$authorizationStatus
-            .sink { [weak self] in self?.locationAuthorizationStatus = $0 }
+            .sink { [weak self] status in
+                MainActor.assumeIsolated { self?.locationAuthorizationStatus = status }
+            }
             .store(in: &cancellables)
     }
 
@@ -140,7 +145,7 @@ public final class TripTrackingManager: ObservableObject {
             (55.334694, 10.979746), (55.298549, 10.844916), (55.308771, 10.812342),
             (55.328517, 10.802856), (55.333795, 10.790527), (55.331931, 10.737965),
             (55.344188, 10.629489), (55.365613, 10.525311), (55.348532, 10.450371),
-            (55.352479, 10.421264)
+            (55.352479, 10.421264),
         ]
         trip.samples = route.enumerated().map { index, coordinate in
             let progress = Double(index) / Double(route.count - 1)
@@ -162,14 +167,14 @@ public final class TripTrackingManager: ObservableObject {
             persistenceError = nil
             return true
         } catch {
-            persistenceError = "Trip history could not be saved: \(error.localizedDescription). Your pending changes are still in memory; retry saving before closing VoltLink."
+            persistenceError =
+                "Trip history could not be saved: \(error.localizedDescription). Your pending changes are still in memory; retry saving before closing VoltLink."
             return false
         }
     }
 
     public func retrySaving() {
-        if let trip = currentTrip, trip.endTime != nil { stopTrip(endSoc: trip.endSocPct) }
-        else { save() }
+        if let trip = currentTrip, trip.endTime != nil { stopTrip(endSoc: trip.endSocPct) } else { save() }
     }
 
     public func deleteTrip(_ trip: TripModel) {
@@ -237,10 +242,11 @@ public final class TripTrackingManager: ObservableObject {
         // Copy values instead of reparenting: SwiftData can lose a moved sample's
         // relationship or cascade-delete it. Copies and deletion commit in one save.
         let copies = newer.samples.map { sample in
-            TelemetryPointModel(timestamp: sample.timestamp,
-                                latitude: sample.latitude, longitude: sample.longitude,
-                                speedKmH: sample.speedKmH, powerKW: sample.powerKW,
-                                socPct: sample.socPct, batteryTempC: sample.batteryTempC)
+            TelemetryPointModel(
+                timestamp: sample.timestamp,
+                latitude: sample.latitude, longitude: sample.longitude,
+                speedKmH: sample.speedKmH, powerKW: sample.powerKW,
+                socPct: sample.socPct, batteryTempC: sample.batteryTempC)
         }
 
         let applyMerge = {
@@ -318,7 +324,9 @@ public final class TripTrackingManager: ObservableObject {
         }
     }
 
-    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, vehicleName: String = "Vehicle", hasPowerData: Bool = true, requiresPowerForAutoStart: Bool = false) {
+    public func processTelemetrySnapshot(
+        _ telemetry: TelemetrySnapshot, vehicleName: String = "Vehicle", hasPowerData: Bool = true, requiresPowerForAutoStart: Bool = false
+    ) {
         latestSoc = telemetry.stateOfChargePct
 
         if isRecordingTrip {
@@ -382,7 +390,8 @@ public final class TripTrackingManager: ObservableObject {
         // it when there genuinely is no usable fix, and let `hasValidCoordinate` /
         // `routeSamples` filter those points out of the map.
         let coordinate = isDemoMode ? nil : locationManager.currentLocation?.coordinate
-        let hasFix = coordinate.map { (-90...90).contains($0.latitude) && (-180...180).contains($0.longitude) && !($0.latitude == 0 && $0.longitude == 0) } ?? false
+        let hasFix =
+            coordinate.map { (-90...90).contains($0.latitude) && (-180...180).contains($0.longitude) && !($0.latitude == 0 && $0.longitude == 0) } ?? false
         let lat = hasFix ? coordinate!.latitude : 0.0
         let lon = hasFix ? coordinate!.longitude : 0.0
 

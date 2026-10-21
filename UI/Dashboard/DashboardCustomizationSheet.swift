@@ -10,7 +10,9 @@ public struct DashboardCustomizationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAddWidget = false
 
-    public init(layout: Binding<DashboardLayout>, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, profileName: String, isConnected: Bool) {
+    public init(
+        layout: Binding<DashboardLayout>, supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, profileName: String, isConnected: Bool
+    ) {
         self._layout = layout
         self.supportedMetrics = supportedMetrics
         self.liveMetrics = liveMetrics
@@ -49,12 +51,15 @@ public struct DashboardCustomizationSheet: View {
                         } label: {
                             Image(systemName: "plus")
                         }
+                        .accessibilityLabel("Add widget")
                     }
                 }
             }
             .sheet(isPresented: $showAddWidget) {
-                AddDashboardWidgetSheet(supportedMetrics: supportedMetrics, liveMetrics: liveMetrics,
-                                        profileName: profileName, isConnected: isConnected) { newWidget in
+                AddDashboardWidgetSheet(
+                    supportedMetrics: supportedMetrics, liveMetrics: liveMetrics,
+                    profileName: profileName, isConnected: isConnected
+                ) { newWidget in
                     layout.widgets.append(newWidget)
                 }
             }
@@ -72,11 +77,13 @@ public struct DashboardCustomizationSheet: View {
                 case .chart(let metrics): return metrics
                 }
             }()
-            Text(series.allSatisfy(supportedMetrics.contains) ?
-                 (isConnected ? (series.allSatisfy(liveMetrics.contains) ? "Live" : "Compatible · No data") : "Compatible · Not connected") :
-                 "Not compatible with selected profile")
-                .font(.caption)
-                .foregroundColor(series.allSatisfy(supportedMetrics.contains) ? Theme.textSecondary : Theme.highPowerAmber)
+            Text(
+                series.allSatisfy(supportedMetrics.contains)
+                    ? (isConnected ? (series.allSatisfy(liveMetrics.contains) ? "Live" : "Compatible · No data") : "Compatible · Not connected")
+                    : "Not compatible with selected profile"
+            )
+            .font(.caption)
+            .foregroundStyle(series.allSatisfy(supportedMetrics.contains) ? Theme.textSecondary : Theme.highPowerAmber)
 
             HStack {
                 if case .metric = widget.wrappedValue.kind {
@@ -121,7 +128,10 @@ public struct AddDashboardWidgetSheet: View {
     @State private var selectedStyle: MetricDisplayStyle = .dial
     @State private var chartSeries: Set<TelemetryMetric> = [.power, .speed]
 
-    public init(supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, profileName: String, isConnected: Bool, onAdd: @escaping (DashboardWidgetConfig) -> Void) {
+    public init(
+        supportedMetrics: Set<TelemetryMetric>, liveMetrics: Set<TelemetryMetric>, profileName: String, isConnected: Bool,
+        onAdd: @escaping (DashboardWidgetConfig) -> Void
+    ) {
         self.supportedMetrics = supportedMetrics
         self.liveMetrics = liveMetrics
         self.profileName = profileName
@@ -146,28 +156,29 @@ public struct AddDashboardWidgetSheet: View {
                     VStack(alignment: .leading, spacing: 20) {
                         Text("Compatible with \(profileName) · \(filteredMetrics.count) metrics")
                             .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal)
                         // iOS Gallery Search & Selectors
                         VStack(spacing: 12) {
                             HStack {
                                 Image(systemName: "magnifyingglass")
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundStyle(Theme.textSecondary)
                                 TextField("Search widgets", text: $searchText)
                                     .font(.subheadline)
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textPrimary)
                                 if !searchText.isEmpty {
                                     Button {
                                         searchText = ""
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Theme.textSecondary)
+                                            .foregroundStyle(Theme.textSecondary)
                                     }
+                                    .accessibilityLabel("Clear search")
                                 }
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
-                            .background(Color.white.opacity(0.08))
+                            .background(Theme.subtleFill)
                             .cornerRadius(12)
 
                             // Size & Style Selectors
@@ -192,7 +203,7 @@ public struct AddDashboardWidgetSheet: View {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("TELEMETRY METRICS")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(Theme.electricCyan)
+                                .foregroundStyle(Theme.electricCyan)
                                 .padding(.horizontal)
 
                             ForEach(filteredMetrics) { metric in
@@ -204,7 +215,7 @@ public struct AddDashboardWidgetSheet: View {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("LIVE TELEMETRY CHART")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(Theme.electricCyan)
+                                .foregroundStyle(Theme.electricCyan)
                                 .padding(.horizontal)
 
                             chartWidgetCard
@@ -234,20 +245,20 @@ public struct AddDashboardWidgetSheet: View {
                         .fill(Theme.electricCyan.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: metric.sfSymbolName)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Theme.electricCyan)
+                        .font(.headline)
+                        .foregroundStyle(Theme.electricCyan)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(metric.displayName)
                         .font(.headline)
-                        .foregroundColor(Theme.textPrimary)
+                        .foregroundStyle(Theme.textPrimary)
                     Text("Unit: \(metric.unitSymbol) • Display as \(selectedStyle.displayName)")
                         .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                     Text(isConnected ? (liveMetrics.contains(metric) ? "Live" : "Compatible · No data") : "Compatible · Not connected")
                         .font(.caption)
-                        .foregroundColor(liveMetrics.contains(metric) && isConnected ? Theme.regenGreen : Theme.textSecondary)
+                        .foregroundStyle(liveMetrics.contains(metric) && isConnected ? Theme.regenGreen : Theme.textSecondary)
                 }
 
                 Spacer()
@@ -258,14 +269,14 @@ public struct AddDashboardWidgetSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.caption.weight(.bold))
                         Text("Add")
                             .font(.subheadline.weight(.semibold))
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(Theme.electricCyan)
-                    .foregroundColor(Theme.onAccent)
+                    .foregroundStyle(Theme.onAccent)
                     .cornerRadius(20)
                 }
             }
@@ -273,7 +284,7 @@ public struct AddDashboardWidgetSheet: View {
             // Visual Mini Preview Box
             ZStack {
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.white.opacity(0.04))
+                    .fill(Theme.faintFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
                             .stroke(Theme.electricCyan.opacity(0.2), lineWidth: 1)
@@ -283,16 +294,16 @@ public struct AddDashboardWidgetSheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(selectedSize.rawValue.uppercased() + " PREVIEW")
                             .font(.caption2.weight(.semibold))
-                            .foregroundColor(Theme.electricCyan)
+                            .foregroundStyle(Theme.electricCyan)
                         Text(metric.displayName)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundColor(Theme.textPrimary)
+                            .foregroundStyle(Theme.textPrimary)
                     }
                     Spacer()
 
                     Image(systemName: selectedStyle == .dial ? "gauge.with.needle.fill" : (selectedStyle == .bar ? "chart.bar.fill" : "number.circle.fill"))
-                        .font(.system(size: 24))
-                        .foregroundColor(Theme.electricCyan)
+                        .font(.title2)
+                        .foregroundStyle(Theme.electricCyan)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -311,17 +322,17 @@ public struct AddDashboardWidgetSheet: View {
                         .fill(Theme.highPowerAmber.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "chart.xyaxis.line")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Theme.highPowerAmber)
+                        .font(.headline)
+                        .foregroundStyle(Theme.highPowerAmber)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Live Telemetry Chart")
                         .font(.headline)
-                        .foregroundColor(Theme.textPrimary)
+                        .foregroundStyle(Theme.textPrimary)
                     Text("Plot up to 2 telemetry metrics over time")
                         .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
 
                 Spacer()
@@ -332,14 +343,14 @@ public struct AddDashboardWidgetSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.caption.weight(.bold))
                         Text("Add")
                             .font(.subheadline.weight(.semibold))
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(Theme.highPowerAmber)
-                    .foregroundColor(Theme.onAccent)
+                    .foregroundStyle(Theme.onAccent)
                     .cornerRadius(20)
                 }
                 .disabled(chartSeries.isEmpty)
@@ -348,7 +359,7 @@ public struct AddDashboardWidgetSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Select Series Metrics:")
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading, spacing: 8) {
                     ForEach(filteredMetrics) { metric in
@@ -363,8 +374,8 @@ public struct AddDashboardWidgetSheet: View {
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(chartSeries.contains(metric) ? Theme.highPowerAmber.opacity(0.3) : Color.white.opacity(0.08))
-                                .foregroundColor(chartSeries.contains(metric) ? Theme.highPowerAmber : Theme.textSecondary)
+                                .background(chartSeries.contains(metric) ? Theme.highPowerAmber.opacity(0.3) : Theme.subtleFill)
+                                .foregroundStyle(chartSeries.contains(metric) ? Theme.highPowerAmber : Theme.textSecondary)
                                 .cornerRadius(8)
                         }
                         .accessibilityAddTraits(chartSeries.contains(metric) ? .isSelected : [])

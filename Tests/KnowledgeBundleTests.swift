@@ -1,6 +1,7 @@
 import XCTest
 @testable import VoltLinkEngine
 
+@MainActor
 final class KnowledgeBundleTests: XCTestCase {
     /// The checked-in bundle must be current: this is what stops an agent from changing
     /// profiles, metrics, or DTC seeds without regenerating the AI reference.

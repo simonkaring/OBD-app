@@ -85,16 +85,17 @@ struct OKFCommand {
     }
 
     private static func printUsage() {
-        print("""
-        📚 OKF (Open Knowledge Format) bundle commands
+        print(
+            """
+            📚 OKF (Open Knowledge Format) bundle commands
 
-        USAGE:
-          voltlink-cli okf export [--out <dir>]   Regenerate concepts and indexes
-          voltlink-cli okf check  [--dir <dir>]   Validate conformance and drift
+            USAGE:
+              voltlink-cli okf export [--out <dir>]   Regenerate concepts and indexes
+              voltlink-cli okf check  [--dir <dir>]   Validate conformance and drift
 
-        Defaults to ./\(KnowledgeBundle.defaultDirectoryName). Generated concepts cover
-        vehicle profiles, telemetry metrics, and curated DTCs; architecture
-        concepts are hand-authored and only indexed.
-        """)
+            Defaults to ./\(KnowledgeBundle.defaultDirectoryName). Generated concepts cover
+            vehicle profiles, telemetry metrics, and curated DTCs; architecture
+            concepts are hand-authored and only indexed.
+            """)
     }
 }

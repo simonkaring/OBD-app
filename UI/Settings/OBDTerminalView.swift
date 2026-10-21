@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 public struct OBDTerminalView: View {
-    @ObservedObject public var vehicleData: VehicleDataManager
+    public var vehicleData: VehicleDataManager
 
     public init(vehicleData: VehicleDataManager) {
         self.vehicleData = vehicleData
@@ -27,7 +27,7 @@ private struct BluetoothTerminalView: View {
 }
 
 private struct OBDTerminalContent: View {
-    @ObservedObject var vehicleData: VehicleDataManager
+    var vehicleData: VehicleDataManager
     let bluetoothManager: BluetoothManager?
     let bluetoothLogs: [OBDLogEntry]
     @ObservedObject private var keyStore = AIAPIKeyStore.shared
@@ -62,7 +62,7 @@ private struct OBDTerminalContent: View {
                         showAISheet = true
                     } label: {
                         Label("AI Analyze Recent (500 max)", systemImage: "sparkles")
-                            .foregroundColor(Theme.electricCyan)
+                            .foregroundStyle(Theme.electricCyan)
                     }
                     .disabled(combinedLogs.isEmpty)
 
@@ -113,7 +113,7 @@ private struct OBDTerminalContent: View {
                 Section("Diagnostic Capture") {
                     Text("File capture is available outside demo mode. Recent manual logs are shown below.")
                         .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
 
@@ -128,7 +128,7 @@ private struct OBDTerminalContent: View {
                 if !supportedPIDs.isEmpty {
                     Text(supportedPIDs.joined(separator: ", "))
                         .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(Theme.electricCyan)
+                        .foregroundStyle(Theme.electricCyan)
                 }
 
                 if isSweepingDIDs {
@@ -149,7 +149,7 @@ private struct OBDTerminalContent: View {
                 ForEach(sweepResults, id: \.self) { line in
                     Text(line)
                         .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(Theme.regenGreen)
+                        .foregroundStyle(Theme.regenGreen)
                 }
 
                 Button {
@@ -162,7 +162,7 @@ private struct OBDTerminalContent: View {
                 ForEach(probeResults, id: \.self) { line in
                     Text(line)
                         .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(Theme.regenGreen)
+                        .foregroundStyle(Theme.regenGreen)
                 }
             }
 
@@ -178,14 +178,14 @@ private struct OBDTerminalContent: View {
                 if let commandError {
                     Label(commandError, systemImage: "exclamationmark.triangle")
                         .font(.caption)
-                        .foregroundColor(Theme.criticalRed)
+                        .foregroundStyle(Theme.criticalRed)
                 }
             }
 
             Section {
                 HStack {
                     Text("Recent Log (\(combinedLogs.count)/500)")
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                     Spacer()
                     if !combinedLogs.isEmpty {
                         Button("Clear") {
@@ -193,27 +193,27 @@ private struct OBDTerminalContent: View {
                             manualLogs.removeAll()
                         }
                         .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                     }
                 }
                 Text("AI analysis and AI export use only these recent entries, not the capture file. Clear does not erase the capture file.")
                     .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             }
 
             if combinedLogs.isEmpty {
                 Text("No commands sent yet. Run a discovery tool or send a raw command above.")
                     .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             } else {
                 ForEach(combinedLogs.reversed()) { entry in
                     VStack(alignment: .leading, spacing: 2) {
                         Text("→ \(entry.sent)")
                             .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(Theme.electricCyan)
+                            .foregroundStyle(Theme.electricCyan)
                         Text(entry.response.replacingOccurrences(of: "\r\n", with: " ").replacingOccurrences(of: "\r", with: " "))
                             .font(.system(.caption2, design: .monospaced))
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
             }
@@ -309,7 +309,7 @@ private struct OBDTerminalContent: View {
                 ("18DA29F1", "Inverter (0x29)"),
                 ("18DA17F1", "Charger (0x17)"),
                 ("7E4", "BMS 11-bit"),
-                ("7E0", "Powertrain 11-bit")
+                ("7E0", "Powertrain 11-bit"),
             ]
             let candidateLowBytes = Array(0x00...0x35) + [0x5B, 0x90, 0xA0, 0xAF]
             let total = headers.count * candidateLowBytes.count
@@ -381,7 +381,8 @@ private struct OBDTerminalContent: View {
             let voltage = await sendCommandAsync("AT RV")
             let ignition = await sendCommandAsync("AT IGN")
             await MainActor.run {
-                probeResults.append("Port: \(voltage.trimmingCharacters(in: .whitespacesAndNewlines)) / IGN \(ignition.trimmingCharacters(in: .whitespacesAndNewlines))")
+                probeResults.append(
+                    "Port: \(voltage.trimmingCharacters(in: .whitespacesAndNewlines)) / IGN \(ignition.trimmingCharacters(in: .whitespacesAndNewlines))")
             }
 
             for entry in matrix {
@@ -431,7 +432,9 @@ private struct BluetoothCaptureSection: View {
 
     var body: some View {
         Section {
-            Label(bluetoothManager.isCapturing ? "Capturing to File" : "Capture Stopped", systemImage: bluetoothManager.isCapturing ? "record.circle" : "stop.circle")
+            Label(
+                bluetoothManager.isCapturing ? "Capturing to File" : "Capture Stopped",
+                systemImage: bluetoothManager.isCapturing ? "record.circle" : "stop.circle")
 
             if bluetoothManager.isCapturing {
                 Button("Stop Capture") { bluetoothManager.stopCapture() }
@@ -461,12 +464,14 @@ private struct BluetoothCaptureSection: View {
             if let error = bluetoothManager.captureError {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .font(.caption)
-                    .foregroundColor(Theme.criticalRed)
+                    .foregroundStyle(Theme.criticalRed)
             }
         } header: {
             Text("Diagnostic Capture")
         } footer: {
-            Text("Start before your drive. Only new completed Bluetooth commands are saved, including across reconnects. Stop to export. The file stays in Documents after relaunch; a new capture replaces it. Clear only clears recent logs.")
+            Text(
+                "Start before your drive. Only new completed Bluetooth commands are saved, including across reconnects. Stop to export. The file stays in Documents after relaunch; a new capture replaces it. Clear only clears recent logs."
+            )
         }
         .confirmationDialog("Replace the Previous Capture?", isPresented: $confirmReplacement, titleVisibility: .visible) {
             Button("Replace and Start Capture", role: .destructive) {
@@ -489,10 +494,13 @@ private struct BluetoothCaptureSection: View {
             }
             exportDocument = nil
         }
-        .alert("Export Failed", isPresented: Binding(
-            get: { exportError != nil },
-            set: { if !$0 { exportError = nil } }
-        )) {
+        .alert(
+            "Export Failed",
+            isPresented: Binding(
+                get: { exportError != nil },
+                set: { if !$0 { exportError = nil } }
+            )
+        ) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(exportError ?? "Unknown error")
@@ -537,22 +545,22 @@ public struct AIAnalysisSheet: View {
                                 .scaleEffect(1.2)
                             Text("Analyzing CAN bus responses with AI...")
                                 .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundStyle(Theme.textSecondary)
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else if let error = errorMessage {
                         VStack(alignment: .leading, spacing: 10) {
                             Label("Analysis Failed", systemImage: "exclamationmark.triangle.fill")
                                 .font(.headline)
-                                .foregroundColor(Theme.criticalRed)
+                                .foregroundStyle(Theme.criticalRed)
                             Text(error)
                                 .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundStyle(Theme.textSecondary)
 
                             if apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                 Text("Tip: Go to Settings > Developer Tools and enter a Gemini or OpenAI API Key to enable in-app AI analysis.")
                                     .font(.caption)
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                                     .padding(.top, 4)
                             }
                         }

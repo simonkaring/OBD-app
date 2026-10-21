@@ -12,17 +12,17 @@ public struct FloatingConnectionBanner: View {
     public var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "cable.connector.slash")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(Theme.highPowerAmber)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.highPowerAmber)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("OBD Scanner Disconnected")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(Theme.textPrimary)
+                    .foregroundStyle(Theme.textPrimary)
 
                 Text("Tap to connect BLE scanner or set up vehicle")
                     .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             }
 
             Spacer(minLength: 8)
@@ -30,15 +30,15 @@ public struct FloatingConnectionBanner: View {
             Button(action: onConnectTap) {
                 Text("Connect")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(Theme.electricCyan)
+                    .foregroundStyle(Theme.electricCyan)
                     .frame(minHeight: 44)
             }
             .buttonStyle(.plain)
 
             Button(action: onDismissTap) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(Theme.textSecondary)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Theme.textSecondary)
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)

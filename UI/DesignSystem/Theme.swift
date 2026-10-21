@@ -3,12 +3,13 @@ import SwiftUI
 public enum Theme {
     #if os(iOS)
     public static let backgroundDark = Color(uiColor: UIColor.systemGroupedBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)))
-    public static let cardBackground = Color(uiColor: UIColor.secondarySystemGroupedBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)))
+    public static let cardBackground = Color(
+        uiColor: UIColor.secondarySystemGroupedBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)))
     #else
     public static let backgroundDark = Color(white: 0.0)
     public static let cardBackground = Color(white: 0.11)
     #endif
-    
+
     public static let electricCyan = Color.blue
     public static let regenGreen = Color.green
     public static let highPowerAmber = Color.orange
@@ -22,6 +23,14 @@ public enum Theme {
     public static let onAccent = Color.black
     /// Unfilled track color behind dial/bar gauges.
     public static let trackBackground = Color.white.opacity(0.1)
+    /// Faint chart grid lines drawn over the dark background.
+    public static let chartGrid = Color.white.opacity(0.1)
+    /// Slightly stronger fill for interactive chips and secondary buttons.
+    public static let subtleFill = Color.white.opacity(0.08)
+    /// Near-invisible fill for unselected draggable cards.
+    public static let faintFill = Color.white.opacity(0.04)
+    /// Full-screen dimming layer behind HUD/overlay content.
+    public static let scrim = Color.black.opacity(0.85)
     public static let gaugeCyan = Color(red: 0.0, green: 0.94, blue: 1.0)
     private static let gaugeBlue = Color(red: 0.0, green: 0.45, blue: 1.0)
 

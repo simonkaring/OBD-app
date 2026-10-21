@@ -9,8 +9,8 @@ public enum HistoryLogType: String, CaseIterable, Identifiable {
 }
 
 public struct TripHistoryView: View {
-    @EnvironmentObject private var vehicleData: VehicleDataManager
-    @ObservedObject public var tripTracker: TripTrackingManager
+    @Environment(VehicleDataManager.self) private var vehicleData
+    public var tripTracker: TripTrackingManager
     @EnvironmentObject private var chargingTracker: ChargingTrackingManager
 
     @State private var selectedLogType: HistoryLogType = .trips
@@ -62,7 +62,8 @@ public struct TripHistoryView: View {
             .navigationTitle("History")
             .inlineTitleDisplayMode()
             .toolbar {
-                let hasItems = selectedLogType == .trips
+                let hasItems =
+                    selectedLogType == .trips
                     ? (!displayedTrips.isEmpty || tripTracker.currentTrip != nil)
                     : (!displayedCharges.isEmpty || chargingTracker.currentSession != nil)
                 if hasItems {
@@ -72,8 +73,9 @@ public struct TripHistoryView: View {
                             showClearAllConfirmation = true
                         } label: {
                             Image(systemName: "trash")
-                                .foregroundColor(Theme.criticalRed)
+                                .foregroundStyle(Theme.criticalRed)
                         }
+                        .accessibilityLabel("Clear history")
                     }
                     #else
                     ToolbarItem(placement: .automatic) {
@@ -82,6 +84,7 @@ public struct TripHistoryView: View {
                         } label: {
                             Image(systemName: "trash")
                         }
+                        .accessibilityLabel("Clear history")
                     }
                     #endif
                 }
@@ -100,9 +103,10 @@ public struct TripHistoryView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text(selectedLogType == .trips
-                    ? "Are you sure you want to clear all trip history? This action cannot be undone."
-                    : "Are you sure you want to clear all charging history? This action cannot be undone.")
+                Text(
+                    selectedLogType == .trips
+                        ? "Are you sure you want to clear all trip history? This action cannot be undone."
+                        : "Are you sure you want to clear all charging history? This action cannot be undone.")
             }
             .confirmationDialog(
                 "Delete Trip",
@@ -159,7 +163,7 @@ public struct TripHistoryView: View {
                         HStack {
                             Text("CURRENT ACTIVE TRIP")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(Theme.regenGreen)
+                                .foregroundStyle(Theme.regenGreen)
                             Spacer()
                             ProgressView().tint(Theme.regenGreen)
                         }
@@ -167,26 +171,26 @@ public struct TripHistoryView: View {
                         HStack(spacing: 20) {
                             VStack(alignment: .leading) {
                                 Text("Distance")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.1f km", active.distanceKm))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textPrimary)
                             }
 
                             VStack(alignment: .leading) {
                                 Text("Energy Used")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", active.totalKWhUsed))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textPrimary)
                             }
 
                             VStack(alignment: .leading) {
                                 Text("SOC Delta")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "-%.1f%%", max(0, active.startSocPct - active.endSocPct)))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                             }
                         }
                     }
@@ -201,12 +205,12 @@ public struct TripHistoryView: View {
                     Spacer()
                     Image(systemName: "road.lanes")
                         .font(.system(size: 50))
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                     Text("No Past Trips Recorded")
                         .font(.headline)
                     Text("Start a trip on the Dashboard to record GPS route, speed curve, and energy consumption.")
-                        .font(.system(size: 14))
-                        .foregroundColor(Theme.textSecondary)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
                     Spacer()
@@ -218,27 +222,28 @@ public struct TripHistoryView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text(trip.startTime.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.system(size: 14, weight: .bold))
+                                        .font(.subheadline.weight(.bold))
                                     Spacer()
                                     Text(String(format: "%.1f km", trip.distanceKm))
                                         .font(.headline)
-                                        .foregroundColor(Theme.electricCyan)
+                                        .foregroundStyle(Theme.electricCyan)
                                 }
                                 HStack {
                                     Text(String(format: "Efficiency: %.1f kWh/100km", trip.efficiencyKWhPer100Km))
                                         .font(.caption)
-                                        .foregroundColor(Theme.textSecondary)
+                                        .foregroundStyle(Theme.textSecondary)
                                     Spacer()
                                     Text(String(format: "%.1f kWh", trip.totalKWhUsed))
                                         .font(.caption)
-                                        .foregroundColor(Theme.textSecondary)
+                                        .foregroundStyle(Theme.textSecondary)
                                 }
                             }
                         }
                         .listRowBackground(Theme.cardBackground)
                         .swipeActions(edge: .leading) {
                             if index + 1 < displayedTrips.count,
-                               tripTracker.canMerge(trip, into: displayedTrips[index + 1]) {
+                                tripTracker.canMerge(trip, into: displayedTrips[index + 1])
+                            {
                                 let previousTrip = displayedTrips[index + 1]
                                 Button {
                                     guard !trip.isDeleted, !previousTrip.isDeleted else { return }
@@ -268,7 +273,7 @@ public struct TripHistoryView: View {
                         HStack {
                             Text("CURRENT CHARGING SESSION")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(Theme.regenGreen)
+                                .foregroundStyle(Theme.regenGreen)
                             Spacer()
                             ProgressView().tint(Theme.regenGreen)
                         }
@@ -276,26 +281,26 @@ public struct TripHistoryView: View {
                         HStack(spacing: 20) {
                             VStack(alignment: .leading) {
                                 Text("Energy Added")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", active.totalKWhDelivered))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.regenGreen)
+                                    .foregroundStyle(Theme.regenGreen)
                             }
 
                             VStack(alignment: .leading) {
                                 Text("Peak Power")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.1f kW", active.peakPowerKW))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.highPowerAmber)
+                                    .foregroundStyle(Theme.highPowerAmber)
                             }
 
                             VStack(alignment: .leading) {
                                 Text("SOC Gained")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "+%.1f%%", max(0, active.endSocPct - active.startSocPct)))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                             }
                         }
                     }
@@ -310,12 +315,12 @@ public struct TripHistoryView: View {
                     Spacer()
                     Image(systemName: "bolt.batteryblock")
                         .font(.system(size: 50))
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                     Text("No Past Charging Sessions")
                         .font(.headline)
                     Text("Plug in to charge or simulate DC fast charging to record sessions with location and power curves.")
-                        .font(.system(size: 14))
-                        .foregroundColor(Theme.textSecondary)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
                     Spacer()
@@ -327,21 +332,21 @@ public struct TripHistoryView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text(session.startTime.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.system(size: 14, weight: .bold))
+                                        .font(.subheadline.weight(.bold))
                                     Spacer()
                                     Text(String(format: "+%.2f kWh", session.totalKWhDelivered))
                                         .font(.headline)
-                                        .foregroundColor(Theme.regenGreen)
+                                        .foregroundStyle(Theme.regenGreen)
                                 }
                                 HStack {
                                     Label(session.locationName, systemImage: "mappin.and.ellipse")
                                         .font(.caption)
-                                        .foregroundColor(Theme.textSecondary)
+                                        .foregroundStyle(Theme.textSecondary)
                                         .lineLimit(1)
                                     Spacer()
                                     Text(String(format: "Peak: %.1f kW", session.peakPowerKW))
                                         .font(.caption)
-                                        .foregroundColor(Theme.textSecondary)
+                                        .foregroundStyle(Theme.textSecondary)
                                 }
                             }
                         }
@@ -379,6 +384,6 @@ public struct TripHistoryView: View {
     TripHistoryView(
         tripTracker: TripTrackingManager()
     )
-    .environmentObject(VehicleDataManager())
+    .environment(VehicleDataManager())
     .environmentObject(ChargingTrackingManager())
 }

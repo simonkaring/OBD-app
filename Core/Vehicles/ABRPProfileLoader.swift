@@ -23,7 +23,7 @@ public struct ABRPProfileDefinition: Codable, Sendable {
     public let extTemp: ABRPMetricDefinition?
     public let speed: ABRPMetricDefinition?
     public let isCharging: ABRPMetricDefinition?
-    
+
     enum CodingKeys: String, CodingKey {
         case initCommandsObj = "init_commands"
         case initCommandsObjCaps = "Init_Commands"
@@ -46,7 +46,7 @@ public struct ABRPProfileDefinition: Codable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         var inits: [String] = []
         if let list = try? container.decode(CommandList.self, forKey: .initCommandsObj) {
             inits = list.command
@@ -54,7 +54,7 @@ public struct ABRPProfileDefinition: Codable, Sendable {
             inits = list.command
         }
         self.initCommands = inits
-        
+
         var datas: [String] = []
         if let list = try? container.decode(CommandList.self, forKey: .dataCommandsObj) {
             datas = list.command
@@ -62,7 +62,7 @@ public struct ABRPProfileDefinition: Codable, Sendable {
             datas = list.command
         }
         self.dataCommands = datas
-        
+
         self.obdProtocol = try? container.decode(String.self, forKey: .obdProtocol)
         self.current = try? container.decode(ABRPMetricDefinition.self, forKey: .current)
         self.voltage = try? container.decode(ABRPMetricDefinition.self, forKey: .voltage)
@@ -189,7 +189,8 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         func bytes(for def: ABRPMetricDefinition) -> [UInt8] {
             var hex = concatenatedHex
             if let ecu = def.ecu?.uppercased(), !ecu.isEmpty,
-               let match = buckets.first(where: { $0.ecu.uppercased() == ecu || $0.ecu.uppercased().hasSuffix(ecu) }) {
+                let match = buckets.first(where: { $0.ecu.uppercased() == ecu || $0.ecu.uppercased().hasSuffix(ecu) })
+            {
                 hex = match.payload
             }
             return extractBytes(from: hex, command: command)
@@ -305,12 +306,13 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         // 2. Bit tokens: {token:bit} -> 1 or 0, via byteIndex(forToken:).
         while let bitRange = expr.range(of: "\\{([A-Za-z]{1,2}):([0-9]+)\\}", options: .regularExpression) {
             let token = String(expr[bitRange])
-            let inner = token.dropFirst().dropLast() // "token:bit"
+            let inner = token.dropFirst().dropLast()  // "token:bit"
             let parts = inner.split(separator: ":")
             guard parts.count == 2,
-                  let byteIdx = Self.byteIndex(forToken: String(parts[0])),
-                  let bitIdx = Int(parts[1]),
-                  byteIdx < bytes.count else { return nil }
+                let byteIdx = Self.byteIndex(forToken: String(parts[0])),
+                let bitIdx = Int(parts[1]),
+                byteIdx < bytes.count
+            else { return nil }
             let isSet = (bytes[byteIdx] & (1 << bitIdx)) != 0
             expr.replaceSubrange(bitRange, with: isSet ? "1" : "0")
         }
@@ -328,7 +330,8 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         // 4. Signed(token) -> signed integer value, via byteIndex(forToken:).
         if let signedRegex = try? NSRegularExpression(pattern: "(?i)signed\\(([a-z]{1,2})\\)") {
             while let match = signedRegex.firstMatch(in: expr, range: NSRange(expr.startIndex..., in: expr)),
-                  let charRange = Range(match.range(at: 1), in: expr) {
+                let charRange = Range(match.range(at: 1), in: expr)
+            {
                 guard let idx = Self.byteIndex(forToken: String(expr[charRange])), idx < bytes.count else { return nil }
                 let signedVal = Double(Int8(bitPattern: bytes[idx]))
                 expr = (expr as NSString).replacingCharacters(in: match.range, with: "(\(signedVal))")
@@ -340,7 +343,8 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         // replacement never re-matches `\b[A-Za-z]{1,2}\b`, so this always terminates.
         if let tokenRegex = try? NSRegularExpression(pattern: "\\b[A-Za-z]{1,2}\\b") {
             while let match = tokenRegex.firstMatch(in: expr, range: NSRange(expr.startIndex..., in: expr)),
-                  let tokenRange = Range(match.range, in: expr) {
+                let tokenRange = Range(match.range, in: expr)
+            {
                 let token = String(expr[tokenRange])
                 guard let idx = Self.byteIndex(forToken: token), idx < bytes.count else { return nil }
                 let numStr = "(\(Double(bytes[idx])))"
@@ -382,11 +386,9 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
     }
 }
 
-public final class ABRPProfileLoader {
-    public static let shared = ABRPProfileLoader()
-
-    private init() {}
-
+/// Stateless namespace. Declared as an enum so it cannot be instantiated and has no
+/// shared mutable state to make `Sendable`-questionable under Swift 6.
+public enum ABRPProfileLoader {
     public static func loadProfile(filename: String, name: String = "Community Profile", capacityKWh: Double = 75.0) -> ABRPGenericVehicleProfile? {
         #if SWIFT_PACKAGE
         let bundle = Bundle.module
@@ -395,11 +397,12 @@ public final class ABRPProfileLoader {
         #endif
 
         let baseName = (filename as NSString).deletingPathExtension
-        if let url = bundle.url(forResource: baseName, withExtension: "json", subdirectory: "abrp_pids") ??
-                     bundle.url(forResource: baseName, withExtension: "json") ??
-                     bundle.url(forResource: baseName, withExtension: "json", subdirectory: "Seed/abrp_pids") {
+        if let url = bundle.url(forResource: baseName, withExtension: "json", subdirectory: "abrp_pids") ?? bundle.url(
+            forResource: baseName, withExtension: "json") ?? bundle.url(forResource: baseName, withExtension: "json", subdirectory: "Seed/abrp_pids")
+        {
             if let data = try? Data(contentsOf: url),
-               let def = try? JSONDecoder().decode(ABRPProfileDefinition.self, from: data) {
+                let def = try? JSONDecoder().decode(ABRPProfileDefinition.self, from: data)
+            {
                 return ABRPGenericVehicleProfile(name: name, capacityKWh: capacityKWh, definition: def)
             }
         }
@@ -408,7 +411,7 @@ public final class ABRPProfileLoader {
 
     public static func loadBundledProfiles() -> [ABRPGenericVehicleProfile] {
         var profiles: [ABRPGenericVehicleProfile] = []
-        
+
         let knownFiles: [(name: String, filename: String, capacity: Double)] = [
             ("Ford Mustang Mach-E", "ford_MachE.json", 91.0),
             ("Hyundai IONIQ 5 / Kia EV6", "hkmc_Ioniq5.json", 77.4),
@@ -429,7 +432,7 @@ public final class ABRPProfileLoader {
             ("Aiways U5", "aiways_u5.json", 63.0),
             ("BYD Atto 3 / Yuan Plus", "byd_atto3.json", 60.5),
             ("BMW i3", "bmw_i3.json", 37.9),
-            ("Deepal S05", "deepal_s05.json", 56.1)
+            ("Deepal S05", "deepal_s05.json", 56.1),
         ]
 
         for item in knownFiles {

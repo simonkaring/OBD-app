@@ -2,7 +2,7 @@ import SwiftUI
 
 public struct VehicleProfilePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject public var vehicleData: VehicleDataManager
+    public var vehicleData: VehicleDataManager
     public let isFirstRun: Bool
 
     @State private var brandSearchText: String = ""
@@ -15,25 +15,25 @@ public struct VehicleProfilePickerSheet: View {
 
     private var filteredBrands: [VehicleBrand] {
         let brands = VehicleCatalog.brands.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-        
+
         let byPowertrain = brands.map { brand -> VehicleBrand in
             let filtered = evOnly ? brand.models.filter { $0.powertrain == .ev } : brand.models
             return VehicleBrand(id: brand.id, name: brand.name, iconSymbol: brand.iconSymbol, models: filtered)
         }.filter { !$0.models.isEmpty }
-        
+
         if brandSearchText.isEmpty {
             return byPowertrain
         } else {
             return byPowertrain.filter { brand in
-                brand.name.localizedCaseInsensitiveContains(brandSearchText) ||
-                brand.modelFamilies.contains { family in
-                    family.name.localizedCaseInsensitiveContains(brandSearchText) ||
-                    family.variants.contains { variant in
-                        variant.resolvedVariantDisplayName.localizedCaseInsensitiveContains(brandSearchText) ||
-                        variant.modelName.localizedCaseInsensitiveContains(brandSearchText) ||
-                        variant.years.localizedCaseInsensitiveContains(brandSearchText)
+                brand.name.localizedCaseInsensitiveContains(brandSearchText)
+                    || brand.modelFamilies.contains { family in
+                        family.name.localizedCaseInsensitiveContains(brandSearchText)
+                            || family.variants.contains { variant in
+                                variant.resolvedVariantDisplayName.localizedCaseInsensitiveContains(brandSearchText)
+                                    || variant.modelName.localizedCaseInsensitiveContains(brandSearchText)
+                                    || variant.years.localizedCaseInsensitiveContains(brandSearchText)
+                            }
                     }
-                }
             }
         }
     }
@@ -56,7 +56,9 @@ public struct VehicleProfilePickerSheet: View {
                             Label("Generic EV / Vehicle Not Listed", systemImage: "questionmark.circle")
                         }
                     } footer: {
-                        Text("Demo simulates a vehicle without an adapter. Generic EV reads standard OBD data where available; battery and charging telemetry are not guaranteed.")
+                        Text(
+                            "Demo simulates a vehicle without an adapter. Generic EV reads standard OBD data where available; battery and charging telemetry are not guaranteed."
+                        )
                     }
                 }
 
@@ -116,25 +118,25 @@ private struct BrandRow: View {
                     .frame(width: 32, height: 32)
             } else {
                 Image(systemName: brand.iconSymbol)
-                    .font(.system(size: 22))
-                    .foregroundColor(.secondary)
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
                     .frame(width: 32, height: 32)
             }
             #else
             Image(systemName: brand.iconSymbol)
-                .font(.system(size: 22))
-                .foregroundColor(.secondary)
+                .font(.title2)
+                .foregroundStyle(.secondary)
                 .frame(width: 32, height: 32)
             #endif
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(brand.name)
                     .font(.body)
-                    .foregroundColor(.primary)
+                    .foregroundStyle(.primary)
 
                 Text("\(brand.modelFamilies.count) \(brand.modelFamilies.count == 1 ? "model" : "models")")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -143,7 +145,7 @@ private struct BrandRow: View {
 
 private struct VehicleModelPickerView: View {
     let brand: VehicleBrand
-    @ObservedObject var vehicleData: VehicleDataManager
+    var vehicleData: VehicleDataManager
     let onSelect: () -> Void
 
     @State private var modelSearchText: String = ""
@@ -154,12 +156,12 @@ private struct VehicleModelPickerView: View {
             return families
         } else {
             return families.filter { family in
-                family.name.localizedCaseInsensitiveContains(modelSearchText) ||
-                family.variants.contains {
-                    $0.modelName.localizedCaseInsensitiveContains(modelSearchText) ||
-                    $0.resolvedVariantDisplayName.localizedCaseInsensitiveContains(modelSearchText) ||
-                    $0.years.localizedCaseInsensitiveContains(modelSearchText)
-                }
+                family.name.localizedCaseInsensitiveContains(modelSearchText)
+                    || family.variants.contains {
+                        $0.modelName.localizedCaseInsensitiveContains(modelSearchText)
+                            || $0.resolvedVariantDisplayName.localizedCaseInsensitiveContains(modelSearchText)
+                            || $0.years.localizedCaseInsensitiveContains(modelSearchText)
+                    }
             }
         }
     }
@@ -174,7 +176,7 @@ private struct VehicleModelPickerView: View {
                         .font(.headline)
                     Text("\(family.variants.count) \(family.variants.count == 1 ? "variant" : "variants")")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             }
@@ -187,7 +189,7 @@ private struct VehicleModelPickerView: View {
 
 private struct VehicleYearPickerView: View {
     let family: VehicleModelFamily
-    @ObservedObject var vehicleData: VehicleDataManager
+    var vehicleData: VehicleDataManager
     let onSelect: () -> Void
 
     var body: some View {
@@ -201,7 +203,8 @@ private struct VehicleYearPickerView: View {
                             Text(String(year))
                             Spacer()
                             if vehicleData.selectedModelYear == year,
-                               family.variants.contains(where: { $0.id == vehicleData.selectedVehicle.id }) {
+                                family.variants.contains(where: { $0.id == vehicleData.selectedVehicle.id })
+                            {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(Theme.electricCyan)
                                     .accessibilityLabel("Selected model year")
@@ -215,7 +218,9 @@ private struct VehicleYearPickerView: View {
                     VehicleVariantPickerView(family: family, modelYear: nil, vehicleData: vehicleData, onSelect: onSelect)
                 }
             } footer: {
-                Text("Choose the model year, which may differ from the registration year. Years reflect catalog availability; live telemetry support is shown for each variant.")
+                Text(
+                    "Choose the model year, which may differ from the registration year. Years reflect catalog availability; live telemetry support is shown for each variant."
+                )
             }
         }
         .navigationTitle("Model Year")
@@ -226,7 +231,7 @@ private struct VehicleYearPickerView: View {
 private struct VehicleVariantPickerView: View {
     let family: VehicleModelFamily
     let modelYear: Int?
-    @ObservedObject var vehicleData: VehicleDataManager
+    var vehicleData: VehicleDataManager
     let onSelect: () -> Void
 
     var body: some View {
@@ -248,7 +253,7 @@ private struct VehicleVariantRow: View {
     let model: VehicleModelEntry
     let title: String
     let modelYear: Int?
-    @ObservedObject var vehicleData: VehicleDataManager
+    var vehicleData: VehicleDataManager
 
     var body: some View {
         HStack {
@@ -256,7 +261,7 @@ private struct VehicleVariantRow: View {
                 HStack {
                     Text(title)
                         .font(.headline)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
 
                     Spacer()
 
@@ -270,50 +275,50 @@ private struct VehicleVariantRow: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Color.secondary.opacity(0.12))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .clipShape(Capsule())
                 }
 
                 HStack(spacing: 6) {
                     Text(modelYear.map { String($0) } ?? model.years)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     if model.batteryCapacityKWh > 0 {
                         Text("•")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text(String(format: "%.1f kWh", model.batteryCapacityKWh))
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     } else if model.powertrain != .ice {
                         Text("•")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text("Capacity unknown")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
                 HStack(spacing: 4) {
                     Label(model.telemetrySupport.displayName, systemImage: model.telemetrySupport == .verified ? "checkmark.circle.fill" : "circle")
                         .font(.caption)
-                        .foregroundColor(model.telemetrySupport == .verified ? Theme.regenGreen : .secondary)
+                        .foregroundStyle(model.telemetrySupport == .verified ? Theme.regenGreen : .secondary)
                 }
 
                 if let notes = model.notes {
                     Text(notes)
                         .font(.caption2)
-                        .foregroundColor(Theme.highPowerAmber)
+                        .foregroundStyle(Theme.highPowerAmber)
                 }
             }
 
             if vehicleData.selectedVehicle.id == model.id && vehicleData.selectedModelYear == modelYear {
                 Spacer()
                 Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.accentColor)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
                     .accessibilityLabel("Selected vehicle")
             }
         }

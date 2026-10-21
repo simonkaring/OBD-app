@@ -165,7 +165,8 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
     private func start(didsByECU: [String: [Int]]) {
         guard connectionState.isConnected, !isRunning else { return }
         guard referenceSOC.map({ (0...100).contains($0) }) ?? true,
-              referenceChargerPowerKW.map({ $0 >= 0 }) ?? true else { return }
+            referenceChargerPowerKW.map({ $0 >= 0 }) ?? true
+        else { return }
 
         results = []
         progress = 0
@@ -180,11 +181,11 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
         let startedAt = Date.now
         var adapterInfo: [String: String] = [:]
         for command in ["AT Z", "AT E0", "AT L0", "AT S1", "AT H1", "AT CAF 1", "AT SP 7", "AT CP 18", "AT ST FF", "AT AL"] {
-            guard !Task.isCancelled else { finish() ; return }
+            guard !Task.isCancelled else { finish(); return }
             _ = await send(command)
         }
         for command in ["ATI", "AT@1", "AT DP", "AT RV"] {
-            guard !Task.isCancelled else { finish() ; return }
+            guard !Task.isCancelled else { finish(); return }
             adapterInfo[command] = await send(command).trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
@@ -220,15 +221,16 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
         }
 
         if !Task.isCancelled {
-            captures.append(ProbeCapture(
-                id: UUID(),
-                kind: .discovery,
-                startedAt: startedAt,
-                finishedAt: .now,
-                references: references,
-                adapterInfo: adapterInfo,
-                results: results
-            ))
+            captures.append(
+                ProbeCapture(
+                    id: UUID(),
+                    kind: .discovery,
+                    startedAt: startedAt,
+                    finishedAt: .now,
+                    references: references,
+                    adapterInfo: adapterInfo,
+                    results: results
+                ))
         }
         finish()
     }
@@ -252,7 +254,7 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
             }
             adapterInfo[command] = await send(command).trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        
+
         while !Task.isCancelled {
             for command in ["22010A", "22010B", "22010C", "220210"] {
                 guard !Task.isCancelled else {
@@ -330,7 +332,7 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
             "AT CRA 18DAF1\(ecu)",
             "AT FCSH 18DA\(ecu)F1",
             "AT FCSD 300000",
-            "AT FCSM 1"
+            "AT FCSM 1",
         ] {
             let raw = await send(command)
             if raw.uppercased().contains("ERROR") { return false }
@@ -380,15 +382,16 @@ final class EQAProbeController: NSObject, ObservableObject, OBDConnectionDelegat
 
     private func finishLiveData(startedAt: Date, references: ProbeReferences, adapterInfo: [String: String]) {
         if !liveResponses.isEmpty {
-            captures.append(ProbeCapture(
-                id: UUID(),
-                kind: .liveData,
-                startedAt: startedAt,
-                finishedAt: .now,
-                references: references,
-                adapterInfo: adapterInfo,
-                results: liveResponses
-            ))
+            captures.append(
+                ProbeCapture(
+                    id: UUID(),
+                    kind: .liveData,
+                    startedAt: startedAt,
+                    finishedAt: .now,
+                    references: references,
+                    adapterInfo: adapterInfo,
+                    results: liveResponses
+                ))
         }
         isRunning = false
         isLivePolling = false

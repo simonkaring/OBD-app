@@ -24,10 +24,21 @@ public struct ChargingSessionDetailView: View {
         return "\(max(1, minutes))m"
     }
 
+    private var exportButton: some View {
+        ShareLink(
+            item: ChargingCSVExport(session: session),
+            preview: SharePreview("Charging Session CSV", image: Image(systemName: "tablecells"))
+        ) {
+            Image(systemName: "square.and.arrow.up")
+        }
+        .accessibilityLabel("Export charging session")
+    }
+
     private var coordinate: CLLocationCoordinate2D? {
         guard let lat = session.latitude, let lon = session.longitude,
-              (-90...90).contains(lat), (-180...180).contains(lon),
-              !(lat == 0 && lon == 0) else { return nil }
+            (-90...90).contains(lat), (-180...180).contains(lon),
+            !(lat == 0 && lon == 0)
+        else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
@@ -43,30 +54,32 @@ public struct ChargingSessionDetailView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(session.locationName.uppercased())
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(Theme.regenGreen)
+                                    .foregroundStyle(Theme.regenGreen)
                                 Text(session.startTime.formatted(date: .abbreviated, time: .shortened))
                                     .font(.title3.weight(.semibold))
-                                    .foregroundColor(Theme.textPrimary)
+                                    .foregroundStyle(Theme.textPrimary)
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text("DURATION")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundStyle(Theme.textSecondary)
                                 Text(durationText)
                                     .font(.headline)
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                             }
                         }
 
                         if let end = session.endTime {
                             HStack {
                                 Image(systemName: "clock.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Theme.textSecondary)
-                                Text("Time Range: \(session.startTime.formatted(date: .omitted, time: .standard)) - \(end.formatted(date: .omitted, time: .standard))")
                                     .font(.caption)
-                                    .foregroundColor(Theme.textSecondary)
+                                    .foregroundStyle(Theme.textSecondary)
+                                Text(
+                                    "Time Range: \(session.startTime.formatted(date: .omitted, time: .standard)) - \(end.formatted(date: .omitted, time: .standard))"
+                                )
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
                             }
                         }
 
@@ -76,30 +89,30 @@ public struct ChargingSessionDetailView: View {
                         HStack(spacing: 16) {
                             VStack(alignment: .leading) {
                                 Text("Energy Added")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.2f kWh", session.totalKWhDelivered))
                                     .font(.title2.weight(.semibold))
-                                    .foregroundColor(Theme.regenGreen)
+                                    .foregroundStyle(Theme.regenGreen)
                             }
 
                             Spacer()
 
                             VStack(alignment: .leading) {
                                 Text("Peak Power")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.1f kW", session.peakPowerKW))
                                     .font(.title2.weight(.semibold))
-                                    .foregroundColor(Theme.highPowerAmber)
+                                    .foregroundStyle(Theme.highPowerAmber)
                             }
 
                             Spacer()
 
                             VStack(alignment: .leading) {
                                 Text("Avg Power")
-                                    .font(.caption).foregroundColor(Theme.textSecondary)
+                                    .font(.caption).foregroundStyle(Theme.textSecondary)
                                 Text(String(format: "%.1f kW", session.averagePowerKW))
                                     .font(.title2.weight(.semibold))
-                                    .foregroundColor(Theme.electricCyan)
+                                    .foregroundStyle(Theme.electricCyan)
                             }
                         }
                     }
@@ -115,10 +128,13 @@ public struct ChargingSessionDetailView: View {
                             .padding(.horizontal)
 
                         if let coord = coordinate {
-                            Map(initialPosition: .region(MKCoordinateRegion(
-                                center: coord,
-                                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                            ))) {
+                            Map(
+                                initialPosition: .region(
+                                    MKCoordinateRegion(
+                                        center: coord,
+                                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                                    ))
+                            ) {
                                 Marker(session.locationName, systemImage: "bolt.fill", coordinate: coord)
                                     .tint(Theme.regenGreen)
                             }
@@ -150,7 +166,7 @@ public struct ChargingSessionDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("BATTERY & CHARGE STATS")
                             .font(.caption.weight(.semibold))
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal)
 
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -193,21 +209,29 @@ public struct ChargingSessionDetailView: View {
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
+                exportButton
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
-                        .foregroundColor(Theme.criticalRed)
+                        .foregroundStyle(Theme.criticalRed)
                 }
+                .accessibilityLabel("Delete charging session")
             }
             #else
+            ToolbarItem(placement: .automatic) {
+                exportButton
+            }
             ToolbarItem(placement: .automatic) {
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")
-                        .foregroundColor(Theme.criticalRed)
+                        .foregroundStyle(Theme.criticalRed)
                 }
+                .accessibilityLabel("Delete charging session")
             }
             #endif
         }
@@ -233,13 +257,13 @@ private struct StatTile: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
                 .font(.caption.weight(.semibold))
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
             Text(value)
                 .font(.headline)
-                .foregroundColor(accentColor)
+                .foregroundStyle(accentColor)
             Text(subtitle)
                 .font(.caption)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)

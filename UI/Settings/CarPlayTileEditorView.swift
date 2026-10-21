@@ -3,7 +3,7 @@ import SwiftUI
 /// Reorder/add/remove editor for CarPlay's grid tiles, reusing the same list-editor
 /// pattern as `DashboardCustomizationSheet`.
 public struct CarPlayTileEditorView: View {
-    @ObservedObject public var vehicleData: VehicleDataManager
+    public var vehicleData: VehicleDataManager
     @AppStorage(CarPlayLayout.storageKey) private var layout: CarPlayLayout = .default
     @State private var showAddTile = false
 
@@ -35,6 +35,7 @@ public struct CarPlayTileEditorView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Add CarPlay tile")
                     .disabled(layout.tiles.count >= CarPlayLayout.maxTiles)
                 }
             }
