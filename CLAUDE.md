@@ -21,6 +21,12 @@ The codebase builds two ways: the `Package.swift` SPM target `VoltLinkEngine` (u
 
 `scratch/` holds one-off scripts used to (re)generate the `.xcodeproj`; not part of the app build.
 
+## Knowledge Bundle (OKF)
+
+`knowledge/` is an [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format) v0.2 bundle (markdown + YAML frontmatter) serving as the repo reference for humans and agents. Architecture concepts are hand-authored; vehicle profiles, telemetry metrics, curated DTCs, and all `index.md` files are generated from `VehicleProfileID`, `TelemetryMetric`, and the seed JSON.
+
+After changing profiles/commands/metrics or DTC seed data: `swift run VoltLinkCLI okf export`. Update `knowledge/architecture/*.md` when behavior changes. `swift test` fails on drift (`KnowledgeBundleTests`). Validate with `swift run VoltLinkCLI okf check`.
+
 ## Architecture
 
 Data flows one direction: BLE adapter → parser → vehicle profile → manager → SwiftUI view, fanned out to five tabs (`MainTabView` in `App/VoltLinkApp.swift`) plus a CarPlay scene.

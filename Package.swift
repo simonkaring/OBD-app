@@ -39,6 +39,7 @@ let package = Package(
                 "skills-lock.json",
                 "build",
                 "docs",
+                "knowledge",
                 "scratch",
                 "Tools",
                 "Tests",

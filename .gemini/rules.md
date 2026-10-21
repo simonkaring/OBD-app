@@ -74,3 +74,9 @@ OBD-app/
 
 4. **Testing Requirement**:
    - Always run `swift test` after modifying PID decoders, ISO-TP frame parsers, or data models to ensure zero regressions.
+
+5. **OKF Knowledge Bundle**:
+   - `knowledge/` is an Open Knowledge Format v0.2 bundle used as the human/AI reference for this repo.
+   - Run `swift run VoltLinkCLI okf export` after changing `VehicleProfileID`, profile commands/metrics, `Core/Telemetry/TelemetryMetric.swift`, or `Data/Seed/dtc_definitions.json`.
+   - Update `knowledge/architecture/*.md` when data flow, concurrency, charging, demo, or testing behavior changes. Do not hand-edit generated concepts or `index.md`.
+   - `swift test` (`KnowledgeBundleTests`) fails when the bundle is stale.

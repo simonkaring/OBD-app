@@ -32,7 +32,13 @@ case "dtc":
     
 case "monitor", "live":
     await MonitorCommand.run(args: subArgs)
-    
+
+case "okf":
+    OKFCommand.run(args: subArgs)
+
+case "knowledge":
+    OKFCommand.run(args: ["export"] + subArgs)
+
 default:
     print("❌ Unknown command: '\(command)'")
     printUsage()
@@ -53,6 +59,7 @@ func printUsage() {
       probe [options]          Sweep UDS DIDs across ECUs to discover supported identifiers
       dtc [--clear]            Read or clear Diagnostic Trouble Codes (DTCs)
       monitor [--profile <p>]  Stream live decoded telemetry to the terminal
+      okf export|check         Regenerate or validate the OKF knowledge bundle
 
     PROBE OPTIONS:
       --ecu <id,...>           Comma-separated ECU addresses (default: 59,29,17)

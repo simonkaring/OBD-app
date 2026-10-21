@@ -141,3 +141,14 @@ Don't have an OBD-II adapter nearby? No problem!
 - **CarPlay**: `CPTemplateApplicationSceneDelegate` + `CPGridTemplate`
 - **Dynamic Island**: ActivityKit (`VoltLinkActivityAttributes`)
 - **Persistence**: SwiftData (`TripModel`, `ChargingSessionModel`, `SavedDTCModel`)
+
+## 📚 Knowledge Bundle (OKF)
+
+`knowledge/` is an [Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format) v0.2 bundle — plain markdown with YAML frontmatter that gives humans and AI agents a navigable reference to the codebase. It covers the architecture, every registered vehicle profile, every telemetry metric, and the curated DTC definitions.
+
+```bash
+swift run VoltLinkCLI okf export   # regenerate generated concepts and indexes
+swift run VoltLinkCLI okf check    # validate OKF conformance and source drift
+```
+
+`knowledge/architecture/` is hand-authored. Profiles, metrics, DTCs, and all `index.md` files are generated from the same Swift registry and seed data the app uses, and `swift test` fails if the checked-in bundle is stale.

@@ -13,12 +13,33 @@ swift test
 xcodebuild -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhone 17'
 open VoltLink.xcodeproj
 ./scratch/repack_ipa.sh   # archive & package build/VoltLink.ipa
+swift run VoltLinkCLI okf export   # regenerate the knowledge/ OKF bundle
+swift run VoltLinkCLI okf check    # validate conformance and drift
 ```
 
 Run `swift test` after changing PID decoders, ISO-TP parsing, or SwiftData
 models. `Package.swift` builds the macOS-testable `VoltLinkEngine`; the Xcode
 project builds the iOS/CarPlay app. `scratch/` contains project-generation
 scripts and is not part of the app build.
+
+## Knowledge Bundle (OKF)
+
+`knowledge/` is an Open Knowledge Format v0.2 bundle: plain markdown with YAML
+frontmatter that gives humans and AI agents a navigable reference to this
+codebase. `knowledge/architecture/` is hand-authored; `knowledge/vehicles/`,
+`knowledge/telemetry/`, and `knowledge/diagnostics/` are generated from the
+vehicle registry, `TelemetryMetric`, and the curated DTC seed.
+
+- After changing `VehicleProfileID`, any vehicle profile's commands or
+  `supportedMetrics`, `Core/Telemetry/TelemetryMetric.swift`, or
+  `Data/Seed/dtc_definitions.json`, run `swift run VoltLinkCLI okf export`.
+- Update the relevant `knowledge/architecture/*.md` concept when the data flow,
+  concurrency rules, charging/trip behavior, demo mode, or test commands change.
+  New architecture docs are indexed automatically by the next export.
+- `swift test` fails when the checked-in bundle drifts from its sources
+  (`KnowledgeBundleTests`). Never hand-edit generated concepts or `index.md`.
+- Keep frontmatter `type`, `title`, and a one-line `description` on every
+  hand-authored concept; they drive the generated indexes.
 
 ## Architecture
 
