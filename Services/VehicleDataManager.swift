@@ -139,6 +139,14 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
         return displayed
     }
 
+    /// Express a recorded (raw) SoC reading on the same scale as the battery bar, which may
+    /// be offset by a dashboard reference. Recordings stay raw; only presentation shifts.
+    public func displayedSOC(fromRaw raw: Double) -> Double {
+        guard !isDemoMode, liveMetrics.contains(.soc), latestTelemetry.socUpdatedAt != nil,
+              let offset = socReferenceOffset else { return raw }
+        return min(100, max(0, raw + offset))
+    }
+
     public func toggleDemoMode(_ enabled: Bool) {
         guard !isCommandSessionActive, enabled != isDemoMode, prepareDemoModeChange?(enabled) ?? true else { return }
         stopPolling()
@@ -821,7 +829,11 @@ public final class VehicleDataManager: ObservableObject, OBDConnectionDelegate {
     public func obdConnectionDidReceiveResponse(command: String, rawResponse: String) {
         // Handled via sendCommand completion or mock stream
         if isDemoMode, let mock = obdConnection as? MockOBDAdapter {
-            self.latestTelemetry = mock.simulationEngine.telemetry
+            let telemetry = mock.simulationEngine.telemetry
+            self.latestTelemetry = telemetry
+            // Demo telemetry bypasses the polling path, so drive the live charging session
+            // here as well instead of leaving it stuck at its idle state.
+            updateChargingSession(telemetry)
         }
     }
 

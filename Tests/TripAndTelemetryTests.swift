@@ -323,6 +323,25 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(manager.latestTelemetry.powerKW, 0, "An SOC estimate is not measured pack power")
     }
 
+    func testChargingSessionRemembersStartSOCWhileSOCClimbs() throws {
+        let manager = VehicleDataManager()
+        let startedAt = Date.now
+        let socs = [62.000, 62.046, 62.091, 62.137, 62.183, 62.229]
+        for (index, soc) in socs.enumerated() {
+            manager.applyUpdates([.speed(0), .soc(soc)], timestamp: startedAt.addingTimeInterval(Double(index) * 10))
+        }
+
+        XCTAssertTrue(manager.chargingSession.isCharging)
+        let startSOC = try XCTUnwrap(manager.chargingSession.startSOC)
+        XCTAssertEqual(startSOC, 62.137, accuracy: 0.01, "The first charging estimate pins the start of the session")
+        XCTAssertEqual(try XCTUnwrap(manager.chargingSession.currentSOC), 62.229, accuracy: 0.01)
+        XCTAssertEqual(manager.chargingSession.socGained, 0.092, accuracy: 0.01)
+
+        manager.applyUpdates([.speed(0), .soc(63.000)], timestamp: startedAt.addingTimeInterval(60))
+        XCTAssertEqual(manager.chargingSession.startSOC ?? 0, startSOC, accuracy: 0.0001,
+                       "Later snapshots must not move the session start")
+    }
+
     func testSelectedVehicleCapacityDrivesChargingEstimate() {
         let manager = VehicleDataManager()
         let ioniq = VehicleCatalog.allModels.first {

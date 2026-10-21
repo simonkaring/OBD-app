@@ -122,6 +122,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         XCTAssertFalse(manager.setSOCReference(80))
         XCTAssertEqual(manager.socReferenceOffset, 5)
         XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 75, "Demo readings bypass the saved adjustment")
+        XCTAssertEqual(manager.displayedSOC(fromRaw: 75), 75, "Demo readings bypass the saved adjustment")
     }
 
     @MainActor
@@ -143,6 +144,9 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         manager.applyUpdates([.speed(0), .soc(50.12)], timestamp: now)
         XCTAssertEqual(manager.latestTelemetry.stateOfChargePct, 50.12)
         XCTAssertEqual(manager.displayedTelemetry.stateOfChargePct, 80.04, accuracy: 0.0001)
+        XCTAssertEqual(manager.displayedSOC(fromRaw: 50.12), 80.04, accuracy: 0.0001,
+                       "Recorded start SOC values must land on the displayed scale")
+        XCTAssertEqual(manager.displayedSOC(fromRaw: 98), 100, "The reference must clamp like displayed telemetry")
         XCTAssertEqual(manager.latestTelemetry.chargePowerSource, .socEstimate)
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 9.576, accuracy: 0.0001)
         XCTAssertEqual(manager.displayedTelemetry.chargePowerKW, manager.latestTelemetry.chargePowerKW)

@@ -40,6 +40,16 @@ public struct ChargingLiveView: View {
         return vehicleData.latestTelemetry.chargePowerSource == .socEstimate ? "Charging (estimated)" : "Charging"
     }
 
+    /// Battery level when the current charge began, on the same scale as the displayed level
+    /// (a saved dashboard reference offset applies to both). Only shown while charging.
+    private var chargingStartSocPct: Double? {
+        guard isCharging, hasSOC, let startSoc = vehicleData.chargingSession.startSOC,
+              startSoc.isFinite, startSoc >= 0 else { return nil }
+        let displayedStart = vehicleData.displayedSOC(fromRaw: startSoc)
+        guard displayedStart <= vehicleData.displayedTelemetry.stateOfChargePct else { return nil }
+        return displayedStart
+    }
+
     private var usableCapacityKWh: Double {
         vehicleData.usableBatteryCapacityKWh
     }
@@ -109,7 +119,8 @@ public struct ChargingLiveView: View {
                         BatteryLevelBar(
                             socPct: hasSOC ? vehicleData.displayedTelemetry.stateOfChargePct : nil,
                             batteryTempC: isConnected && hasBatteryTemperature ? vehicleData.latestTelemetry.batteryTempC : nil,
-                            isCharging: isCharging
+                            isCharging: isCharging,
+                            startSocPct: chargingStartSocPct
                         )
                         .padding(.horizontal)
 
