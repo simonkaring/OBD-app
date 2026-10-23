@@ -16,11 +16,13 @@ struct SharedSnapshotProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SharedSnapshotEntry) -> Void) {
-        completion(SharedSnapshotEntry(date: Date(), snapshot: SharedTelemetryStore.load()))
+        completion(SharedSnapshotEntry(date: Date(), snapshot: SharedTelemetryStore.loadFresh()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SharedSnapshotEntry>) -> Void) {
-        let entry = SharedSnapshotEntry(date: Date(), snapshot: SharedTelemetryStore.load())
+        // A snapshot the app stopped refreshing no longer describes the car; the view
+        // falls back to its placeholder instead of showing last night's charge rate.
+        let entry = SharedSnapshotEntry(date: Date(), snapshot: SharedTelemetryStore.loadFresh())
         // The app reloads timelines when telemetry meaningfully changes; this refresh
         // keeps a stale snapshot from claiming to be live.
         let next = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
@@ -49,6 +51,7 @@ private struct VoltLinkStatusWidgetView: View {
     private var snapshot: SharedTelemetrySnapshot? { entry.snapshot }
 
     private var soc: Double { snapshot?.socPct ?? 0 }
+    private var units: SharedDisplayUnits { snapshot?.units ?? SharedDisplayUnits() }
     private var accent: Color { soc < 20 ? .red : (snapshot?.isCharging == true ? .green : .cyan) }
 
     var body: some View {
@@ -66,10 +69,14 @@ private struct VoltLinkStatusWidgetView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(snapshot.vehicleName)
                         .font(.caption2)
-                    Text("\(Int(soc.rounded()))% · \(Int((snapshot.rangeKm ?? 0).rounded())) km")
+                    Text("\(Int(soc.rounded()))% · \(Int(units.distance(kilometers: snapshot.rangeKm ?? 0).rounded())) \(units.distanceSymbol)")
                         .font(.headline)
-                    Text(snapshot.isCharging ? "Charging \(Int(snapshot.powerKW.rounded())) kW" : (snapshot.isConnected ? "Connected" : "Disconnected"))
-                        .font(.caption2)
+                    Text(
+                        snapshot.isCharging
+                            ? "Charging \(Int(units.power(kilowatts: snapshot.powerKW).rounded())) \(units.powerSymbol)"
+                            : (snapshot.isConnected ? "Connected" : "Disconnected")
+                    )
+                    .font(.caption2)
                 }
             default:
                 content(for: snapshot)
@@ -112,7 +119,7 @@ private struct VoltLinkStatusWidgetView: View {
             }
 
             if let range = snapshot.rangeKm, range > 0 {
-                Text("≈ \(Int(range.rounded())) km")
+                Text("≈ \(Int(units.distance(kilometers: range).rounded())) \(units.distanceSymbol)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -125,13 +132,18 @@ private struct VoltLinkStatusWidgetView: View {
                 Divider()
                 HStack(spacing: 12) {
                     Label(
-                        snapshot.isCharging ? "\(Int(snapshot.powerKW.rounded())) kW" : "\(Int(snapshot.speedKmH.rounded())) km/h",
+                        snapshot.isCharging
+                            ? "\(Int(units.power(kilowatts: snapshot.powerKW).rounded())) \(units.powerSymbol)"
+                            : "\(Int(units.speed(kilometersPerHour: snapshot.speedKmH).rounded())) \(units.speedSymbol)",
                         systemImage: snapshot.isCharging ? "bolt" : "speedometer"
                     )
                     .font(.caption)
                     if snapshot.isTripActive {
-                        Label("\(Int(snapshot.distanceKm.rounded())) km", systemImage: "road.lanes")
-                            .font(.caption)
+                        Label(
+                            "\(Int(units.distance(kilometers: snapshot.distanceKm).rounded())) \(units.distanceSymbol)",
+                            systemImage: "road.lanes"
+                        )
+                        .font(.caption)
                     }
                 }
                 .foregroundStyle(.secondary)

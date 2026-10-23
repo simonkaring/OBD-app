@@ -1,5 +1,56 @@
 import Foundation
 
+/// Display units mirrored into the widget extension.
+///
+/// `UnitPreferences` lives in `Core/Units`, which only the app target compiles, so the
+/// app writes its selected units alongside the SI snapshot and the widget converts at
+/// render time. Telemetry itself stays SI in both processes.
+public struct SharedDisplayUnits: Codable, Hashable, Sendable {
+    public enum Distance: String, Codable, Sendable {
+        case kilometers
+        case miles
+
+        public var symbol: String { self == .kilometers ? "km" : "mi" }
+        public var perHourSymbol: String { self == .kilometers ? "km/h" : "mph" }
+    }
+
+    public enum Power: String, Codable, Sendable {
+        case kilowatts
+        case horsepower
+
+        public var symbol: String { self == .kilowatts ? "kW" : "hp" }
+    }
+
+    public var distance: Distance
+    public var power: Power
+
+    public init(distance: Distance = .kilometers, power: Power = .kilowatts) {
+        self.distance = distance
+        self.power = power
+    }
+
+    /// Same constants as `UnitPreferences`; duplicated because the extension only
+    /// compiles `Core/Sharing`.
+    private static let kilometersPerMile = 1.609_344
+    private static let kilowattsPerHorsepower = 0.745_699_872
+
+    public var distanceSymbol: String { distance.symbol }
+    public var speedSymbol: String { distance.perHourSymbol }
+    public var powerSymbol: String { power.symbol }
+
+    public func distance(kilometers: Double) -> Double {
+        distance == .kilometers ? kilometers : kilometers / Self.kilometersPerMile
+    }
+
+    public func speed(kilometersPerHour: Double) -> Double {
+        distance == .kilometers ? kilometersPerHour : kilometersPerHour / Self.kilometersPerMile
+    }
+
+    public func power(kilowatts: Double) -> Double {
+        power == .kilowatts ? kilowatts : kilowatts / Self.kilowattsPerHorsepower
+    }
+}
+
 /// The small telemetry snapshot shared with the widget extension through the app group.
 ///
 /// The widget never opens the SwiftData store or touches CoreBluetooth: the app writes
@@ -16,6 +67,11 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
     public var isTripActive: Bool
     public var distanceKm: Double
     public var updatedAt: Date
+    public var units: SharedDisplayUnits
+
+    /// How long a snapshot still describes the car. Nothing refreshes the app group once
+    /// the app is suspended, so a widget must not keep claiming last night's values.
+    public static let maximumAge: TimeInterval = 120
 
     public init(
         vehicleName: String,
@@ -28,7 +84,8 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         isDemoMode: Bool = false,
         isTripActive: Bool = false,
         distanceKm: Double = 0,
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        units: SharedDisplayUnits = SharedDisplayUnits()
     ) {
         self.vehicleName = vehicleName
         self.socPct = socPct
@@ -41,13 +98,14 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         self.isTripActive = isTripActive
         self.distanceKm = distanceKm
         self.updatedAt = updatedAt
+        self.units = units
     }
 
     private enum CodingKeys: String, CodingKey {
-        case vehicleName, socPct, powerKW, speedKmH, rangeKm, isCharging, isConnected, isDemoMode, isTripActive, distanceKm, updatedAt
+        case vehicleName, socPct, powerKW, speedKmH, rangeKm, isCharging, isConnected, isDemoMode, isTripActive, distanceKm, updatedAt, units
     }
 
-    /// Tolerates snapshots written before `speedKmH` existed.
+    /// Tolerates snapshots written before later fields (`speedKmH`, `units`, …) existed.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         vehicleName = try container.decode(String.self, forKey: .vehicleName)
@@ -61,6 +119,14 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         isTripActive = try container.decodeIfPresent(Bool.self, forKey: .isTripActive) ?? false
         distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm) ?? 0
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
+        units = try container.decodeIfPresent(SharedDisplayUnits.self, forKey: .units) ?? SharedDisplayUnits()
+    }
+
+    /// `true` once the snapshot no longer describes the car (app suspended or killed).
+    /// Snapshots from older builds decode `updatedAt` as `.distantPast`, so they count
+    /// as expired rather than as live data.
+    public func isStale(at date: Date = .now, maximumAge: TimeInterval = SharedTelemetrySnapshot.maximumAge) -> Bool {
+        date.timeIntervalSince(updatedAt) > maximumAge
     }
 }
 
@@ -85,22 +151,54 @@ public enum SharedTelemetryStore {
         guard let data = (defaults ?? Self.defaults()).data(forKey: snapshotKey) else { return nil }
         return try? JSONDecoder().decode(SharedTelemetrySnapshot.self, from: data)
     }
+
+    /// The snapshot only if it is still fresh enough to describe the car.
+    public static func loadFresh(
+        maxAge: TimeInterval = SharedTelemetrySnapshot.maximumAge,
+        now: Date = .now,
+        defaults: UserDefaults? = nil
+    ) -> SharedTelemetrySnapshot? {
+        guard let snapshot = load(defaults: defaults), !snapshot.isStale(at: now, maximumAge: maxAge) else { return nil }
+        return snapshot
+    }
 }
 
 #if canImport(WidgetKit)
 import WidgetKit
 
 /// Coalesces widget refreshes: telemetry publishes up to several times per second,
-/// while WidgetKit only needs a new timeline a few times per minute.
+/// while WidgetKit budgets a few dozen timeline reloads per day.
 @MainActor
 public enum SharedWidgetRefresher {
     private static var lastReload = Date.distantPast
-    private static let minimumInterval: TimeInterval = 10
+    private static var lastSignature: String?
+    private static let minimumInterval: TimeInterval = 60
 
-    public static func refreshIfNeeded(at date: Date = .now, force: Bool = false) {
-        guard force || date.timeIntervalSince(lastReload) >= minimumInterval else { return }
+    public static func refreshIfNeeded(for snapshot: SharedTelemetrySnapshot, at date: Date = .now, force: Bool = false) {
+        let signature = signature(of: snapshot)
+        guard force || (signature != lastSignature && date.timeIntervalSince(lastReload) >= minimumInterval) else { return }
         lastReload = date
+        lastSignature = signature
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Only the values the widget draws, rounded to the precision it draws them at, so
+    /// sub-percent SoC drift does not spend a reload.
+    private static func signature(of snapshot: SharedTelemetrySnapshot) -> String {
+        let units = snapshot.units
+        return [
+            snapshot.vehicleName,
+            String(Int(snapshot.socPct.rounded())),
+            String(Int(units.power(kilowatts: snapshot.powerKW).rounded())),
+            String(Int(units.speed(kilometersPerHour: snapshot.speedKmH).rounded())),
+            String(Int(units.distance(kilometers: snapshot.rangeKm ?? 0).rounded())),
+            String(Int(units.distance(kilometers: snapshot.distanceKm).rounded())),
+            snapshot.isCharging ? "charging" : "idle",
+            snapshot.isConnected ? "connected" : "disconnected",
+            snapshot.isTripActive ? "trip" : "parked",
+            units.distanceSymbol,
+            units.powerSymbol,
+        ].joined(separator: "|")
     }
 }
 #endif

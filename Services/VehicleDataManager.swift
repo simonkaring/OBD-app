@@ -772,6 +772,12 @@ public final class VehicleDataManager: OBDConnectionDelegate {
         // Handled via sendCommand completion or mock stream
         if isDemoMode, let mock = obdConnection as? MockOBDAdapter {
             let telemetry = mock.simulationEngine.telemetry
+            // Demo telemetry bypasses `applyUpdate`, which is the only place that fills
+            // `liveMetrics`; without this every metric reads "No data" while the demo
+            // simulation is feeding it. The simulator supplies exactly the metrics demo
+            // mode advertises.
+            let demoMetrics = TelemetryMetric.includingDerivedMetrics(supportedMetrics)
+            if liveMetrics != demoMetrics { liveMetrics = demoMetrics }
             publishTelemetry(telemetry)
             // Demo telemetry bypasses the polling path, so drive the live charging session
             // here as well instead of leaving it stuck at its idle state.

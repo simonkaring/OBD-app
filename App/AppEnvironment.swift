@@ -149,6 +149,11 @@ public final class AppEnvironment: ObservableObject {
 
         let soc = vehicleData.displayedTelemetry.stateOfChargePct
         let range = vehicleData.estimatedFullRangeKm.map { $0 * max(0, min(100, soc)) / 100 }
+        // The widget extension cannot read `UnitPreferences`, so mirror the user's choice.
+        let preferences = UnitPreferences.shared
+        let units = SharedDisplayUnits(
+            distance: preferences.distanceUnit == .miles ? .miles : .kilometers,
+            power: preferences.powerUnit == .horsepower ? .horsepower : .kilowatts)
         let shared = SharedTelemetrySnapshot(
             vehicleName: vehicleData.vehicleName,
             socPct: soc,
@@ -160,12 +165,13 @@ public final class AppEnvironment: ObservableObject {
             isDemoMode: vehicleData.isDemoMode,
             isTripActive: tripTracker?.currentTrip != nil,
             distanceKm: tripTracker?.currentTrip?.distanceKm ?? 0,
-            updatedAt: now
+            updatedAt: now,
+            units: units
         )
         SharedTelemetryStore.save(shared)
 
         #if os(iOS)
-        SharedWidgetRefresher.refreshIfNeeded(at: now)
+        SharedWidgetRefresher.refreshIfNeeded(for: shared, at: now)
         LiveActivityCoordinator.shared.update(
             snapshot: shared,
             chargingActive: snapshot.isCharging,

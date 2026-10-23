@@ -503,6 +503,22 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertEqual(manager.latestTelemetry.powerKW, -3.39, accuracy: 0.01)
     }
 
+    func testDemoTelemetryMarksSupportedMetricsLive() {
+        let manager = VehicleDataManager()
+        manager.toggleDemoMode(true)
+        XCTAssertTrue(manager.liveMetrics.isEmpty, "Starting demo mode clears stale live-state")
+
+        manager.obdConnectionDidReceiveResponse(command: "MOCK", rawResponse: "")
+
+        // Demo telemetry bypasses the polling path, so it must still populate liveMetrics;
+        // otherwise the metric-status and widget screens report "No data" while the demo
+        // simulation is displaying values.
+        XCTAssertTrue(manager.liveMetrics.contains(.soc))
+        XCTAssertTrue(manager.liveMetrics.contains(.power))
+        XCTAssertTrue(manager.liveMetrics.contains(.speed))
+        XCTAssertTrue(manager.supportedMetrics.isSubset(of: manager.liveMetrics))
+    }
+
     func testDemoModeFlagControllingDemoTrips() {
         let manager = VehicleDataManager()
         XCTAssertFalse(manager.isDemoMode)

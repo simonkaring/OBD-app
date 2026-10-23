@@ -70,7 +70,11 @@ fastlane/test_output
 # Xcode User Data & SwiftPM
 *.xcuserdata
 .swiftpm/
-scratch/
+# scratch/ holds throwaway experiments, but the project generator and the repack
+# script are tracked: CI and the READMEs invoke them.
+scratch/*
+!scratch/make_xcodeproj.py
+!scratch/repack_ipa.sh
 build/
 
 # Local AI, Agents, and Vector DBs

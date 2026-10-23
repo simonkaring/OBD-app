@@ -42,9 +42,14 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
    charging tracking, and DTC scanning together. It also mirrors telemetry into
    three side outputs (throttled to one write every two seconds):
    - `SharedTelemetryStore` writes a compact snapshot into the
-     `group.com.simonkaring.voltlink` app group for the widget extension.
-   - `SharedWidgetRefresher` asks WidgetKit for a new timeline at most every ten
-     seconds.
+     `group.com.simonkaring.voltlink` app group for the widget extension. The
+     snapshot stays SI and carries the user's display units, because the
+     extension cannot read `UnitPreferences`; it also carries `updatedAt`, and
+     the widget renders its placeholder once a snapshot is older than two
+     minutes instead of showing stale values as live.
+   - `SharedWidgetRefresher` asks WidgetKit for a new timeline at most once a
+     minute, and only when a value the widget draws (round-SoC, charge power,
+     range, speed, state flags, units) actually changed.
    - `LiveActivityCoordinator` starts/updates/ends the single trip-or-charging
      Live Activity (charging wins when both are active).
 

@@ -42,7 +42,8 @@ public final class LiveActivityCoordinator {
             powerKW: snapshot.powerKW,
             speedKmH: snapshot.speedKmH,
             distanceKm: snapshot.distanceKm,
-            startedAt: mode == activeMode ? startedAt : Date()
+            startedAt: mode == activeMode ? startedAt : Date(),
+            units: snapshot.units
         )
 
         if activity == nil || activeMode != mode {

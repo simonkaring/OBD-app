@@ -34,13 +34,19 @@ struct VoltLinkLiveActivityWidget: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
+                    let units = context.state.units
                     HStack(spacing: 16) {
                         if context.state.mode == .charging {
-                            Label("\(Int(context.state.powerKW.rounded())) kW", systemImage: "bolt")
+                            Label(
+                                "\(Int(units.power(kilowatts: context.state.powerKW).rounded())) \(units.powerSymbol)", systemImage: "bolt")
                             Label("Since \(context.state.startedAt.formatted(date: .omitted, time: .shortened))", systemImage: "clock")
                         } else {
-                            Label("\(Int(context.state.speedKmH.rounded())) km/h", systemImage: "speedometer")
-                            Label("\(String(format: "%.1f", context.state.distanceKm)) km", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                            Label(
+                                "\(Int(units.speed(kilometersPerHour: context.state.speedKmH).rounded())) \(units.speedSymbol)",
+                                systemImage: "speedometer")
+                            Label(
+                                "\(String(format: "%.1f", units.distance(kilometers: context.state.distanceKm))) \(units.distanceSymbol)",
+                                systemImage: "point.topleft.down.to.point.bottomright.curvepath")
                         }
                         Spacer()
                     }
@@ -65,6 +71,8 @@ struct VoltLinkLiveActivityWidget: Widget {
 private struct LockScreenActivityView: View {
     let context: ActivityViewContext<VoltLinkActivityAttributes>
 
+    private var units: SharedDisplayUnits { context.state.units }
+
     var body: some View {
         HStack(spacing: 14) {
             Gauge(value: min(100, max(0, context.state.socPct)), in: 0...100) {
@@ -83,13 +91,16 @@ private struct LockScreenActivityView: View {
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                 if context.state.mode == .charging {
-                    Text("\(Int(context.state.powerKW.rounded())) kW · charging")
+                    Text("\(Int(units.power(kilowatts: context.state.powerKW).rounded())) \(units.powerSymbol) · charging")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("\(Int(context.state.speedKmH.rounded())) km/h · \(String(format: "%.1f", context.state.distanceKm)) km")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "\(Int(units.speed(kilometersPerHour: context.state.speedKmH).rounded())) \(units.speedSymbol) · "
+                            + "\(String(format: "%.1f", units.distance(kilometers: context.state.distanceKm))) \(units.distanceSymbol)"
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
             }
 
