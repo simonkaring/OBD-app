@@ -8,9 +8,9 @@ resources, and test targets.
     python3 scratch/make_xcodeproj.py
 """
 
+import hashlib
 import os
 import pathlib
-import uuid
 
 PROJECT = "VoltLink"
 BUNDLE_ID = "com.simonkaring.voltlink"
@@ -27,8 +27,16 @@ EXCLUDED_FILES = {
 }
 
 
-def gid():
-    return uuid.uuid4().hex[:24].upper()
+def gid(*role):
+    """Stable 24-hex object ID derived from the object's role.
+
+    Xcode only requires IDs to be unique inside the file. Deriving them from a role
+    string instead of `uuid4()` keeps regeneration reviewable: random IDs rewrite all
+    ~1,100 lines on every run, so a one-line generator change shows up as an
+    unmergeable thousand-line diff.
+    """
+    seed = "|".join(role)
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24].upper()
 
 
 def gather_files(directories):
@@ -62,7 +70,7 @@ app_sources, app_resources, app_catalogs = gather_files(APP_DIRS)
 ui_sources, ui_resources, ui_catalogs = gather_files([UI_TEST_DIR])
 widget_sources, widget_resources, widget_catalogs = gather_files([WIDGET_DIR] + SHARED_WIDGET_DIRS)
 widget_sources = sorted(set(widget_sources))
-widget_bfs = {path: gid() for path in widget_sources}
+widget_bfs = {path: gid("buildfile:widget", path) for path in widget_sources}
 widget_only_sources = [path for path in widget_sources if path not in app_sources]
 
 
@@ -89,14 +97,14 @@ ids = {}
 
 def ids_for(path):
     if path not in ids:
-        ids[path] = (gid(), gid())
+        ids[path] = (gid("fileref", path), gid("buildfile", path))
     return ids[path]
 
 
 # ---- Groups -----------------------------------------------------------------
 
-main_group = gid()
-products_group = gid()
+main_group = gid("group:main")
+products_group = gid("group:products")
 groups = {".": main_group}
 group_parent = {}
 group_name = {}
@@ -108,7 +116,7 @@ def ensure_group(directory):
         return groups[directory]
     parent = os.path.dirname(directory) or "."
     ensure_group(parent)
-    group_id = gid()
+    group_id = gid("group", directory)
     groups[directory] = group_id
     group_parent[directory] = parent
     group_name[directory] = os.path.basename(directory)
@@ -160,37 +168,37 @@ def render_groups():
 
 # ---- Targets and products ---------------------------------------------------
 
-app_target = gid()
-ui_target = gid()
-widget_target = gid()
-app_product = gid()
-ui_product = gid()
-widget_product = gid()
-project_object = gid()
+app_target = gid("target:app")
+ui_target = gid("target:uitests")
+widget_target = gid("target:widgets")
+app_product = gid("product:app")
+ui_product = gid("product:uitests")
+widget_product = gid("product:widgets")
+project_object = gid("project")
 
-app_sources_phase = gid()
-app_resources_phase = gid()
-app_frameworks_phase = gid()
-ui_sources_phase = gid()
-ui_resources_phase = gid()
-ui_frameworks_phase = gid()
-widget_sources_phase = gid()
-widget_resources_phase = gid()
-widget_frameworks_phase = gid()
-widget_embed_phase = gid()
-widget_embed_bf = gid()
+app_sources_phase = gid("phase:app:sources")
+app_resources_phase = gid("phase:app:resources")
+app_frameworks_phase = gid("phase:app:frameworks")
+ui_sources_phase = gid("phase:uitests:sources")
+ui_resources_phase = gid("phase:uitests:resources")
+ui_frameworks_phase = gid("phase:uitests:frameworks")
+widget_sources_phase = gid("phase:widget:sources")
+widget_resources_phase = gid("phase:widget:resources")
+widget_frameworks_phase = gid("phase:widget:frameworks")
+widget_embed_phase = gid("phase:embed-extensions")
+widget_embed_bf = gid("buildfile:widget-embed")
 
-ui_dependency = gid()
-ui_proxy = gid()
-widget_dependency = gid()
-widget_proxy = gid()
+ui_dependency = gid("dependency:uitests")
+ui_proxy = gid("proxy:uitests")
+widget_dependency = gid("dependency:widgets")
+widget_proxy = gid("proxy:widgets")
 
-app_config_list = gid()
-ui_config_list = gid()
-widget_config_list = gid()
-project_config_list = gid()
+app_config_list = gid("configlist:app")
+ui_config_list = gid("configlist:uitests")
+widget_config_list = gid("configlist:widgets")
+project_config_list = gid("configlist:project")
 
-configs = {name: gid() for name in [
+configs = {name: gid("config", name) for name in [
     "project_debug", "project_release", "app_debug", "app_release", "ui_debug", "ui_release",
     "widget_debug", "widget_release",
 ]}
@@ -218,26 +226,6 @@ def render_file_references():
     return "".join(lines)
 
 
-def render_build_files():
-    lines = []
-    for path in app_sources:
-        fref, bref = ids_for(path)
-        lines.append("\t\t%s /* %s in Sources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n" % (
-            bref, os.path.basename(path), fref, os.path.basename(path)))
-    for path in app_resources:
-        fref, bref = ids_for(path)
-        lines.append("\t\t%s /* %s in Resources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n" % (
-            bref, os.path.basename(path), fref, os.path.basename(path)))
-    for path in app_catalogs:
-        lines.append("\t\t%s /* %s in Resources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n" % (
-            gid(), os.path.basename(path), ensure_group(path), os.path.basename(path)))
-    for path in ui_sources:
-        fref, bref = ids_for(path)
-        lines.append("\t\t%s /* %s in Sources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n" % (
-            bref, os.path.basename(path), fref, os.path.basename(path)))
-    return "".join(lines)
-
-
 def render_phase(phase_id, name, build_file_ids):
     body = ",\n".join("\t\t\t\t%s" % b for b in build_file_ids)
     return "\t\t%s /* %s */ = {\n\t\t\tisa = PBX%sBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t};\n" % (
@@ -251,7 +239,7 @@ app_resource_bfs = [ids_for(p)[1] for p in app_resources]
 # Asset catalog build files are injected while rendering, so keep a stable list here.
 asset_build_ids = {}
 for catalog in app_catalogs:
-    asset_build_ids[catalog] = gid()
+    asset_build_ids[catalog] = gid("buildfile:catalog", catalog)
 ui_source_bfs = [ids_for(p)[1] for p in ui_sources]
 
 

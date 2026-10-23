@@ -77,15 +77,14 @@ public final class UnitPreferences {
 
     // MARK: - Conversion
 
-    private static let kilometersPerMile = 1.609_344
-    private static let kilowattsPerHorsepower = 0.745_699_872
+    // The factors live in `Core/Sharing` so the widget extension converts identically.
 
     public func distanceValue(fromKilometers kilometers: Double) -> Double {
-        distanceUnit == .kilometers ? kilometers : kilometers / Self.kilometersPerMile
+        distanceUnit == .kilometers ? kilometers : kilometers / UnitConversion.kilometersPerMile
     }
 
     public func speedValue(fromKilometersPerHour speed: Double) -> Double {
-        distanceUnit == .kilometers ? speed : speed / Self.kilometersPerMile
+        distanceUnit == .kilometers ? speed : speed / UnitConversion.kilometersPerMile
     }
 
     public func temperatureValue(fromCelsius celsius: Double) -> Double {
@@ -93,12 +92,12 @@ public final class UnitPreferences {
     }
 
     public func powerValue(fromKilowatts kilowatts: Double) -> Double {
-        powerUnit == .kilowatts ? kilowatts : kilowatts / Self.kilowattsPerHorsepower
+        powerUnit == .kilowatts ? kilowatts : kilowatts / UnitConversion.kilowattsPerHorsepower
     }
 
     /// Consumption is expressed per 100 of the selected distance unit.
     public func efficiencyValue(fromKilowattHoursPer100Kilometers value: Double) -> Double {
-        distanceUnit == .kilometers ? value : value * Self.kilometersPerMile
+        distanceUnit == .kilometers ? value : value * UnitConversion.kilometersPerMile
     }
 
     public var efficiencyUnit: String {

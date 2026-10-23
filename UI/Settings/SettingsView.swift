@@ -94,7 +94,7 @@ public struct SettingsView: View {
                                 engine.injectedFaultCode = "P0A80"
                             }
                             .font(.subheadline)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.highPowerAmber)
 
                             Spacer()
 
@@ -103,7 +103,7 @@ public struct SettingsView: View {
                                 engine.scenario = .cityDriving
                             }
                             .font(.subheadline)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Theme.regenGreen)
                         }
                     }
                 }

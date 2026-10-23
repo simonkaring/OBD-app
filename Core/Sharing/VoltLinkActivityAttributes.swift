@@ -20,6 +20,8 @@ public struct VoltLinkActivityAttributes: ActivityAttributes {
         public var startedAt: Date
         /// The user's display units; the Lock Screen must not disagree with the app.
         public var units: SharedDisplayUnits
+        /// Simulated values must not read as the car's real state.
+        public var isDemoMode: Bool
 
         public init(
             mode: Mode,
@@ -28,7 +30,8 @@ public struct VoltLinkActivityAttributes: ActivityAttributes {
             speedKmH: Double,
             distanceKm: Double,
             startedAt: Date,
-            units: SharedDisplayUnits = SharedDisplayUnits()
+            units: SharedDisplayUnits = SharedDisplayUnits(),
+            isDemoMode: Bool = false
         ) {
             self.mode = mode
             self.socPct = socPct
@@ -37,10 +40,11 @@ public struct VoltLinkActivityAttributes: ActivityAttributes {
             self.distanceKm = distanceKm
             self.startedAt = startedAt
             self.units = units
+            self.isDemoMode = isDemoMode
         }
 
         private enum CodingKeys: String, CodingKey {
-            case mode, socPct, powerKW, speedKmH, distanceKm, startedAt, units
+            case mode, socPct, powerKW, speedKmH, distanceKm, startedAt, units, isDemoMode
         }
 
         /// Tolerates activities started before units were part of the state.
@@ -53,6 +57,7 @@ public struct VoltLinkActivityAttributes: ActivityAttributes {
             distanceKm = try container.decode(Double.self, forKey: .distanceKm)
             startedAt = try container.decode(Date.self, forKey: .startedAt)
             units = try container.decodeIfPresent(SharedDisplayUnits.self, forKey: .units) ?? SharedDisplayUnits()
+            isDemoMode = try container.decodeIfPresent(Bool.self, forKey: .isDemoMode) ?? false
         }
     }
 

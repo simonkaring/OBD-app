@@ -20,6 +20,15 @@ public final class LiveActivityCoordinator {
     private var startedAt = Date()
     private var lastUpdate = Date.distantPast
     private static let minimumUpdateInterval: TimeInterval = 5
+    /// A Live Activity the app never updates again (app killed, adapter lost) must not
+    /// keep advertising a frozen charge rate: iOS dims it after the snapshot TTL.
+    private static let staleAfter: TimeInterval = SharedTelemetrySnapshot.maximumAge
+
+    private func content(for state: VoltLinkActivityAttributes.ContentState, at date: Date = .now)
+        -> ActivityContent<VoltLinkActivityAttributes.ContentState>
+    {
+        ActivityContent(state: state, staleDate: date.addingTimeInterval(Self.staleAfter))
+    }
 
     public init() {}
 
@@ -43,7 +52,8 @@ public final class LiveActivityCoordinator {
             speedKmH: snapshot.speedKmH,
             distanceKm: snapshot.distanceKm,
             startedAt: mode == activeMode ? startedAt : Date(),
-            units: snapshot.units
+            units: snapshot.units,
+            isDemoMode: snapshot.isDemoMode
         )
 
         if activity == nil || activeMode != mode {
@@ -54,8 +64,9 @@ public final class LiveActivityCoordinator {
 
         guard let activity, Date().timeIntervalSince(lastUpdate) >= Self.minimumUpdateInterval else { return }
         lastUpdate = Date()
-        Task { @MainActor [state] in
-            await activity.update(ActivityContent(state: state, staleDate: nil))
+        let content = content(for: state)
+        Task { @MainActor in
+            await activity.update(content)
         }
     }
 
@@ -71,7 +82,7 @@ public final class LiveActivityCoordinator {
 
     private func start(mode: VoltLinkActivityAttributes.Mode, state: VoltLinkActivityAttributes.ContentState, vehicleName: String) {
         let attributes = VoltLinkActivityAttributes(vehicleName: vehicleName)
-        let content = ActivityContent(state: state, staleDate: nil)
+        let content = content(for: state)
         do {
             activity = try Activity.request(attributes: attributes, content: content, pushType: nil)
             activeMode = mode

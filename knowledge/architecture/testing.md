@@ -46,6 +46,7 @@ iOS-only code (`UI`, `CarPlay`, `App`).
 | `UnitPreferencesTests` | Distance/speed/temperature/power conversion and persistence |
 | `TripHistoryInsightsTests` | Monthly distance, net energy, weighted efficiency, cost |
 | `SharedTelemetryStoreTests` | App-group snapshot round trip, display units, freshness expiry, legacy decoding |
+| `SharedWidgetRefresherTests` | Widget reload throttle, render-relevant change detection |
 | `KnowledgeBundleTests` | OKF conformance and drift against generated concepts |
 | `DashboardLayoutTests`, `ABRPProfileLoaderTests`, `BluetoothManagerTests` | Layout, equation loading, connection handling |
 | `UITests/VoltLinkSmokeUITests` | First-run demo mode, dashboard header, Diagnostics tab |

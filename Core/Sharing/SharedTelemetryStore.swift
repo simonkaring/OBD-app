@@ -29,25 +29,20 @@ public struct SharedDisplayUnits: Codable, Hashable, Sendable {
         self.power = power
     }
 
-    /// Same constants as `UnitPreferences`; duplicated because the extension only
-    /// compiles `Core/Sharing`.
-    private static let kilometersPerMile = 1.609_344
-    private static let kilowattsPerHorsepower = 0.745_699_872
-
     public var distanceSymbol: String { distance.symbol }
     public var speedSymbol: String { distance.perHourSymbol }
     public var powerSymbol: String { power.symbol }
 
     public func distance(kilometers: Double) -> Double {
-        distance == .kilometers ? kilometers : kilometers / Self.kilometersPerMile
+        distance == .kilometers ? kilometers : kilometers / UnitConversion.kilometersPerMile
     }
 
     public func speed(kilometersPerHour: Double) -> Double {
-        distance == .kilometers ? kilometersPerHour : kilometersPerHour / Self.kilometersPerMile
+        distance == .kilometers ? kilometersPerHour : kilometersPerHour / UnitConversion.kilometersPerMile
     }
 
     public func power(kilowatts: Double) -> Double {
-        power == .kilowatts ? kilowatts : kilowatts / Self.kilowattsPerHorsepower
+        power == .kilowatts ? kilowatts : kilowatts / UnitConversion.kilowattsPerHorsepower
     }
 }
 
@@ -174,12 +169,24 @@ public enum SharedWidgetRefresher {
     private static var lastSignature: String?
     private static let minimumInterval: TimeInterval = 60
 
-    public static func refreshIfNeeded(for snapshot: SharedTelemetrySnapshot, at date: Date = .now, force: Bool = false) {
+    /// Injection point so tests can observe reload decisions without WidgetKit.
+    static var performReload: @MainActor () -> Void = { WidgetCenter.shared.reloadAllTimelines() }
+
+    /// - Returns: `true` when a reload was requested.
+    @discardableResult
+    public static func refreshIfNeeded(for snapshot: SharedTelemetrySnapshot, at date: Date = .now, force: Bool = false) -> Bool {
         let signature = signature(of: snapshot)
-        guard force || (signature != lastSignature && date.timeIntervalSince(lastReload) >= minimumInterval) else { return }
+        guard force || (signature != lastSignature && date.timeIntervalSince(lastReload) >= minimumInterval) else { return false }
         lastReload = date
         lastSignature = signature
-        WidgetCenter.shared.reloadAllTimelines()
+        performReload()
+        return true
+    }
+
+    /// Test seam: clears the throttle so cases cannot leak into each other.
+    static func reset() {
+        lastReload = .distantPast
+        lastSignature = nil
     }
 
     /// Only the values the widget draws, rounded to the precision it draws them at, so

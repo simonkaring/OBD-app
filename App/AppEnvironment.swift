@@ -22,6 +22,9 @@ public final class AppEnvironment: ObservableObject {
     /// Widget/Live Activity writes are throttled separately from telemetry; the poll
     /// loop can publish several times per second.
     private var lastSharedPublish = Date.distantPast
+    /// Units the last app-group snapshot was written with, so a preference change with
+    /// no telemetry flowing still reaches the widget.
+    private var lastPublishedUnits: SharedDisplayUnits?
 
     private static func makeModelContainer() -> (ModelContainer, String?) {
         let schema = Schema(versionedSchema: VoltLinkCurrentSchema.versioned)
@@ -105,8 +108,15 @@ public final class AppEnvironment: ObservableObject {
         // authoritative expiry clock.
         Timer.publish(every: 1, on: .main, in: .common).autoconnect().map { _ in () }
             .receive(on: DispatchQueue.main)
-            .sink { [weak vData] _ in
-                guard let vData else { return }
+            .sink { [weak self, weak vData, weak tTracker] _ in
+                guard let self, let vData else { return }
+                // Preferences are not part of the telemetry stream: switching to miles
+                // while the adapter is idle would otherwise leave the widget and Live
+                // Activity in km until telemetry resumes.
+                if let lastPublishedUnits, lastPublishedUnits != self.currentUnits() {
+                    self.publishSharedState(
+                        snapshot: vData.latestTelemetry, vehicleData: vData, tripTracker: tTracker, force: true)
+                }
                 vData.expireExternalSpeed()
                 if case .ready = vData.connectionState, vData.hasSelectedVehicle,
                     !vData.isDemoMode, vData.needsExternalSpeed()
@@ -141,19 +151,26 @@ public final class AppEnvironment: ObservableObject {
             .store(in: &cancellables)
     }
 
+    /// The widget extension cannot read `UnitPreferences`, so mirror the user's choice.
+    private func currentUnits() -> SharedDisplayUnits {
+        let preferences = UnitPreferences.shared
+        return SharedDisplayUnits(
+            distance: preferences.distanceUnit == .miles ? .miles : .kilometers,
+            power: preferences.powerUnit == .horsepower ? .horsepower : .kilowatts)
+    }
+
     /// Mirrors the latest state into the app group for the widget and Live Activity.
-    private func publishSharedState(snapshot: TelemetrySnapshot, vehicleData: VehicleDataManager, tripTracker: TripTrackingManager?) {
+    private func publishSharedState(
+        snapshot: TelemetrySnapshot, vehicleData: VehicleDataManager, tripTracker: TripTrackingManager?, force: Bool = false
+    ) {
         let now = Date()
-        guard now.timeIntervalSince(lastSharedPublish) >= 2 else { return }
+        guard force || now.timeIntervalSince(lastSharedPublish) >= 2 else { return }
         lastSharedPublish = now
 
         let soc = vehicleData.displayedTelemetry.stateOfChargePct
         let range = vehicleData.estimatedFullRangeKm.map { $0 * max(0, min(100, soc)) / 100 }
-        // The widget extension cannot read `UnitPreferences`, so mirror the user's choice.
-        let preferences = UnitPreferences.shared
-        let units = SharedDisplayUnits(
-            distance: preferences.distanceUnit == .miles ? .miles : .kilometers,
-            power: preferences.powerUnit == .horsepower ? .horsepower : .kilowatts)
+        let units = currentUnits()
+        lastPublishedUnits = units
         let shared = SharedTelemetrySnapshot(
             vehicleName: vehicleData.vehicleName,
             socPct: soc,

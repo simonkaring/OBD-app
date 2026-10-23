@@ -22,10 +22,20 @@ struct SharedSnapshotProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<SharedSnapshotEntry>) -> Void) {
         // A snapshot the app stopped refreshing no longer describes the car; the view
         // falls back to its placeholder instead of showing last night's charge rate.
-        let entry = SharedSnapshotEntry(date: Date(), snapshot: SharedTelemetryStore.loadFresh())
-        // The app reloads timelines when telemetry meaningfully changes; this refresh
-        // keeps a stale snapshot from claiming to be live.
-        let next = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
+        let snapshot = SharedTelemetryStore.loadFresh()
+        let entry = SharedSnapshotEntry(date: Date(), snapshot: snapshot)
+        // The app reloads timelines whenever telemetry meaningfully changes, so the policy
+        // below only has to cover the app going away. A fresh snapshot schedules exactly
+        // one re-render for the moment it expires (which then shows the placeholder); the
+        // placeholder itself needs no early refresh.
+        let next: Date
+        if let snapshot {
+            next = max(
+                snapshot.updatedAt.addingTimeInterval(SharedTelemetrySnapshot.maximumAge + 1),
+                Date().addingTimeInterval(60))
+        } else {
+            next = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
+        }
         completion(Timeline(entries: [entry], policy: .after(next)))
     }
 }
@@ -72,9 +82,10 @@ private struct VoltLinkStatusWidgetView: View {
                     Text("\(Int(soc.rounded()))% · \(Int(units.distance(kilometers: snapshot.rangeKm ?? 0).rounded())) \(units.distanceSymbol)")
                         .font(.headline)
                     Text(
-                        snapshot.isCharging
-                            ? "Charging \(Int(units.power(kilowatts: snapshot.powerKW).rounded())) \(units.powerSymbol)"
-                            : (snapshot.isConnected ? "Connected" : "Disconnected")
+                        (snapshot.isDemoMode ? "Demo · " : "")
+                            + (snapshot.isCharging
+                                ? "Charging \(Int(units.power(kilowatts: snapshot.powerKW).rounded())) \(units.powerSymbol)"
+                                : (snapshot.isConnected ? "Connected" : "Disconnected"))
                     )
                     .font(.caption2)
                 }
@@ -100,6 +111,7 @@ private struct VoltLinkStatusWidgetView: View {
                 Text("BATTERY")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
+                if snapshot.isDemoMode { DemoBadge() }
                 Spacer()
                 if snapshot.isCharging {
                     Image(systemName: "bolt.fill")
@@ -149,5 +161,18 @@ private struct VoltLinkStatusWidgetView: View {
                 .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+/// Marks simulated values so a Home Screen or Lock Screen reading is never mistaken
+/// for the car's real state.
+struct DemoBadge: View {
+    var body: some View {
+        Text("DEMO")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(Color.orange.opacity(0.2), in: Capsule())
     }
 }

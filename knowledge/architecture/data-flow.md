@@ -49,9 +49,20 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
      minutes instead of showing stale values as live.
    - `SharedWidgetRefresher` asks WidgetKit for a new timeline at most once a
      minute, and only when a value the widget draws (round-SoC, charge power,
-     range, speed, state flags, units) actually changed.
+     range, speed, state flags, units) actually changed. The widget's own
+     timeline policy schedules a single refresh for the moment the snapshot
+     expires, so a killed app degrades to the placeholder instead of freezing
+     the last reading.
    - `LiveActivityCoordinator` starts/updates/ends the single trip-or-charging
-     Live Activity (charging wins when both are active).
+     Live Activity (charging wins when both are active). Its content carries a
+     `staleDate` of one snapshot TTL, so an activity the app can no longer
+     update dims instead of showing frozen values.
+
+   Unit changes are preferences, not telemetry, so the one-second sweep also
+   republishes the app-group snapshot when `UnitPreferences` differs from what
+   the last snapshot recorded; without it a widget stays in the old units while
+   the adapter is idle. Demo sessions mark the snapshot so both widget surfaces
+   show a `DEMO` badge.
 
    The app group carries only that compact snapshot. `AppEnvironment` pins the
    SwiftData history store to the app's own Application Support directory so

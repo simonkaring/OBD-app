@@ -12,12 +12,15 @@ struct VoltLinkLiveActivityWidget: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label(
-                        context.state.mode == .charging ? "Charging" : "Trip",
-                        systemImage: context.state.mode == .charging ? "bolt.fill" : "road.lanes"
-                    )
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(context.state.mode == .charging ? .green : .cyan)
+                    HStack(spacing: 4) {
+                        Label(
+                            context.state.mode == .charging ? "Charging" : "Trip",
+                            systemImage: context.state.mode == .charging ? "bolt.fill" : "road.lanes"
+                        )
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(context.state.mode == .charging ? .green : .cyan)
+                        if context.state.isDemoMode { DemoBadge() }
+                    }
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
@@ -87,9 +90,12 @@ private struct LockScreenActivityView: View {
             .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(context.attributes.vehicleName)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(context.attributes.vehicleName)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                    if context.state.isDemoMode { DemoBadge() }
+                }
                 if context.state.mode == .charging {
                     Text("\(Int(units.power(kilowatts: context.state.powerKW).rounded())) \(units.powerSymbol) · charging")
                         .font(.caption2)
