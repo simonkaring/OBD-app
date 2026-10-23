@@ -13,8 +13,6 @@ swift test
 xcodebuild -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhone 17'
 xcodebuild test -scheme VoltLink -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:VoltLinkUITests   # demo-mode UI smoke test
-# CI runs the same commands against `env.SIMULATOR` in .github/workflows/ci.yml
-# (currently iPhone 16, the newest device on the macos-15 runner image).
 python3 scratch/make_xcodeproj.py  # regenerate the generated Xcode project
 open VoltLink.xcodeproj
 ./scratch/repack_ipa.sh   # archive & package build/VoltLink.ipa
