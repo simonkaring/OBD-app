@@ -28,7 +28,7 @@ okf_version: "0.2"
 * [Jaguar I-Pace 2019 (ABRP)](vehicles/jaguar_ipace2019.md) - Jaguar I-Pace 2019 (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Jaguar I-Pace 2021+ (ABRP)](vehicles/jaguar_ipace2021.md) - Jaguar I-Pace 2021+ (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Mercedes-Benz EQA 250 (2021)](vehicles/mercedesEQA250.md) - Mercedes-Benz EQA 250 (2021) vehicle profile with 4 polling commands and 1 telemetry metrics.
-* [Mercedes-Benz EQA 250 (OBDb community)](vehicles/mercedesEQAOBDb.md) - Mercedes-Benz EQA 250 (OBDb community) vehicle profile with 17 polling commands and 21 telemetry metrics.
+* [Mercedes-Benz EQA 250 (OBDb community)](vehicles/mercedesEQAOBDb.md) - Mercedes-Benz EQA 250 (OBDb community) vehicle profile with 21 polling commands and 25 telemetry metrics.
 * [MG ZS EV (ABRP)](vehicles/mg_mgzsev.md) - MG ZS EV (ABRP) vehicle profile with 15 polling commands and 7 telemetry metrics.
 * [Mini Cooper SE (ABRP)](vehicles/Mini_MiniCooperSE.md) - Mini Cooper SE (ABRP) vehicle profile with 5 polling commands and 6 telemetry metrics.
 * [Nissan Leaf 62 kWh (OVMS)](vehicles/nissan_leaf.md) - Nissan Leaf 62 kWh (OVMS) vehicle profile with 2 polling commands and 2 telemetry metrics.
@@ -50,6 +50,7 @@ okf_version: "0.2"
 * [Coolant Temp](telemetry/coolantTemp.md) - Coolant Temp telemetry metric in °C, produced by 3 vehicle profiles.
 * [DC Converter Requested Voltage](telemetry/converterRequestedVoltage.md) - DC Converter Requested Voltage telemetry metric in V, produced by 1 vehicle profile.
 * [Distance to Service](telemetry/serviceDistance.md) - Distance to Service telemetry metric in km, produced by 1 vehicle profile.
+* [Drive Unit Temp](telemetry/driveUnitTemp.md) - Drive Unit Temp telemetry metric in °C, produced by 1 vehicle profile.
 * [Engine Load](telemetry/engineLoad.md) - Engine Load telemetry metric in %, produced by 2 vehicle profiles.
 * [Front Left Wheel Speed](telemetry/frontLeftWheelSpeed.md) - Front Left Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
 * [Front Right Wheel Speed](telemetry/frontRightWheelSpeed.md) - Front Right Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
@@ -61,8 +62,9 @@ okf_version: "0.2"
 * [Longitudinal Acceleration](telemetry/longitudinalAcceleration.md) - Longitudinal Acceleration telemetry metric in g, produced by 1 vehicle profile.
 * [Manifold Pressure](telemetry/manifoldPressure.md) - Manifold Pressure telemetry metric in kPa, produced by 2 vehicle profiles.
 * [Mass Air Flow](telemetry/maf.md) - Mass Air Flow telemetry metric in g/s, produced by 2 vehicle profiles.
-* [Motor RPM](telemetry/motorRpm.md) - Motor RPM telemetry metric in RPM, produced by 2 vehicle profiles.
-* [Motor Torque](telemetry/motorTorque.md) - Motor Torque telemetry metric in Nm, not produced by any current profile.
+* [Motor RPM](telemetry/motorRpm.md) - Motor RPM telemetry metric in RPM, produced by 3 vehicle profiles.
+* [Motor Temp](telemetry/motorTemp.md) - Motor Temp telemetry metric in °C, produced by 1 vehicle profile.
+* [Motor Torque](telemetry/motorTorque.md) - Motor Torque telemetry metric in Nm, produced by 1 vehicle profile.
 * [Oil Temp](telemetry/oilTemp.md) - Oil Temp telemetry metric in °C, produced by 2 vehicle profiles.
 * [Pack Current](telemetry/packCurrent.md) - Pack Current telemetry metric in A, produced by 22 vehicle profiles.
 * [Pack Voltage](telemetry/packVoltage.md) - Pack Voltage telemetry metric in V, produced by 23 vehicle profiles.

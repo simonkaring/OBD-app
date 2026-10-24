@@ -154,7 +154,8 @@ public final class UnitPreferences {
             return (distanceValue(fromKilometers: value), distanceUnit.symbol)
         case .instantEfficiency, .tripAverageConsumption:
             return (efficiencyValue(fromKilowattHoursPer100Kilometers: value), efficiencyUnit)
-        case .batteryTemp, .batteryTempMin, .batteryTempMax, .coolantTemp, .intakeAirTemp, .ambientAirTemp, .oilTemp:
+        case .batteryTemp, .batteryTempMin, .batteryTempMax, .coolantTemp, .intakeAirTemp, .ambientAirTemp, .oilTemp,
+            .driveUnitTemp, .motorTemp:
             return (temperatureValue(fromCelsius: value), temperatureUnit.symbol)
         default:
             return (value, metric.unitSymbol)

@@ -1,7 +1,7 @@
 ---
 type: "Telemetry Metric"
 title: "Motor RPM"
-description: "Motor RPM telemetry metric in RPM, produced by 2 vehicle profiles."
+description: "Motor RPM telemetry metric in RPM, produced by 3 vehicle profiles."
 tags: ["telemetry-metric", "core"]
 sources:
 - id: "metric-catalog"
@@ -27,3 +27,4 @@ status: "stable"
 
 - [Generic EV (SAE J1979)](/vehicles/genericEV.md)
 - [Generic SAE J1979 OBD-II](/vehicles/genericOBD2.md)
+- [Mercedes-Benz EQA 250 (OBDb community)](/vehicles/mercedesEQAOBDb.md)

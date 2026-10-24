@@ -16,7 +16,7 @@
 * [Jaguar I-Pace 2019 (ABRP)](jaguar_ipace2019.md) - Jaguar I-Pace 2019 (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Jaguar I-Pace 2021+ (ABRP)](jaguar_ipace2021.md) - Jaguar I-Pace 2021+ (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Mercedes-Benz EQA 250 (2021)](mercedesEQA250.md) - Mercedes-Benz EQA 250 (2021) vehicle profile with 4 polling commands and 1 telemetry metrics.
-* [Mercedes-Benz EQA 250 (OBDb community)](mercedesEQAOBDb.md) - Mercedes-Benz EQA 250 (OBDb community) vehicle profile with 17 polling commands and 21 telemetry metrics.
+* [Mercedes-Benz EQA 250 (OBDb community)](mercedesEQAOBDb.md) - Mercedes-Benz EQA 250 (OBDb community) vehicle profile with 21 polling commands and 25 telemetry metrics.
 * [MG ZS EV (ABRP)](mg_mgzsev.md) - MG ZS EV (ABRP) vehicle profile with 15 polling commands and 7 telemetry metrics.
 * [Mini Cooper SE (ABRP)](Mini_MiniCooperSE.md) - Mini Cooper SE (ABRP) vehicle profile with 5 polling commands and 6 telemetry metrics.
 * [Nissan Leaf 62 kWh (OVMS)](nissan_leaf.md) - Nissan Leaf 62 kWh (OVMS) vehicle profile with 2 polling commands and 2 telemetry metrics.

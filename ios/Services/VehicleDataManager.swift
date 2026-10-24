@@ -540,6 +540,8 @@ public final class VehicleDataManager: OBDConnectionDelegate {
         case .motorStats(let rpm, let torque):
             snap.motorRpm = rpm
             snap.motorTorqueNm = torque
+        case .motorRpm(let rpm): snap.motorRpm = rpm
+        case .motorTorque(let torque): snap.motorTorqueNm = torque
         case .hvacPower(let kw): snap.hvacPowerKW = kw
         case .chargingStats(let kw, _):
             explicitChargingStatus = (kw.map { $0 > 0.5 } ?? true, timestamp)
@@ -668,6 +670,8 @@ public final class VehicleDataManager: OBDConnectionDelegate {
         case .batteryTemp: [.batteryTemp, .batteryTempMin, .batteryTempMax]
         case .aux12V: [.aux12V]
         case .motorStats: [.motorRpm, .motorTorque]
+        case .motorRpm: [.motorRpm]
+        case .motorTorque: [.motorTorque]
         case .fuelLevel: [.fuelLevel]
         case .throttlePosition: [.throttlePosition]
         case .engineLoad: [.engineLoad]

@@ -9,6 +9,7 @@
 * [Coolant Temp](coolantTemp.md) - Coolant Temp telemetry metric in °C, produced by 3 vehicle profiles.
 * [DC Converter Requested Voltage](converterRequestedVoltage.md) - DC Converter Requested Voltage telemetry metric in V, produced by 1 vehicle profile.
 * [Distance to Service](serviceDistance.md) - Distance to Service telemetry metric in km, produced by 1 vehicle profile.
+* [Drive Unit Temp](driveUnitTemp.md) - Drive Unit Temp telemetry metric in °C, produced by 1 vehicle profile.
 * [Engine Load](engineLoad.md) - Engine Load telemetry metric in %, produced by 2 vehicle profiles.
 * [Front Left Wheel Speed](frontLeftWheelSpeed.md) - Front Left Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
 * [Front Right Wheel Speed](frontRightWheelSpeed.md) - Front Right Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
@@ -20,8 +21,9 @@
 * [Longitudinal Acceleration](longitudinalAcceleration.md) - Longitudinal Acceleration telemetry metric in g, produced by 1 vehicle profile.
 * [Manifold Pressure](manifoldPressure.md) - Manifold Pressure telemetry metric in kPa, produced by 2 vehicle profiles.
 * [Mass Air Flow](maf.md) - Mass Air Flow telemetry metric in g/s, produced by 2 vehicle profiles.
-* [Motor RPM](motorRpm.md) - Motor RPM telemetry metric in RPM, produced by 2 vehicle profiles.
-* [Motor Torque](motorTorque.md) - Motor Torque telemetry metric in Nm, not produced by any current profile.
+* [Motor RPM](motorRpm.md) - Motor RPM telemetry metric in RPM, produced by 3 vehicle profiles.
+* [Motor Temp](motorTemp.md) - Motor Temp telemetry metric in °C, produced by 1 vehicle profile.
+* [Motor Torque](motorTorque.md) - Motor Torque telemetry metric in Nm, produced by 1 vehicle profile.
 * [Oil Temp](oilTemp.md) - Oil Temp telemetry metric in °C, produced by 2 vehicle profiles.
 * [Pack Current](packCurrent.md) - Pack Current telemetry metric in A, produced by 22 vehicle profiles.
 * [Pack Voltage](packVoltage.md) - Pack Voltage telemetry metric in V, produced by 23 vehicle profiles.

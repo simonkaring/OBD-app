@@ -1,7 +1,7 @@
 ---
 type: "Telemetry Metric"
 title: "Motor Torque"
-description: "Motor Torque telemetry metric in Nm, not produced by any current profile."
+description: "Motor Torque telemetry metric in Nm, produced by 1 vehicle profile."
 tags: ["telemetry-metric", "core"]
 sources:
 - id: "metric-catalog"
@@ -25,4 +25,4 @@ status: "stable"
 
 # Produced By
 
-No vehicle profile currently advertises this metric.
+- [Mercedes-Benz EQA 250 (OBDb community)](/vehicles/mercedesEQAOBDb.md)

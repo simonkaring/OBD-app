@@ -1,7 +1,7 @@
 ---
 type: "Vehicle Profile"
 title: "Mercedes-Benz EQA 250 (OBDb community)"
-description: "Mercedes-Benz EQA 250 (OBDb community) vehicle profile with 17 polling commands and 21 telemetry metrics."
+description: "Mercedes-Benz EQA 250 (OBDb community) vehicle profile with 21 polling commands and 25 telemetry metrics."
 tags: ["vehicle-profile", "ev"]
 sources:
 - id: "registry"
@@ -23,7 +23,7 @@ status: "stable"
 | Electric vehicle | Yes |
 | Usable battery capacity | 66.5 kWh |
 | Catalog models | 1 |
-| Polling commands | 17 |
+| Polling commands | 21 |
 
 # Supported Metrics
 
@@ -33,10 +33,14 @@ status: "stable"
 - [Coolant Temp](/telemetry/coolantTemp.md) — `coolantTemp` (°C)
 - [DC Converter Requested Voltage](/telemetry/converterRequestedVoltage.md) — `converterRequestedVoltage` (V)
 - [Distance to Service](/telemetry/serviceDistance.md) — `serviceDistance` (km)
+- [Drive Unit Temp](/telemetry/driveUnitTemp.md) — `driveUnitTemp` (°C)
 - [Front Left Wheel Speed](/telemetry/frontLeftWheelSpeed.md) — `frontLeftWheelSpeed` (km/h)
 - [Front Right Wheel Speed](/telemetry/frontRightWheelSpeed.md) — `frontRightWheelSpeed` (km/h)
 - [Lateral Acceleration](/telemetry/lateralAcceleration.md) — `lateralAcceleration` (g)
 - [Longitudinal Acceleration](/telemetry/longitudinalAcceleration.md) — `longitudinalAcceleration` (g)
+- [Motor RPM](/telemetry/motorRpm.md) — `motorRpm` (RPM)
+- [Motor Temp](/telemetry/motorTemp.md) — `motorTemp` (°C)
+- [Motor Torque](/telemetry/motorTorque.md) — `motorTorque` (Nm)
 - [Pack Current](/telemetry/packCurrent.md) — `packCurrent` (A)
 - [Pack Voltage](/telemetry/packVoltage.md) — `packVoltage` (V)
 - [Power](/telemetry/power.md) — `power` (kW)
@@ -66,9 +70,13 @@ AT SH 7E5
 226502
 226071
 226504
+222525
 AT CRA 5A4
 AT SH 624
 220201
+220200
+220205
+220207
 ```
 
 # Initialization Commands

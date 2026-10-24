@@ -21,6 +21,8 @@ public enum TelemetryPlausibility {
             return ok(lo, -50...100) && ok(hi, -50...100) && ok(avg, -50...100)
         case .aux12V(let v): return ok(v, 0...36)
         case .motorStats(let rpm, let torque): return ok(rpm, -30_000...30_000) && ok(torque, -5_000...5_000)
+        case .motorRpm(let rpm): return ok(rpm, -30_000...30_000)
+        case .motorTorque(let torque): return ok(torque, -5_000...5_000)
         case .hvacPower(let v): return ok(v, -50...50)
         case .chargingStats(let kw, _): return kw.map { ok($0, 0...600) } ?? true
         case .fuelLevel(let v): return ok(v, 0...100)
@@ -43,6 +45,7 @@ public enum TelemetryPlausibility {
             case .brakeCylinderPressure, .vacuumBrakePressure: return ok(value, -500...500)
             case .aux12VHighDefinition, .converterRequestedVoltage: return ok(value, 0...36)
             case .serviceDistance: return ok(value, 0...65_535)
+            case .driveUnitTemp, .motorTemp: return ok(value, -50...250)
             default: return false
             }
         case .genericPid: return true

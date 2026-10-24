@@ -34,12 +34,13 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
     case longitudinalAcceleration, lateralAcceleration, yawRate, steeringAngle
     case brakeCylinderPressure, vacuumBrakePressure
     case aux12VHighDefinition, converterRequestedVoltage, serviceDistance
+    case driveUnitTemp, motorTemp
 
     public static let eqaCommunityMetrics: Set<Self> = [
         .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed,
         .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle,
         .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
-        .converterRequestedVoltage, .serviceDistance,
+        .converterRequestedVoltage, .serviceDistance, .driveUnitTemp, .motorTemp,
     ]
 
     public var id: String { rawValue }
@@ -86,6 +87,8 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .aux12VHighDefinition: return "12V Voltage (High Definition)"
         case .converterRequestedVoltage: return "DC Converter Requested Voltage"
         case .serviceDistance: return "Distance to Service"
+        case .driveUnitTemp: return "Drive Unit Temp"
+        case .motorTemp: return "Motor Temp"
         }
     }
 
@@ -110,6 +113,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .brakeCylinderPressure, .vacuumBrakePressure: return "bar"
         case .aux12VHighDefinition, .converterRequestedVoltage: return "V"
         case .serviceDistance: return "km"
+        case .driveUnitTemp, .motorTemp: return "°C"
         }
     }
 
@@ -139,6 +143,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .brakeCylinderPressure, .vacuumBrakePressure: return "gauge.low"
         case .aux12VHighDefinition, .converterRequestedVoltage: return "bolt.batteryblock"
         case .serviceDistance: return "wrench.and.screwdriver"
+        case .driveUnitTemp, .motorTemp: return "thermometer.medium"
         }
     }
 
@@ -170,6 +175,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .brakeCylinderPressure, .vacuumBrakePressure: return 0...100
         case .aux12VHighDefinition, .converterRequestedVoltage: return 0...25
         case .serviceDistance: return 0...60_000
+        case .driveUnitTemp, .motorTemp: return -40...150
         }
     }
 
@@ -221,7 +227,7 @@ public enum TelemetryMetric: String, Codable, CaseIterable, Identifiable, Sendab
         case .frontLeftWheelSpeed, .frontRightWheelSpeed, .rearLeftWheelSpeed, .rearRightWheelSpeed,
             .longitudinalAcceleration, .lateralAcceleration, .yawRate, .steeringAngle,
             .brakeCylinderPressure, .vacuumBrakePressure, .aux12VHighDefinition,
-            .converterRequestedVoltage, .serviceDistance:
+            .converterRequestedVoltage, .serviceDistance, .driveUnitTemp, .motorTemp:
             return snapshot.communityValues?[self] ?? 0
         }
     }

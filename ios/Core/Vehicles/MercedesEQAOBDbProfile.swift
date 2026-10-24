@@ -10,6 +10,12 @@ import Foundation
 /// manager instead of upstream display maxima (which cap HV voltage at 100 V).
 /// Upstream marks these commands dbg:true. The 2026-09-13 EQA drive capture confirms
 /// negative ECU current during discharge; VoltLink uses negative for energy entering the pack.
+///
+/// Drive-unit temperatures and machine rpm/torque come from the sibling EQB signalset
+/// (`OBDb/Mercedes-Benz-EQB`, signalsets/v3/default.json, CC BY-SA 4.0) on the same ECUs.
+/// They are community definitions not yet confirmed on an EQA: a DID the car does not
+/// answer simply never becomes a live metric, and implausible values are discarded by
+/// `TelemetryPlausibility`. Verify each against the vehicle before treating it as measured.
 public struct MercedesEQAOBDbProfile: VehicleProfile {
     public let vehicleName = "Mercedes-Benz EQA 250 (OBDb community)"
     public let isElectricVehicle = true
@@ -34,18 +40,20 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
         [
             "AT CRA 7EA", "AT SH 7E2", "222001", "222002",
             "AT CRA 7ED", "AT SH 7E5", "226050", "226075", "226053", "222005", "222526", "226502", "226071", "226504",
+            "222525",  // Drive-unit (power electric unit) temperature; EQB community definition
             "AT CRA 5A4", "AT SH 624", "220201",
+            "220200", "220205", "220207",  // Electric machine temperatures, rpm and torque; EQB community definitions
         ]
     }
 
     public var supportedMetrics: Set<TelemetryMetric> {
-        Set([.soc, .packVoltage, .packCurrent, .power, .speed, .aux12V, .coolantTemp, .vehicleRange])
+        Set([.soc, .packVoltage, .packCurrent, .power, .speed, .aux12V, .coolantTemp, .vehicleRange, .motorRpm, .motorTorque])
             .union(TelemetryMetric.eqaCommunityMetrics)
     }
 
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {
         let command = command.replacingOccurrences(of: " ", with: "").uppercased()
-        if ["222002", "226071", "226504", "220201"].contains(command) {
+        if ["222002", "226071", "226504", "220201", "222525", "220200", "220205", "220207"].contains(command) {
             return parseResponses(command: command, rawResponse: rawResponse).first
         }
         guard ["222001", "226050", "226075", "226053", "222005", "222526", "226502"].contains(command) else { return nil }
@@ -78,7 +86,7 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
 
     public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
         let command = command.replacingOccurrences(of: " ", with: "").uppercased()
-        let ecu = command == "220201" ? "5A4" : (command.hasPrefix("2220") ? "7EA" : "7ED")
+        let ecu = ["220201", "220200", "220205", "220207"].contains(command) ? "5A4" : (command.hasPrefix("2220") ? "7EA" : "7ED")
         guard
             let payload = ISO15765Parser().assembleISOTPPayloads(rawResponse)
                 .first(where: { $0.ecu.uppercased() == ecu })?.payload,
@@ -114,6 +122,24 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
         case "226071": return metric(.converterRequestedVoltage, word(0).map { $0 * 0.025 })
         case "226504": return metric(.serviceDistance, word(0))
         case "220201": return metric(.aux12VHighDefinition, word(2).map { $0 * 0.1 })
+        case "222525": return metric(.driveUnitTemp, word(0, signed: true).map { $0 / 8 })
+        case "220200":
+            // Rotor, coolant, stator 1 and stator 2, each °C at (raw / 10) - 40. Report the
+            // hottest sensor: that is the number that limits drive-unit power.
+            guard bytes.count >= 10 else { return [] }
+            let temperatures = [word(2, signed: true), word(4, signed: true), word(6, signed: true), word(8, signed: true)]
+                .compactMap { $0 }
+                .map { $0 / 10 - 40 }
+            return metric(.motorTemp, temperatures.max())
+        case "220205":
+            // Electric machine rpm: machine 2 at bytes 2-3, machine 1 at bytes 10-11. The
+            // single-motor EQA answers in only one of them, so prefer a turning machine.
+            let machine1 = bytes.count >= 12 ? word(10) : nil
+            let machine2 = word(2)
+            return (machine1.flatMap { $0 > 0 ? $0 : nil } ?? machine2).map { [.motorRpm($0)] } ?? []
+        case "220207":
+            // Electric machine actual torque, Nm at (raw / 10) - 500.
+            return word(0).map { [.motorTorque($0 / 10 - 500)] } ?? []
         default: return parseResponse(command: command, rawResponse: rawResponse).map { [$0] } ?? []
         }
     }

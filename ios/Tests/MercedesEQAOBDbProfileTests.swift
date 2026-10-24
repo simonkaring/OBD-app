@@ -103,6 +103,51 @@ final class MercedesEQAOBDbProfileTests: XCTestCase {
     }
 
     @MainActor
+    func testDriveUnitSignalsFromSiblingEQBDefinitions() {
+        let manager = VehicleDataManager()
+
+        // 5A4 0200 (sibling EQB definition): rotor 25 °C, coolant 20 °C, stator 1 60 °C,
+        // stator 2 55 °C, each (raw / 10) - 40. The hottest sensor is what limits power.
+        let machineTemperatures = "5A4 10 0D 62 02 00 00 00 02\r5A4 21 8A 02 58 03 E8 03 B6"
+        let temperatures = profile.parseResponses(command: "220200", rawResponse: machineTemperatures)
+        XCTAssertTrue(manager.applyUpdates(temperatures, timestamp: .now, sourceCommand: "220200"))
+        XCTAssertEqual(TelemetryMetric.motorTemp.value(in: manager.latestTelemetry), 60, accuracy: 0.001)
+
+        // 5A4 0205: machine 2 idle, machine 1 turning at 3000 rpm.
+        let rpm = profile.parseResponses(
+            command: "220205",
+            rawResponse: "5A4 10 0F 62 02 05 00 00 00\r5A4 21 00 00 00 00 00 00 00\r5A4 22 0B B8")
+        XCTAssertTrue(manager.applyUpdates(rpm, timestamp: .now, sourceCommand: "220205"))
+        XCTAssertEqual(manager.latestTelemetry.motorRpm, 3_000, accuracy: 0.001)
+
+        // 5A4 0207: actual torque at (unsigned raw / 10) - 500.
+        let torque = profile.parseResponses(command: "220207", rawResponse: "5A4 05 62 02 07 1F 40")
+        XCTAssertTrue(manager.applyUpdates(torque, timestamp: .now, sourceCommand: "220207"))
+        XCTAssertEqual(manager.latestTelemetry.motorTorqueNm, 300, accuracy: 0.001)
+
+        // 7E5 2525: power electric unit temperature, Int16 / 8.
+        let driveUnit = profile.parseResponses(command: "222525", rawResponse: "7ED 05 62 25 25 01 90")
+        XCTAssertTrue(manager.applyUpdates(driveUnit, timestamp: .now, sourceCommand: "222525"))
+        XCTAssertEqual(TelemetryMetric.driveUnitTemp.value(in: manager.latestTelemetry), 50, accuracy: 0.001)
+
+        XCTAssertTrue(manager.liveMetrics.isSuperset(of: [.motorTemp, .driveUnitTemp, .motorRpm, .motorTorque]))
+        XCTAssertTrue(profile.supportedMetrics.isSuperset(of: [.motorTemp, .driveUnitTemp, .motorRpm, .motorTorque]))
+    }
+
+    func testDriveUnitSignalsRejectWrongRoutingAndTruncatedPayloads() {
+        // Another ECU's reply must never be decoded as drive-unit data.
+        let foreignECU = "7EA 10 0D 62 02 00 00 00 02\r7EA 21 8A 02 58 03 E8 03 B6"
+        XCTAssertTrue(profile.parseResponses(command: "220200", rawResponse: foreignECU).isEmpty)
+        // A truncated 0200 payload cannot yield the full temperature set.
+        XCTAssertTrue(profile.parseResponses(command: "220200", rawResponse: "5A4 05 62 02 00 00 00").isEmpty)
+        // Values outside physical bounds never reach the snapshot.
+        XCTAssertFalse(VehicleDataManager.isPlausible(.communityMetric(.motorTemp, 9_000)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.motorRpm(90_000)))
+        XCTAssertFalse(VehicleDataManager.isPlausible(.motorTorque(9_000)))
+        XCTAssertTrue(VehicleDataManager.isPlausible(.motorTorque(-500)))
+    }
+
+    @MainActor
     func testDriveCaptureNormalizesConsumptionAndRegenWithoutFalseCharging() {
         let manager = VehicleDataManager()
         manager.selectVehicle(VehicleCatalog.eqaOBDbModel, modelYear: 2021)

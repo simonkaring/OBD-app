@@ -10,6 +10,10 @@ public enum TelemetryUpdate: Sendable {
     case batteryTemp(min: Double, max: Double, avg: Double)  // °C
     case aux12V(Double)  // Volts
     case motorStats(rpm: Double, torque: Double)  // RPM, Nm
+    /// Single-quantity drive-unit readings for profiles whose rpm and torque come from
+    /// separate commands; unlike `motorStats`, neither value is fabricated to fill the other.
+    case motorRpm(Double)  // RPM
+    case motorTorque(Double)  // Nm
     case hvacPower(Double)  // kW
     /// `kwRate` is nil when the profile only knows *that* the car is charging (e.g. a
     /// status bit) but not at what rate — inventing a rate corrupts session kWh totals.
