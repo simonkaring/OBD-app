@@ -6,11 +6,24 @@ before every archive. Keep this script in sync with the app target's build setti
 resources, and test targets.
 
     python3 scratch/make_xcodeproj.py
+    python3 scratch/make_xcodeproj.py --local-signing   # free / personal team
 """
 
 import hashlib
 import os
 import pathlib
+import sys
+
+# A free "Personal Team" Apple ID cannot provision App Groups or the CarPlay
+# Driving Task entitlement, so device builds fail to sign. `--local-signing`
+# leaves both entitlement files out of the app and widget targets: the app then
+# installs on a personal team, CarPlay stays inert, and `SharedTelemetryStore`
+# falls back to `UserDefaults.standard` (the widget shows placeholder data).
+LOCAL_SIGNING = "--local-signing" in sys.argv[1:]
+
+# Every path below is relative to the ios/ project root, so run from there no
+# matter which directory the caller invoked the script from.
+os.chdir(pathlib.Path(__file__).resolve().parents[1])
 
 PROJECT = "VoltLink"
 BUNDLE_ID = "com.simonkaring.voltlink"
@@ -325,6 +338,34 @@ common_widget_settings = """\t\t\t\tAPPLICATION_EXTENSION_API_ONLY = YES;
 \t\t\t\tSWIFT_VERSION = 6.0;
 \t\t\t\tTARGETED_DEVICE_FAMILY = "1,2";
 """
+
+if LOCAL_SIGNING:
+    # See LOCAL_SIGNING above: personal teams cannot provision these capabilities.
+    common_app_settings = common_app_settings.replace(
+        "\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/VoltLink.entitlements;\n", "")
+    common_widget_settings = common_widget_settings.replace(
+        "\t\t\t\tCODE_SIGN_ENTITLEMENTS = Widgets/VoltLinkWidgets.entitlements;\n", "")
+
+# Xcode writes the selected team into the project, so a plain regeneration would
+# drop it and automatic signing would fall back to "no team". Export
+# VOLTLINK_DEVELOPMENT_TEAM=<TeamID> to carry the selection into the project.
+DEVELOPMENT_TEAM = os.environ.get("VOLTLINK_DEVELOPMENT_TEAM", "").strip()
+
+
+def with_development_team(settings):
+    """Insert DEVELOPMENT_TEAM in alphabetical position, if one was requested."""
+    if not DEVELOPMENT_TEAM:
+        return settings
+    line = '\t\t\t\tDEVELOPMENT_TEAM = "%s";\n' % DEVELOPMENT_TEAM
+    for anchor in ("\t\t\t\tGENERATE_INFOPLIST_FILE", "\t\t\t\tINFOPLIST_FILE", "\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET"):
+        if anchor in settings:
+            return settings.replace(anchor, line + anchor, 1)
+    return settings + line
+
+
+common_app_settings = with_development_team(common_app_settings)
+common_ui_settings = with_development_team(common_ui_settings)
+common_widget_settings = with_development_team(common_widget_settings)
 
 project_settings = """\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
 \t\t\t\tCLANG_ENABLE_MODULES = YES;
@@ -787,5 +828,6 @@ scheme = """<?xml version="1.0" encoding="UTF-8"?>
 
 (scheme_dir / "VoltLink.xcscheme").write_text(scheme, encoding="utf-8")
 
-print("VoltLink.xcodeproj generated (%d app sources, %d resources, %d UI tests)" % (
-    len(app_sources), len(app_resources) + len(app_catalogs), len(ui_sources)))
+print("VoltLink.xcodeproj generated (%d app sources, %d resources, %d UI tests)%s" % (
+    len(app_sources), len(app_resources) + len(app_catalogs), len(ui_sources),
+    " with local signing (no CarPlay or App Group entitlements)" if LOCAL_SIGNING else ""))

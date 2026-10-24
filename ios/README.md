@@ -1,4 +1,8 @@
-# VoltLink — Swift iOS OBD-II & EV Telemetry App
+# VoltLink iOS — Swift iOS & CarPlay OBD-II App
+
+> This is the iOS project of the two-project VoltLink repo. See the
+> [repository README](../README.md) for the overall layout; the Android app is
+> planned under [`android/`](../android/README.md).
 
 [![Platform: iOS 17+](https://img.shields.io/badge/Platform-iOS%2017%2B-blue.svg?style=flat-square)](https://apple.com)
 [![CarPlay](https://img.shields.io/badge/CarPlay-Ready-black.svg?style=flat-square)](https://apple.com)
@@ -98,6 +102,30 @@ hand-editing the project file.
    While the iOS Simulator is running:
    - In the Simulator menu, go to **I/O -> External Displays -> CarPlay**.
    - A secondary CarPlay display window will open running the native VoltLink CarPlay dashboard!
+
+#### Signing with a Free (Personal) Apple ID
+
+`App/VoltLink.entitlements` requests `com.apple.developer.carplay-driving-task`
+and the `group.com.simonkaring.voltlink` App Group, and the widget extension
+requests that group too. A free Personal Team can provision neither capability,
+so device builds stop at "Cannot create a development provisioning profile".
+For local device testing on a free account, generate the project without the
+restricted entitlements:
+
+```bash
+python3 scratch/make_xcodeproj.py --local-signing
+```
+
+The app then installs and runs normally, but CarPlay stays inert and the widget
+shows placeholder data (`SharedTelemetryStore` falls back to standard
+`UserDefaults` when the app group is missing). Regenerate without the flag once
+the project is on a paid Apple Developer Program team and Apple has granted the
+CarPlay Driving Task entitlement. Xcode's team selection lives in the generated
+project, so export it to survive regeneration:
+
+```bash
+VOLTLINK_DEVELOPMENT_TEAM=<TeamID> python3 scratch/make_xcodeproj.py [--local-signing]
+```
 
 ---
 
