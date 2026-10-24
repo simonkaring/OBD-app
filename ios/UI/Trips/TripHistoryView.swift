@@ -361,6 +361,35 @@ public struct TripHistoryView: View {
                                     .foregroundStyle(Theme.electricCyan)
                             }
                         }
+
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            HStack(spacing: 20) {
+                                VStack(alignment: .leading) {
+                                    Text("Elapsed")
+                                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                                    Text(durationText(for: active, at: context.date))
+                                        .font(.title3.weight(.semibold))
+                                        .monospacedDigit()
+                                        .foregroundStyle(Theme.textPrimary)
+                                }
+
+                                VStack(alignment: .leading) {
+                                    Text("Avg Speed")
+                                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                                    Text(averagePowerText(for: active, at: context.date))
+                                        .font(.title3.weight(.semibold))
+                                        .monospacedDigit()
+                                        .foregroundStyle(Theme.electricCyan)
+                                }
+
+                                Spacer()
+                            }
+                        }
+
+                        let speedCurve = ChargingSpeedCurve.session(active.samples)
+                        if speedCurve.count > 1 {
+                            ChargingSpeedChart(points: speedCurve, isCompact: true)
+                        }
                     }
                     .padding()
                     .glassCard()
@@ -402,9 +431,25 @@ public struct TripHistoryView: View {
                                         .foregroundStyle(Theme.textSecondary)
                                         .lineLimit(1)
                                     Spacer()
+                                    Text(durationText(for: session))
+                                        .font(.caption)
+                                        .monospacedDigit()
+                                        .foregroundStyle(Theme.textSecondary)
+                                }
+                                HStack {
                                     Text("Peak: \(units.power(kilowatts: session.peakPowerKW))")
                                         .font(.caption)
                                         .foregroundStyle(Theme.textSecondary)
+                                    Spacer()
+                                    Text("Avg: \(averagePowerText(for: session))")
+                                        .font(.caption)
+                                        .monospacedDigit()
+                                        .foregroundStyle(Theme.textSecondary)
+                                }
+
+                                let speedCurve = ChargingSpeedCurve.session(session.samples)
+                                if speedCurve.count > 1 {
+                                    ChargingSpeedChart(points: speedCurve, isCompact: true)
                                 }
                             }
                         }
@@ -415,6 +460,21 @@ public struct TripHistoryView: View {
                 .listStyle(.plain)
             }
         }
+    }
+
+    /// Elapsed time of a recorded session, or of the active session when `endTime` is still open.
+    private func durationText(for session: ChargingSessionModel, at date: Date = .now) -> String {
+        let end = session.endTime ?? date
+        return ChargingSessionSummary.duration(end.timeIntervalSince(session.startTime))
+    }
+
+    /// Mean charge speed across the session, in the user's power unit.
+    private func averagePowerText(for session: ChargingSessionModel, at date: Date = .now) -> String {
+        let end = session.endTime ?? date
+        let average = ChargingSessionSummary.averagePowerKW(
+            energyKWh: session.totalKWhDelivered,
+            over: end.timeIntervalSince(session.startTime))
+        return average.map { units.power(kilowatts: $0) } ?? "—"
     }
 
     private func deleteTrips(at offsets: IndexSet) {

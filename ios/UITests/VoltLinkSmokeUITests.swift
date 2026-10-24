@@ -23,5 +23,26 @@ final class VoltLinkSmokeUITests: XCTestCase {
         app.tabBars.buttons["Diagnostics"].tap()
         XCTAssertTrue(app.buttons["Scan DTCs"].waitForExistence(timeout: 10), "Diagnostics tab should expose a scan action")
         XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+
+        // The demo charging log ships one recorded session, so its row must draw a
+        // charge-speed sparkline instead of only the numeric peak.
+        app.tabBars.buttons["Log"].tap()
+        app.segmentedControls.buttons["Charging"].tap()
+        let speedSparkline = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Charging speed over time"))
+            .firstMatch
+        XCTAssertTrue(speedSparkline.waitForExistence(timeout: 10), "Charging log rows should chart charge speed")
+
+        let rowAverage = app.staticTexts
+            .matching(NSPredicate(format: "label BEGINSWITH %@", "Avg: "))
+            .firstMatch
+        XCTAssertTrue(rowAverage.waitForExistence(timeout: 10), "Charging log rows should report average speed")
+
+        // Starting a simulated DC charge must surface elapsed time and average speed
+        // on the Charging tab's headline card.
+        app.tabBars.buttons["Charging"].tap()
+        app.buttons["Simulate DC Fast Charging (100 kW)"].tap()
+        XCTAssertTrue(app.staticTexts["Elapsed"].waitForExistence(timeout: 15), "Charging tab should show elapsed time")
+        XCTAssertTrue(app.staticTexts["Avg speed"].waitForExistence(timeout: 15), "Charging tab should show average speed")
     }
 }

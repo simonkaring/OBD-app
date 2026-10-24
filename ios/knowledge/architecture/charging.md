@@ -40,6 +40,30 @@ the curve with SOC on the x-axis and power converted through
 `UnitPreferences` on the y-axis. Sessions recorded before schema V2 simply have
 no samples and hide the chart.
 
+`ChargingSpeedChart` reuses those samples as a charge-power-over-time curve
+(elapsed minutes on the x-axis):
+
+- The Charging log draws a compact, axis-free sparkline per session row through
+  `ChargingSpeedCurve.session(_:)`, downsampled to 90 points.
+- The live Charging tab plots `ChargingSessionState.history` while charging
+  through `ChargingSpeedCurve.live(_:)`, downsampled to 180 of the ~2 s tracker
+  points. Both builders return an empty curve for fewer than two readings, and
+  both clamp regen-direction or corrupt power readings to zero.
+
+# Elapsed time and average speed
+
+Both charging surfaces report how long the session has run and its mean charge
+speed:
+
+- `ChargingSessionSummary.duration` formats the span from `startTime` to
+  `endTime` (or to now for an active session) as `"8m"` or `"1h 05m"`.
+- `ChargingSessionSummary.averagePowerKW(energyKWh:over:)` divides delivered
+  energy by that span — the same ratio `ChargingTrackingManager.stopSession`
+  stores in `averagePowerKW`. It returns `nil` until both energy and time are
+  known, so the UI shows `—` rather than a misleading 0 kW.
+- `ChargingLiveView` and the active session card tick once a second through
+  `TimelineView`; completed log rows use the stored end time and need no timer.
+
 # Detection and estimation
 
 - Charging requires the car to be stationary and energy to flow into the pack:

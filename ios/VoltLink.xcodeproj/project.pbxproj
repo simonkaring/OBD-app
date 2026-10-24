@@ -59,6 +59,8 @@
 		A704B79FFBA6BF8CE067AFFA /* VehicleDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D62ABA0589F89C112081016 /* VehicleDataManager.swift */; };
 		871020AA892CA05DD904FC47 /* ChargingLiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD3692C108CBB44E95504B /* ChargingLiveView.swift */; };
 		B47CEF6A31A7A8AFC19317FF /* ChargingSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E104F9AB704ADE22321279D /* ChargingSessionDetailView.swift */; };
+		4B72269FCB42DF3E1AE8713F /* ChargingSessionSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1027041DF6892E6AE42E588 /* ChargingSessionSummary.swift */; };
+		61A01F0244C42BC563F512BB /* ChargingSpeedChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B6C1E3943C653D3E335D4B /* ChargingSpeedChart.swift */; };
 		7C57ED29D5D8AE6CA302E1E2 /* DashboardCustomizationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C4A25CA0C48F1780428E2D9 /* DashboardCustomizationSheet.swift */; };
 		4A5CB158F5CBD03861834A7F /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31822398467EA0BC3A453AB /* DashboardView.swift */; };
 		22955A94173D40EEEC71C63F /* DashboardWidgetConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD3F1478FA27355984E1A13A /* DashboardWidgetConfig.swift */; };
@@ -187,6 +189,8 @@
 		8D62ABA0589F89C112081016 /* VehicleDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleDataManager.swift"; sourceTree = "<group>"; };
 		6FCD3692C108CBB44E95504B /* ChargingLiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingLiveView.swift"; sourceTree = "<group>"; };
 		2E104F9AB704ADE22321279D /* ChargingSessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionDetailView.swift"; sourceTree = "<group>"; };
+		E1027041DF6892E6AE42E588 /* ChargingSessionSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionSummary.swift"; sourceTree = "<group>"; };
+		28B6C1E3943C653D3E335D4B /* ChargingSpeedChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSpeedChart.swift"; sourceTree = "<group>"; };
 		1C4A25CA0C48F1780428E2D9 /* DashboardCustomizationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardCustomizationSheet.swift"; sourceTree = "<group>"; };
 		B31822398467EA0BC3A453AB /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardView.swift"; sourceTree = "<group>"; };
 		AD3F1478FA27355984E1A13A /* DashboardWidgetConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashboardWidgetConfig.swift"; sourceTree = "<group>"; };
@@ -560,7 +564,9 @@
 			isa = PBXGroup;
 			children = (
 				6FCD3692C108CBB44E95504B,
-				2E104F9AB704ADE22321279D
+				2E104F9AB704ADE22321279D,
+				E1027041DF6892E6AE42E588,
+				28B6C1E3943C653D3E335D4B
 			);
 			path = "Charging";
 			sourceTree = "<group>";
@@ -867,6 +873,8 @@
 				A704B79FFBA6BF8CE067AFFA /* VehicleDataManager.swift in Sources */,
 				871020AA892CA05DD904FC47 /* ChargingLiveView.swift in Sources */,
 				B47CEF6A31A7A8AFC19317FF /* ChargingSessionDetailView.swift in Sources */,
+				4B72269FCB42DF3E1AE8713F /* ChargingSessionSummary.swift in Sources */,
+				61A01F0244C42BC563F512BB /* ChargingSpeedChart.swift in Sources */,
 				7C57ED29D5D8AE6CA302E1E2 /* DashboardCustomizationSheet.swift in Sources */,
 				4A5CB158F5CBD03861834A7F /* DashboardView.swift in Sources */,
 				22955A94173D40EEEC71C63F /* DashboardWidgetConfig.swift in Sources */,
@@ -974,9 +982,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = App/VoltLink.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "8SWT4K78KH";
 				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -998,9 +1006,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = App/VoltLink.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "8SWT4K78KH";
 				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1022,6 +1030,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "8SWT4K78KH";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1044,6 +1053,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "8SWT4K78KH";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1065,9 +1075,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = Widgets/VoltLinkWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "8SWT4K78KH";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Widgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1091,9 +1101,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = Widgets/VoltLinkWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "8SWT4K78KH";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Widgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

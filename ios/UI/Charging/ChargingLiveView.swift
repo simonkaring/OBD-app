@@ -85,6 +85,11 @@ public struct ChargingLiveView: View {
 
     private var timeTo100Min: Int { minutesToTarget(100.0) }
 
+    /// Start of the live charging session, which drives the elapsed and average readouts.
+    private var chargingStartedAt: Date? {
+        vehicleData.chargingSession.startTime
+    }
+
     public var body: some View {
         NavigationStack {
             ZStack {
@@ -112,6 +117,39 @@ public struct ChargingLiveView: View {
                             .monospacedDigit()
                             .foregroundStyle(isCharging ? Theme.regenGreen : Theme.textPrimary)
 
+                            if isCharging {
+                                TimelineView(.periodic(from: .now, by: 1)) { context in
+                                    let elapsed = chargingStartedAt.map { context.date.timeIntervalSince($0) } ?? 0
+                                    HStack(spacing: 28) {
+                                        VStack(spacing: 2) {
+                                            Text("Elapsed")
+                                                .font(.caption)
+                                                .foregroundStyle(Theme.textSecondary)
+                                            Text(ChargingSessionSummary.duration(elapsed))
+                                                .font(.subheadline.weight(.semibold))
+                                                .monospacedDigit()
+                                                .foregroundStyle(Theme.textPrimary)
+                                        }
+
+                                        VStack(spacing: 2) {
+                                            Text("Avg speed")
+                                                .font(.caption)
+                                                .foregroundStyle(Theme.textSecondary)
+                                            Text(
+                                                ChargingSessionSummary.averagePowerKW(
+                                                    energyKWh: vehicleData.chargingSession.totalEnergyKWh,
+                                                    over: elapsed
+                                                ).map { UnitPreferences.shared.power(kilowatts: $0) } ?? "—"
+                                            )
+                                            .font(.subheadline.weight(.semibold))
+                                            .monospacedDigit()
+                                            .foregroundStyle(Theme.textPrimary)
+                                        }
+                                    }
+                                    .padding(.top, 4)
+                                }
+                            }
+
                             if vehicleData.latestTelemetry.chargePowerSource == .socEstimate {
                                 Text("Estimated from battery level change, not AC wall power.")
                                     .font(.caption)
@@ -123,6 +161,24 @@ public struct ChargingLiveView: View {
                         .frame(maxWidth: .infinity)
                         .glassCard()
                         .padding(.horizontal)
+
+                        // Charging Speed Curve
+                        if isCharging {
+                            let speedCurve = ChargingSpeedCurve.live(vehicleData.chargingSession.history)
+                            if speedCurve.count > 1 {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Charging speed")
+                                        .font(.headline)
+                                        .foregroundStyle(Theme.textSecondary)
+
+                                    ChargingSpeedChart(points: speedCurve)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .glassCard()
+                                .padding(.horizontal)
+                            }
+                        }
 
                         // Battery State of Charge Ring
                         BatteryLevelBar(
