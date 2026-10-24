@@ -1,8 +1,17 @@
 # VoltLink Repository Instructions
 
-Refer to [.gemini/rules.md](.gemini/rules.md) for full coding conventions, directory layout, and concurrency guidelines.
+This is a two-project repository: the iOS/CarPlay app lives in [`ios/`](ios/), the
+Android app is planned in [`android/`](android/) and has no implementation yet. See
+[`android/README.md`](android/README.md).
+
+Refer to [.gemini/rules.md](.gemini/rules.md) for full coding conventions, directory
+layout, and concurrency guidelines.
 
 ## Quick Summary
+
+**Run the iOS commands from `ios/`.** iOS-specific paths below are relative to that
+directory.
+
 - **App Name**: VoltLink (Swift iOS & CarPlay OBD-II app)
 - **Target Car**: Mercedes-Benz EQA 250 (2021)
 - **Adapter**: Vgate iCar Pro 2S (BLE) & Generic ELM327 / Demo Mode

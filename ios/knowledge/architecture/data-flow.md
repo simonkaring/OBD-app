@@ -6,7 +6,7 @@ tags: [architecture, data-flow, obd]
 status: stable
 sources:
 - id: agents
-  resource: ../AGENTS.md
+  resource: ../../AGENTS.md
   title: VoltLink agent guide
 - id: manager
   resource: ../Services/VehicleDataManager.swift

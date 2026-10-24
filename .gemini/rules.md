@@ -2,6 +2,8 @@
 
 This repository contains **VoltLink**, a native Swift iOS & Apple CarPlay application for OBD-II vehicle diagnostics and live EV telemetry, optimized for the **Mercedes-Benz EQA 250 (2021)** and **Vgate iCar Pro 2S** BLE adapter.
 
+VoltLink is a two-project repository: the iOS/CarPlay app lives in `ios/` and the Android app is planned in `android/` (not implemented yet). Paths in this file are relative to `ios/` unless noted, and the build/test commands run from `ios/`.
+
 ---
 
 ## 🛠️ Technology Stack & Requirements
@@ -19,29 +21,33 @@ This repository contains **VoltLink**, a native Swift iOS & Apple CarPlay applic
 ## 🏗️ Architecture & Directory Structure
 
 ```
-OBD-app/
-├── App/                # Main SwiftUI app entry point, AppEnvironment, Info.plist
-├── CarPlay/            # CarPlaySceneDelegate in-car dashboard templates
-├── Core/
-│   ├── Bluetooth/      # BLE GATT UUIDs & CBCentralManager connection manager
-│   ├── OBD/            # Command queues, ISO-TP CAN frame parser, DTC data models
-│   ├── Vehicles/       # VehicleProfile protocol & Mercedes EQA 250 UDS PID decoders
-│   ├── Demo/           # Physics-based driving & 100 kW DC charging simulator
-│   └── Location/       # CoreLocation route tracking
-├── Data/
-│   ├── Models/         # SwiftData persistence models (TripModel, SavedDTCModel)
-│   ├── Repositories/   # Offline DTC JSON database loader
-│   └── Seed/           # Bundled dtc_definitions.json database
-├── Services/           # Telemetry publishers, trip recorders, DTC scanners
-├── UI/
-│   ├── DesignSystem/   # Theme tokens, Glassmorphism card modifiers, Animated Gauges
-│   ├── Dashboard/      # Live gauges, Swift Charts line graph, HUD mode
-│   ├── Diagnostics/    # DTC trouble code scanner & detail sheets
-│   ├── Trips/          # Recorded trip log history
-│   ├── Charging/       # Fast-charging monitor & battery health report
-│   ├── DemoHUD/        # Interactive simulation controls sheet
-│   └── Settings/       # App settings & BLE device scanner
-└── Tests/              # XCTest suite (OBDParserTests.swift)
+.
+├── ios/                    # Swift iOS & CarPlay project (this file's root)
+│   ├── App/                # Main SwiftUI app entry point, AppEnvironment, Info.plist
+│   ├── CarPlay/            # CarPlaySceneDelegate in-car dashboard templates
+│   ├── Core/
+│   │   ├── Bluetooth/      # BLE GATT UUIDs & CBCentralManager connection manager
+│   │   ├── OBD/            # Command queues, ISO-TP CAN frame parser, DTC data models
+│   │   ├── Vehicles/       # VehicleProfile protocol & Mercedes EQA 250 UDS PID decoders
+│   │   ├── Demo/           # Physics-based driving & 100 kW DC charging simulator
+│   │   └── Location/       # CoreLocation route tracking
+│   ├── Data/
+│   │   ├── Models/         # SwiftData persistence models (TripModel, SavedDTCModel)
+│   │   ├── Repositories/   # Offline DTC JSON database loader
+│   │   └── Seed/           # Bundled dtc_definitions.json database
+│   ├── Services/           # Telemetry publishers, trip recorders, DTC scanners
+│   ├── UI/
+│   │   ├── DesignSystem/   # Theme tokens, Glassmorphism card modifiers, Animated Gauges
+│   │   ├── Dashboard/      # Live gauges, Swift Charts line graph, HUD mode
+│   │   ├── Diagnostics/    # DTC trouble code scanner & detail sheets
+│   │   ├── Trips/          # Recorded trip log history
+│   │   ├── Charging/       # Fast-charging monitor & battery health report
+│   │   ├── DemoHUD/        # Interactive simulation controls sheet
+│   │   └── Settings/       # App settings & BLE device scanner
+│   ├── Tests/              # XCTest suite (OBDParserTests.swift)
+│   ├── Package.swift       # SPM manifest for VoltLinkEngine + tests
+│   └── VoltLink.xcodeproj  # Generated iOS app + widget + UI-test targets
+└── android/                # Placeholder for the Android app (not implemented yet)
 ```
 
 ---
