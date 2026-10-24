@@ -29,26 +29,28 @@ sources:
    after three consecutive non-charging snapshots (`endSessionSnapshotThreshold`)
    to avoid splitting one charge into fragments. A row stores start/end SOC,
    delivered kWh, peak/average power, a reverse-geocoded location, and a
-   power-vs-SOC curve (`ChargingSampleModel`, schema V2).
+   timestamped power curve (`ChargingSampleModel`, schema V2).
 
 # Curve capture
 
 `ChargingTrackingManager.appendCurveSample` stores one point per 1% SOC change
 or 60 seconds, whichever comes first, capped at 720 points per session. The
-session starts with a point at its start SOC. `ChargingSessionDetailView` plots
-the curve with SOC on the x-axis and power converted through
-`UnitPreferences` on the y-axis. Sessions recorded before schema V2 simply have
-no samples and hide the chart.
+session starts with a point at its start SOC. Sessions recorded before schema V2
+simply have no samples and hide the chart.
 
-`ChargingSpeedChart` reuses those samples as a charge-power-over-time curve
-(elapsed minutes on the x-axis):
+`ChargingSpeedChart` turns those readings into a charge-power-over-time curve
+(elapsed minutes on the x-axis) and is the only charge graph in the app — the
+session list itself stays numeric:
 
-- The Charging log draws a compact, axis-free sparkline per session row through
-  `ChargingSpeedCurve.session(_:)`, downsampled to 90 points.
+- `ChargingSessionDetailView` plots `ChargingSpeedCurve.session(_:)`,
+  downsampled to 240 points.
 - The live Charging tab plots `ChargingSessionState.history` while charging
   through `ChargingSpeedCurve.live(_:)`, downsampled to 180 of the ~2 s tracker
-  points. Both builders return an empty curve for fewer than two readings, and
-  both clamp regen-direction or corrupt power readings to zero.
+  points.
+- Both charts are scrubbable: dragging selects the nearest reading and shows
+  elapsed time, converted charge speed, and — when the source reported it — the
+  battery level. Both builders return an empty curve for fewer than two
+  readings and clamp regen-direction or corrupt power readings to zero.
 
 # Elapsed time and average speed
 

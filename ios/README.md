@@ -200,7 +200,9 @@ Don't have an OBD-II adapter nearby? No problem!
   and power (kW or hp) without touching stored telemetry.
 - Settings → Trip Cost Estimate sets a price per kWh; the Log tab then adds a
   monthly cost figure (in the device's currency) next to distance, energy, and efficiency.
-- Charging session details chart the recorded power-vs-SOC curve (schema V2).
+- Charging session details chart the recorded charge speed over elapsed time
+  (schema V2); drag across the curve to read the speed, time, and SOC at any
+  moment.
 - Notifications for charging finished, adapter loss during a trip, and fault
   codes are opt-in and requested on first enable.
 

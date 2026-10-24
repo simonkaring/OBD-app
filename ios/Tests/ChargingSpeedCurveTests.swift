@@ -16,6 +16,16 @@ final class ChargingSpeedCurveTests: XCTestCase {
 
         XCTAssertEqual(curve.map(\.minute), [0, 5, 10])
         XCTAssertEqual(curve.map(\.powerKW), [70, 55, 40])
+        XCTAssertEqual(curve.map(\.socPct), [40, 50, 60])
+    }
+
+    func testCurveDropsMissingStateOfCharge() {
+        let samples = [
+            ChargingSampleModel(timestamp: start, socPct: 0, powerKW: 10),
+            ChargingSampleModel(timestamp: start.addingTimeInterval(60), socPct: 41, powerKW: 20),
+        ]
+
+        XCTAssertEqual(ChargingSpeedCurve.session(samples).map(\.socPct), [nil, 41])
     }
 
     func testSessionCurveNeedsTwoSamples() {
@@ -50,6 +60,7 @@ final class ChargingSpeedCurveTests: XCTestCase {
         XCTAssertEqual(curve.first?.minute, 0)
         XCTAssertEqual(curve.last?.minute ?? 0, 1_998 / 60, accuracy: 0.001)
         XCTAssertEqual(curve.last?.powerKW ?? 0, history.last?.powerKW ?? 0, accuracy: 0.001)
+        XCTAssertEqual(curve.last?.socPct ?? 0, history.last?.soc ?? 0, accuracy: 0.001)
     }
 
     func testLiveCurveNeedsTwoPoints() {

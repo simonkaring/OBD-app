@@ -1,7 +1,6 @@
 import SwiftUI
 import SwiftData
 import MapKit
-import Charts
 
 public struct ChargingSessionDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -35,11 +34,9 @@ public struct ChargingSessionDetailView: View {
         .accessibilityLabel("Export charging session")
     }
 
-    /// Session curve points with valid readings, ordered by SOC for a power-vs-SOC plot.
-    private var curveSamples: [ChargingSampleModel] {
-        session.samples
-            .filter { $0.socPct.isFinite && $0.powerKW.isFinite && $0.socPct >= 0 }
-            .sorted { $0.socPct < $1.socPct }
+    /// Session readings ordered by time, used for the scrubbable charge-speed chart.
+    private var speedCurve: [ChargingSpeedPoint] {
+        ChargingSpeedCurve.session(session.samples)
     }
 
     private var coordinate: CLLocationCoordinate2D? {
@@ -170,38 +167,13 @@ public struct ChargingSessionDetailView: View {
                         }
                     }
 
-                    if curveSamples.count > 1 {
+                    if speedCurve.count > 1 {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("CHARGING CURVE")
+                            Text("CHARGING SPEED")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(Theme.textSecondary)
 
-                            Chart(curveSamples, id: \.persistentModelID) { sample in
-                                let units = UnitPreferences.shared
-
-                                LineMark(
-                                    x: .value("State of charge", sample.socPct),
-                                    y: .value("Power", units.powerValue(fromKilowatts: sample.powerKW))
-                                )
-                                .foregroundStyle(Theme.regenGreen)
-                                .interpolationMethod(.catmullRom)
-
-                                AreaMark(
-                                    x: .value("State of charge", sample.socPct),
-                                    y: .value("Power", units.powerValue(fromKilowatts: sample.powerKW))
-                                )
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [Theme.regenGreen.opacity(0.35), Theme.regenGreen.opacity(0.02)],
-                                        startPoint: .top,
-                                        endPoint: .bottom)
-                                )
-                                .interpolationMethod(.catmullRom)
-                            }
-                            .chartXAxisLabel("State of charge (%)", position: .bottom)
-                            .chartYAxisLabel(UnitPreferences.shared.powerUnit.symbol, position: .leading)
-                            .frame(height: 180)
-                            .accessibilityLabel("Charging power curve across state of charge")
+                            ChargingSpeedChart(points: speedCurve)
                         }
                         .padding()
                         .glassCard()

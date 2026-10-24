@@ -386,10 +386,6 @@ public struct TripHistoryView: View {
                             }
                         }
 
-                        let speedCurve = ChargingSpeedCurve.session(active.samples)
-                        if speedCurve.count > 1 {
-                            ChargingSpeedChart(points: speedCurve, isCompact: true)
-                        }
                     }
                     .padding()
                     .glassCard()
@@ -447,10 +443,6 @@ public struct TripHistoryView: View {
                                         .foregroundStyle(Theme.textSecondary)
                                 }
 
-                                let speedCurve = ChargingSpeedCurve.session(session.samples)
-                                if speedCurve.count > 1 {
-                                    ChargingSpeedChart(points: speedCurve, isCompact: true)
-                                }
                             }
                         }
                         .listRowBackground(Theme.cardBackground)
