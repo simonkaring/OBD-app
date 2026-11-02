@@ -1,0 +1,10 @@
+{
+  "init_commands": {"command": ["ATZ","ATE0","ATL0","ATS1","ATH1","ATSTFF","ATSP6"]},
+  "obd_protocol": "6",
+  "data_commands": {"command": ["ATSH7A1","ATCRA7A9","22F22F","22F228","22F229","22F252","22F27D"]},
+  "soc":      {"equation":"A","minValue":"0","maxValue":"100","type":"Number","command":"22F22F","ecu":"7A9"},
+  "voltage":  {"equation":"((A*256)+B)/10","minValue":"250","maxValue":"450","type":"Number","command":"22F228","ecu":"7A9"},
+  "current":  {"equation":"(((A*256)+B)-6015)/10","minValue":"-300","maxValue":"300","type":"Number","command":"22F229","ecu":"7A9"},
+  "batt_temp":{"equation":"A-40","minValue":"-40","maxValue":"80","type":"Number","command":"22F252","ecu":"7A9"},
+  "soh":      {"equation":"((A*65536)+(B*256)+C)/10000","minValue":"0","maxValue":"100","type":"Number","command":"22F27D","ecu":"7A9"}
+}

@@ -1,0 +1,12 @@
+# Gradle
+.gradle/
+.kotlin/
+build/
+
+# Local SDK location (sdk.dir=…)
+local.properties
+
+# IDE
+.idea/
+*.iml
+captures/

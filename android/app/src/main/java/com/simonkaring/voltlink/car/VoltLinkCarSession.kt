@@ -1,0 +1,82 @@
+package com.simonkaring.voltlink.car
+
+import android.content.Intent
+import androidx.car.app.CarContext
+import androidx.car.app.Screen
+import androidx.car.app.Session
+import androidx.car.app.model.Pane
+import androidx.car.app.model.PaneTemplate
+import androidx.car.app.model.Row
+import androidx.car.app.model.Template
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import com.simonkaring.voltlink.VoltLinkApplication
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+
+class VoltLinkCarSession : Session() {
+    override fun onCreateScreen(intent: Intent): Screen = VoltLinkCarScreen(carContext)
+}
+
+/**
+ * Read-only telemetry pane: state of charge, power, speed and range.
+ *
+ * The template is invalidated from the shared telemetry flow, so the car screen follows the
+ * same connection the phone is using — demo, live or offline.
+ */
+class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
+    private val app: VoltLinkApplication
+        get() = carContext.applicationContext as VoltLinkApplication
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    init {
+        lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    // Telemetry arrives about once a second; the host throttles template updates.
+                    scope.launch {
+                        combine(
+                            app.vehicleData.telemetry,
+                            app.vehicleData.connectionState,
+                            app.vehicleData.isDemoMode,
+                        ) { _, _, _ -> Unit }.collect { invalidate() }
+                    }
+                }
+
+                override fun onStop(owner: LifecycleOwner) {
+                    scope.coroutineContext.cancelChildren()
+                }
+            },
+        )
+    }
+
+    override fun onGetTemplate(): Template {
+        val summary = CarTelemetrySummary.of(
+            snapshot = app.vehicleData.telemetry.value,
+            isDemoMode = app.vehicleData.isDemoMode.value,
+            connection = app.vehicleData.connectionState.value,
+        )
+
+        val pane = Pane.Builder()
+            .addRow(row("State of charge", summary.stateOfCharge))
+            .addRow(row("Power", summary.power))
+            .addRow(row("Speed", summary.speed))
+            .addRow(row("Range", summary.range))
+            .build()
+
+        return PaneTemplate.Builder(pane)
+            .setTitle(summary.title)
+            .build()
+    }
+
+    private fun row(title: String, value: String): Row =
+        Row.Builder()
+            .setTitle(title)
+            .addText(value)
+            .build()
+}

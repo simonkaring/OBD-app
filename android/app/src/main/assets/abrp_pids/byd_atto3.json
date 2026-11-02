@@ -1,0 +1,41 @@
+{
+  "init_commands": {
+    "command": ["ATZ", "ATE0", "ATL0", "ATS0", "ATSP6", "ATSH7E7", "ATCRA7EF"]
+  },
+  "obd_protocol": "6",
+  "data_commands": {
+    "command": ["220005", "220008", "220009", "220032"]
+  },
+  "soc": {
+    "equation": "A",
+    "minValue": "0",
+    "maxValue": "100",
+    "type": "Number",
+    "command": "220005",
+    "ecu": "7E7"
+  },
+  "voltage": {
+    "equation": "(A*256+B)/10",
+    "minValue": "250",
+    "maxValue": "500",
+    "type": "Number",
+    "command": "220008",
+    "ecu": "7E7"
+  },
+  "current": {
+    "equation": "((A*256+B)-5000)/10",
+    "minValue": "-500",
+    "maxValue": "500",
+    "type": "Number",
+    "command": "220009",
+    "ecu": "7E7"
+  },
+  "batt_temp": {
+    "equation": "A-40",
+    "minValue": "-40",
+    "maxValue": "80",
+    "type": "Number",
+    "command": "220032",
+    "ecu": "7E7"
+  }
+}

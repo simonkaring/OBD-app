@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VoltLink</string>
+
+    <string name="widget_name">VoltLink telemetry</string>
+    <string name="widget_description">State of charge, power and speed of the connected vehicle</string>
+    <string name="widget_offline">No adapter</string>
+    <string name="widget_demo">Demo</string>
+    <string name="widget_live">Live</string>
+    <string name="widget_charging">Charging</string>
+    <string name="widget_stale">Stale</string>
+</resources>

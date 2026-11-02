@@ -1,0 +1,234 @@
+package com.simonkaring.voltlink
+
+import android.app.Application
+import com.simonkaring.voltlink.core.demo.DemoScenario
+import com.simonkaring.voltlink.core.shortcuts.AppShortcuts
+import com.simonkaring.voltlink.core.vehicles.ServiceReminderMonitor
+import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
+import com.simonkaring.voltlink.core.widget.TelemetryWidgetStore
+import com.simonkaring.voltlink.data.DtcLocalDatabase
+import com.simonkaring.voltlink.data.HistoryStore
+import com.simonkaring.voltlink.data.PreferencesServiceReminderStore
+import com.simonkaring.voltlink.services.ChargingTracker
+import com.simonkaring.voltlink.services.DtcScannerService
+import com.simonkaring.voltlink.services.TripTracker
+import com.simonkaring.voltlink.services.VehicleDataManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
+/** Composition root: one long-lived scope owns the adapter, poller, trackers and scanner. */
+class VoltLinkApplication : Application() {
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    lateinit var vehicleData: VehicleDataManager
+        private set
+    lateinit var dtcScanner: DtcScannerService
+        private set
+    lateinit var historyStore: HistoryStore
+        private set
+    lateinit var tripTracker: TripTracker
+        private set
+    lateinit var chargingTracker: ChargingTracker
+        private set
+    lateinit var notifications: com.simonkaring.voltlink.core.notifications.NotificationService
+        private set
+    lateinit var serviceReminder: ServiceReminderMonitor
+        private set
+
+    private var chargingStatusShown = false
+    private var targetNotified = false
+    private var lastSessionId: String? = null
+    private var lastScanDate: java.time.Instant? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        // ABRP definitions ship as assets; install the reader before any profile is built.
+        com.simonkaring.voltlink.core.vehicles.AbrpProfileLoader.install(this)
+        notifications = com.simonkaring.voltlink.core.notifications.NotificationService(this)
+        serviceReminder = ServiceReminderMonitor(PreferencesServiceReminderStore(this))
+        vehicleData = VehicleDataManager(this, appScope)
+        dtcScanner = DtcScannerService(appScope, vehicleData, DtcLocalDatabase(this))
+        historyStore = HistoryStore(this, appScope)
+        tripTracker = TripTracker(appScope, historyStore)
+        chargingTracker = ChargingTracker(appScope, historyStore)
+        if (vehicleData.isDemoMode.value) {
+            vehicleData.simulation.scenario = DemoScenario.CITY_DRIVING
+        }
+        observeTelemetry()
+        observeChargingState()
+        observeDiagnostics()
+        observeAdapterLoss()
+        observeTripShortcuts()
+        observeServiceInterval()
+        observeTripLocation()
+    }
+
+    /**
+     * Starts and stops the foreground GPS recorder with the trip recorder. The service itself
+     * refuses to start without location permission, which is only requested from Start Trip.
+     */
+    private fun observeTripLocation() {
+        appScope.launch {
+            tripTracker.state
+                .map { it.isRecording }
+                .distinctUntilChanged()
+                .collect { recording ->
+                    if (recording) {
+                        com.simonkaring.voltlink.services.TripLocationService.start(this@VoltLinkApplication)
+                    } else {
+                        com.simonkaring.voltlink.services.TripLocationService.stop(this@VoltLinkApplication)
+                    }
+                }
+        }
+    }
+
+    /** The launcher shortcut's label follows the trip recorder state. */
+    private fun observeTripShortcuts() {
+        appScope.launch {
+            tripTracker.state
+                .map { it.isRecording }
+                .distinctUntilChanged()
+                .collect { recording -> AppShortcuts.publish(this@VoltLinkApplication, recording) }
+        }
+    }
+
+    private fun observeChargingState() {
+        appScope.launch {
+            combine(
+                chargingTracker.state,
+                vehicleData.telemetry,
+                vehicleData.settings.chargeTargetPercent,
+                vehicleData.settings.notificationsEnabled,
+            ) { tracker, snapshot, target, enabled -> Triple(tracker, snapshot, target to enabled) }
+                .collect { (tracker, snapshot, config) ->
+                    val (target, enabled) = config
+                    if (!enabled) {
+                        notifications.cancelChargingStatus()
+                        chargingStatusShown = false
+                        return@collect
+                    }
+                    if (tracker.isCharging) {
+                        notifications.showChargingStatus(
+                            socPct = snapshot.stateOfChargePct,
+                            powerKW = snapshot.chargePowerKW,
+                            targetPct = target,
+                            secondsToTarget = tracker.secondsToTarget,
+                        )
+                        chargingStatusShown = true
+                        if (!targetNotified && snapshot.stateOfChargePct >= target) {
+                            targetNotified = true
+                            notifications.notifyChargeTargetReached(target, snapshot.stateOfChargePct)
+                        }
+                    } else if (chargingStatusShown) {
+                        notifications.cancelChargingStatus()
+                        chargingStatusShown = false
+                        targetNotified = false
+                        historyStore.chargingSessions.value.firstOrNull()?.let { session ->
+                            if (session.id != lastSessionId && session.endTime != null) {
+                                lastSessionId = session.id
+                                notifications.notifyChargingFinished(
+                                    session.startSocPct,
+                                    session.endSocPct,
+                                    session.totalKWhDelivered,
+                                )
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
+    /**
+     * Keeps the last vehicle-reported service distance and raises the weekly reminder. Only
+     * measured values count — the simulator has no service interval.
+     */
+    private fun observeServiceInterval() {
+        appScope.launch {
+            vehicleData.selectedProfileId.collect {
+                serviceReminder.refresh(vehicleData.vehicleDisplayName)
+            }
+        }
+    }
+
+    private fun observeDiagnostics() {
+        appScope.launch {
+            combine(dtcScanner.state, vehicleData.settings.notificationsEnabled) { state, enabled -> state to enabled }
+                .collect { (state, enabled) ->
+                    if (!enabled || state.isScanning || state.lastScanDate == null) return@collect
+                    if (state.lastScanDate != lastScanDate) {
+                        lastScanDate = state.lastScanDate
+                        notifications.notifyFaultCodes(state.codes.size)
+                    }
+                }
+        }
+    }
+
+    private fun observeAdapterLoss() {
+        appScope.launch {
+            vehicleData.connectionState.collect { state ->
+                if (state is com.simonkaring.voltlink.core.obd.BleConnectionState.Error &&
+                    vehicleData.settings.notificationsEnabled.value
+                ) {
+                    notifications.notifyAdapterLost(tripTracker.state.value.isRecording)
+                }
+            }
+        }
+    }
+
+    private fun observeTelemetry() {
+        appScope.launch {
+            combine(
+                vehicleData.telemetry,
+                vehicleData.liveMetrics,
+                vehicleData.isDemoMode,
+                vehicleData.settings.chargeTargetPercent,
+            ) { snapshot, liveMetrics, isDemoMode, target ->
+                TelemetryFeed(snapshot, liveMetrics, isDemoMode, target)
+            }.collect { feed ->
+                // The widget cannot observe flows, so every snapshot is mirrored to prefs.
+                TelemetryWidgetStore.publish(
+                    context = this@VoltLinkApplication,
+                    snapshot = feed.snapshot,
+                    vehicleName = vehicleData.vehicleDisplayName,
+                    isConnected = vehicleData.connectionState.value.isConnected,
+                    isCharging = chargingTracker.state.value.isCharging,
+                    isDemoMode = feed.isDemoMode,
+                )
+                val hasPower = feed.isDemoMode || TelemetryMetric.POWER in feed.liveMetrics
+                tripTracker.process(feed.snapshot, vehicleData.vehicleDisplayName, hasPowerData = hasPower)
+                chargingTracker.onTelemetry(feed.snapshot, feed.targetPercent.toDouble(), feed.isDemoMode)
+                // Battery health is a measured SOH reading, never a simulated one.
+                if (!feed.isDemoMode && TelemetryMetric.SOH in feed.liveMetrics) {
+                    historyStore.recordBatteryHealth(
+                        sohPct = feed.snapshot.stateOfHealthPct,
+                        vehicleName = vehicleData.vehicleDisplayName,
+                    )
+                }
+                if (!feed.isDemoMode) {
+                    val serviceKm = feed.snapshot.communityValues?.get(TelemetryMetric.SERVICE_DISTANCE)
+                    if (serviceKm != null) {
+                        val outcome = serviceReminder.observe(
+                            distanceKm = serviceKm,
+                            vehicleName = vehicleData.vehicleDisplayName,
+                            enabled = vehicleData.settings.notificationsEnabled.value,
+                        )
+                        if (outcome?.reminderDue == true) notifications.notifyServiceDue(serviceKm)
+                    }
+                }
+            }
+        }
+        chargingTracker.updateCapacity(vehicleData.selectedProfile.batteryUsableCapacityKWh)
+    }
+
+    private data class TelemetryFeed(
+        val snapshot: com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot,
+        val liveMetrics: Set<TelemetryMetric>,
+        val isDemoMode: Boolean,
+        val targetPercent: Int,
+    )
+}
