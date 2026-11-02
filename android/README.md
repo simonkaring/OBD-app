@@ -38,7 +38,8 @@ cd android
 ./gradlew testDebugUnitTest             # engine unit tests (ISO-TP, profiles, telemetry, layouts)
 ./gradlew connectedDebugAndroidTest     # Compose UI tests (needs an emulator/device)
 
-# Screenshot tests: dashboard, charging and settings → app/build/screenshots
+# Screenshot tests: dashboard, trips, charging, diagnostics, settings and HUD
+# → app/build/screenshots
 ./gradlew recordScreenshots \
   -Pandroid.testInstrumentationRunnerArguments.class=com.simonkaring.voltlink.ScreenshotTest
 ./gradlew installDebug                  # install on a connected device/emulator
@@ -59,11 +60,13 @@ $ANDROID_HOME/emulator/emulator -avd VoltLinkPixel -gpu host -memory 4096 -cores
 #   adb forward tcp:5277 tcp:5277   (from a phone/emulator with the Desktop Head Unit enabled)
 ```
 
-`ScreenshotTest` records the dashboard, charging and settings screens as PNGs under
-`app/build/screenshots/` (the test copies them to `/sdcard/Download/voltlink-screenshots`
-through the instrumentation shell so they survive the post-test uninstall). The assertions
-cover a rendered, non-blank frame of the expected size rather than a pixel baseline: exact
-pixels depend on device density, fonts and API level, so compare runs across devices by eye.
+`ScreenshotTest` records the dashboard, trip log, charging, diagnostics, settings and HUD
+screens as PNGs under `app/build/screenshots/` (the test copies them to
+`/sdcard/Download/voltlink-screenshots` through the instrumentation shell so they survive the
+post-test uninstall). The HUD capture is mirrored on both axes, exactly as it appears in the
+windshield. The assertions cover a rendered, non-blank frame of the expected size rather than
+a pixel baseline: exact pixels depend on device density, fonts and API level, so compare runs
+across devices by eye.
 
 `local.properties` points Gradle at the local SDK (`sdk.dir=…`). AGP 9 supplies Kotlin
 support directly, so there is no `org.jetbrains.kotlin.android` plugin. `androidx.core` is
@@ -121,25 +124,18 @@ Deliberate differences:
 - Trip distance is still integrated from telemetry speed rather than from GPS deltas; the
   location service only fills the route coordinates. Recording starts from the app (manual or
   auto trip), never from a background geofence.
-- Catalog rows whose dataset profile has no Android decoder (today only the Nissan Leaf) select
-  the generic EV profile and say so in the picker instead of pretending to decode them.
-- The IONIQ 5 / EV6 row decodes from the bundled ABRP `hkmc_Ioniq5.json` document rather than the
-  hand-written E-GMP profile iOS compiles in; the command set and equations come from the same
-  community source, but the two implementations are independent.
+- Rows that map to the generic OBD-II or generic EV profile (the “Vehicle Not Listed” entry)
+  stay on the standard J1979 decoder and say so in the picker instead of pretending to decode
+  pack data.
 - An ABRP equation that is not arithmetic after substitution (e.g. `(A==6)||(A==8)`) yields no
   value, exactly like the iOS evaluator, so a definition relying on comparisons contributes
   nothing until the grammar grows.
 - Cloud sync mirrors to a document-provider folder instead of iCloud: there is one file per
   backup, restore is newest-file-wins and merges by row id.
-- The car pane is limited to four rows by the car template, so coolant/12 V tiles stay on the
-  phone.
+- The car pane renders the persisted row layout in order, up to eight rows; the host decides
+  how many fit on screen, so coolant/12 V tiles usually stay on the phone.
 - The service reminder reads the `226504` service-distance metric, which only the EQA OBDb
   profile publishes; other profiles show the empty state.
-
-Not yet ported:
-
-- The hand-written `HyundaiKiaEGMPProfile` and `NissanLeafZE1Profile` decoders (the E-GMP row
-  runs on its ABRP document; the Leaf stays on the generic EV fallback).
 
 ## Architecture
 

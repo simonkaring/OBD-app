@@ -19,7 +19,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Records the three main screens as PNGs for visual review of design changes.
+ * Records the app's screens as PNGs for visual review of design changes: dashboard, trip
+ * log, charging, diagnostics, settings and the mirrored HUD.
  *
  * Each capture is copied out of the app's private storage into
  * `/sdcard/Download/voltlink-screenshots/`, which `adb pull` can read and which survives the
@@ -50,11 +51,45 @@ class ScreenshotTest {
     }
 
     @Test
+    fun tripsScreenshot() {
+        awaitDemoDashboard()
+
+        rule.onNodeWithText("Log").performClick().assertIsSelected()
+        rule.waitUntil(timeoutMillis = 15_000) {
+            rule.onAllNodesWithText("Start Trip").fetchSemanticsNodes().isNotEmpty() ||
+                rule.onAllNodesWithText("Stop Trip").fetchSemanticsNodes().isNotEmpty()
+        }
+        capture("trips")
+    }
+
+    @Test
     fun chargingScreenshot() {
         awaitDemoDashboard()
 
         rule.onNodeWithText("Charging").performClick().assertIsSelected()
         capture("charging")
+    }
+
+    @Test
+    fun diagnosticsScreenshot() {
+        awaitDemoDashboard()
+
+        rule.onNodeWithText("Diagnostics").performClick().assertIsSelected()
+        rule.waitUntil(timeoutMillis = 15_000) {
+            rule.onAllNodesWithText("System health").fetchSemanticsNodes().isNotEmpty()
+        }
+        capture("diagnostics")
+    }
+
+    @Test
+    fun hudScreenshot() {
+        awaitDemoDashboard()
+
+        rule.onNodeWithText("HUD").performClick()
+        rule.waitUntil(timeoutMillis = 15_000) {
+            rule.onAllNodesWithText("DEMO").fetchSemanticsNodes().isNotEmpty()
+        }
+        capture("hud")
     }
 
     @Test
