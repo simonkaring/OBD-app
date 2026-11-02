@@ -149,6 +149,6 @@ class AbrpProfileTest {
             VehicleProfileId.HYUNDAI_KIA_EGMP,
             VehicleCatalog.profileFor("hkmc_Ioniq5"),
         )
-        assertEquals(VehicleProfileId.GENERIC_EV, VehicleCatalog.profileFor("nissan_leaf"))
+        assertEquals(VehicleProfileId.NISSAN_LEAF_ZE1, VehicleCatalog.profileFor("nissan_leaf"))
     }
 }

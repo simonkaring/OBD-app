@@ -275,7 +275,7 @@ object VehicleCatalog {
      * Maps a dataset profile identifier onto the profile this app can actually run.
      *
      * The community identifiers are the ABRP file names, so they resolve to the bundled
-     * definitions; `nissan_leaf` has no Android decoder yet and stays on the generic EV one.
+     * definitions; `nissan_leaf` resolves to the hand-written OVMS decoder.
      */
     fun profileFor(rawProfileId: String?): VehicleProfileId =
         when (rawProfileId) {
@@ -297,6 +297,7 @@ object VehicleCatalog {
             "gmc_bolt19" -> VehicleProfileId.CHEVROLET_BOLT
             "gmc_bolt17" -> VehicleProfileId.CHEVROLET_BOLT_2017
             "honda_eny1" -> VehicleProfileId.HONDA_E_NY1
+            "nissan_leaf" -> VehicleProfileId.NISSAN_LEAF_ZE1
             "aiways_u5" -> VehicleProfileId.AIWAYS_U5
             "byd_atto3" -> VehicleProfileId.BYD_ATTO3
             "bmw_i3" -> VehicleProfileId.BMW_I3

@@ -8,8 +8,8 @@ Compose and the Android Bluetooth LE stack, with no shared build tooling with `i
 - **BLE adapters**: Vgate iCar Pro 2S (18F0 / E781…), HM-10 (FFE0), generic UART (FFF0),
   Nordic UART, ISSC, plus a first-writable/notify fallback for clones.
 - **Profiles**: Mercedes-Benz EQA 250 (29-bit UDS), EQA 250 OBDb community set, Volkswagen
-  MEB, 19 ABRP-backed community profiles read from `assets/abrp_pids/`, generic SAE J1979
-  OBD-II and generic EV.
+  MEB, Hyundai/Kia E-GMP and Nissan Leaf (OVMS) hand-written decoders, 18 ABRP-backed
+  community profiles read from `assets/abrp_pids/`, generic SAE J1979 OBD-II and generic EV.
 - **Giving back**: the OBD terminal exports a community PID contribution JSON, and the trip log
   summarises the month (distance, net energy, efficiency, cost) from the saved electricity price.
 - **Demo mode** with the same simulated driving/charging scenarios as the iOS app.
@@ -67,7 +67,7 @@ Implemented in this pass:
 | Live telemetry dashboard | Power dial (bidirectional draw/regen), SoC and speed dials, HV pack bar, rolling power/speed chart, secondary metric tiles |
 | BLE ELM327 transport | Scan/connect/discover, command queue, 4 s timeout, stale-response drain, routing-failure recovery, OBD terminal log |
 | ISO-TP / UDS decoding | Same multi-ECU bucket parser, 11- and 29-bit headers, plausibility bounds |
-| Vehicle profiles | EQA 250, EQA OBDb community, VW MEB, 19 ABRP-backed community profiles (Mach-E, IONIQ 5 / EV6, Kona / Niro, e-Golf, e-Up!, Mini SE, Zoe ZE50/ZE40, ZS EV, I-Pace, Bolt, e:Ny1, U5, Atto 3, i3, S05), generic OBD-II, generic EV |
+| Vehicle profiles | EQA 250, EQA OBDb community, VW MEB, Hyundai/Kia E-GMP, Nissan Leaf 62 kWh (OVMS), 18 ABRP-backed community profiles (Mach-E, Kona / Niro, e-Golf, e-Up!, Mini SE, Zoe ZE50/ZE40, ZS EV, I-Pace, Bolt, e:Ny1, U5, Atto 3, i3, S05), generic OBD-II, generic EV |
 | ABRP PID import | `AbrpProfileLoader` reads `assets/abrp_pids/*.json`; equations are evaluated by a byte-math parser (`Signed()`, `{token:bit}`, `INT16(hi:lo)`, `<<n`, spreadsheet-column byte tokens) after ISO-TP reassembly, with per-ECU bucket pinning |
 | Demo mode | City / highway / DC charging / fault injection, manual speed, throttle and regen overrides |
 | HUD mode | Mirrored speed/power/SoC overlay |

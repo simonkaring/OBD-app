@@ -10,7 +10,7 @@ enum class VehicleProfileId(val displayName: String, private val abrpFilename: S
     MERCEDES_EQ_A250("Mercedes-Benz EQA 250 (2021)"),
     MERCEDES_EQ_A_OBDb("Mercedes-Benz EQA 250 (OBDb community)"),
     VOLKSWAGEN_MEB("Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)"),
-    HYUNDAI_KIA_EGMP("Hyundai/Kia E-GMP (IONIQ 5 / EV6)", "hkmc_Ioniq5.json"),
+    HYUNDAI_KIA_EGMP("Hyundai/Kia E-GMP (IONIQ 5 / EV6)"),
     HYUNDAI_KIA_2019("Hyundai / Kia (Kona / Niro EV)", "hkmc_hkmc2019.json"),
     HYUNDAI_KIA_2017("Hyundai / Kia (IONIQ Electric / Soul EV 2017)", "hkmc_hkmc2017.json"),
     VOLKSWAGEN_E_GOLF("Volkswagen e-Golf (ABRP)", "volkswagen_eGolf.json"),
@@ -25,6 +25,7 @@ enum class VehicleProfileId(val displayName: String, private val abrpFilename: S
     CHEVROLET_BOLT("Chevrolet Bolt EV 2019+ (ABRP)", "gmc_bolt19.json"),
     CHEVROLET_BOLT_2017("Chevrolet Bolt EV 2017 (ABRP)", "gmc_bolt17.json"),
     HONDA_E_NY1("Honda e:Ny1 (ABRP)", "honda_eny1.json"),
+    NISSAN_LEAF_ZE1("Nissan Leaf 62 kWh (OVMS)"),
     AIWAYS_U5("Aiways U5 (ABRP)", "aiways_u5.json"),
     BYD_ATTO3("BYD Atto 3 / Yuan Plus (ABRP)", "byd_atto3.json"),
     BMW_I3("BMW i3 (ABRP)", "bmw_i3.json"),
@@ -44,6 +45,8 @@ enum class VehicleProfileId(val displayName: String, private val abrpFilename: S
         MERCEDES_EQ_A250 -> MercedesEqa250Profile()
         MERCEDES_EQ_A_OBDb -> MercedesEqaObdbProfile()
         VOLKSWAGEN_MEB -> VolkswagenMebProfile()
+        HYUNDAI_KIA_EGMP -> HyundaiKiaEgmpProfile()
+        NISSAN_LEAF_ZE1 -> NissanLeafZe1Profile()
         GENERIC_OBD2 -> GenericObd2Profile()
         GENERIC_EV -> GenericEvProfile()
         else -> abrpFilename?.let { AbrpProfileLoader.load(it) } ?: GenericEvProfile()

@@ -1,7 +1,6 @@
 package com.simonkaring.voltlink.core.vehicles
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -60,10 +59,14 @@ class VehicleCatalogTest {
         assertEquals(TelemetrySupport.COMMUNITY, aiways.telemetrySupport)
         assertTrue(aiways.hasDedicatedProfile)
 
-        // Brands without an Android decoder (no bundled document yet) fall back to generic EV.
+        // The Leaf resolves to the hand-written OVMS decoder.
         val leaf = models.first { it.modelName.contains("leaf", ignoreCase = true) }
-        assertEquals(VehicleProfileId.GENERIC_EV, leaf.profileId)
-        assertFalse(leaf.hasDedicatedProfile)
+        assertEquals(VehicleProfileId.NISSAN_LEAF_ZE1, leaf.profileId)
+        assertTrue(leaf.hasDedicatedProfile)
+
+        // Rows with no decoder at all stay on the generic EV profile.
+        val generic = models.filter { it.profileId == VehicleProfileId.GENERIC_OBD2 }
+        assertTrue(generic.isNotEmpty())
 
         val genericObd = models.first { it.id == "generic-sae-j1979" }
         assertEquals(VehicleProfileId.GENERIC_OBD2, genericObd.profileId)

@@ -99,6 +99,63 @@ class VehicleProfileTest {
     }
 
     @Test
+    fun `nissan leaf decodes soc from a multi frame group 1 reply`() {
+        val profile = NissanLeafZe1Profile()
+        // SOC = (0x0B<<16 | 0xFA<<8 | 0x68) / 10000 = 785000 / 10000 = 78.5 %.
+        val response = listOf(
+            "7BB 10 24 61 01 00 00 00 00 00 00",
+            "7BB 21 00 00 00 00 00 00 00",
+            "7BB 22 00 00 00 00 00 00 00",
+            "7BB 23 00 00 00 00 00 00 00",
+            "7BB 24 00 00 00 00 0B FA 68",
+        ).joinToString("\r\n")
+        assertEquals(TelemetryUpdate.Soc(78.5), profile.parseResponse("2101", "$response\r\n>"))
+    }
+
+    @Test
+    fun `nissan leaf decodes soh and rejects short payloads`() {
+        val profile = NissanLeafZe1Profile()
+        // SOH = (0x24<<8 | 0x12) / 100 = 9234 / 100 = 92.34 %.
+        assertEquals(
+            TelemetryUpdate.Soh(92.34),
+            profile.parseResponse("2161", "7BB 06 61 61 00 00 24 12\r\n>"),
+        )
+        assertNull(profile.parseResponse("2101", "7BB 06 61 01 00 00 00 00\r\n>"))
+        assertNull(profile.parseResponse("2101", "NO DATA\r\n>"))
+    }
+
+    @Test
+    fun `hyundai kia egmp decodes pack power and aux voltage`() {
+        val profile = HyundaiKiaEgmpProfile()
+        // Current = (0x00C8) / 10 = 20 A, voltage = (0x0F5A) / 10 = 393 V, aux = 0x7B * 0.1.
+        val response = listOf(
+            "7EC 10 12 62 01 01 00 00 00 00 00 00",
+            "7EC 21 00 00 00 00 00 C8",
+            "7EC 22 00 0F 5A",
+        ).joinToString("\r\n")
+        val updates = profile.parseResponses("220101", "$response\r\n>")
+        assertEquals(TelemetryUpdate.Power(393.0, 20.0, 7.86), updates.first())
+        // The aux byte sits past the assembled payload, so this reply alone yields one update.
+        assertEquals(1, updates.size)
+    }
+
+    @Test
+    fun `hyundai kia egmp decodes soc and soh from one reply`() {
+        val profile = HyundaiKiaEgmpProfile()
+        // SOC = 0xAA / 2 = 85 %, SOH = (0x03B6) / 10 = 95 %.
+        val response = listOf(
+            "7EC 10 24 62 01 05 00 00 00 00 00 00",
+            "7EC 21 00 00 00 00 00 00 00",
+            "7EC 22 00 00 00 00 00 00 00",
+            "7EC 23 00 00 00 00 00 00 03",
+            "7EC 24 B6 00 00 00 00 AA",
+        ).joinToString("\r\n")
+        val updates = profile.parseResponses("220105", "$response\r\n>")
+        assertEquals(TelemetryUpdate.Soc(85.0), updates.first())
+        assertEquals(TelemetryUpdate.Soh(95.0), updates[1])
+    }
+
+    @Test
     fun `registry resolves each profile`() {
         // ABRP profiles read their documents from the assets; install a file-backed reader so
         // this resolves what the app resolves at runtime instead of the generic fallback.

@@ -343,3 +343,139 @@ class VolkswagenMebProfile : VehicleProfile {
         }
     }
 }
+
+/**
+ * Community OBD profile for Nissan Leaf ZE1 (62 kWh, 2019+).
+ *
+ * Poll PIDs and byte offsets are transcribed from the MIT-licensed Open Vehicle Monitoring
+ * System 3 `vehicle_nissanleaf` component (github.com/openvehicles/
+ * Open-Vehicle-Monitoring-System-3). OVMS reads pack voltage/current by passively sniffing the
+ * broadcast CAN frame 0x1DB, which a request/response poll loop can't do, so only the two BMS
+ * `OBDIIGROUP` request/response PIDs (SOC, SOH) are exposed here. Validate against the
+ * connected vehicle before treating this as a dealer-grade diagnostic profile.
+ */
+class NissanLeafZe1Profile : VehicleProfile {
+    override val vehicleName = "Nissan Leaf 62 kWh (OVMS)"
+    override val isElectricVehicle = true
+    override val batteryUsableCapacityKWh = 56.0
+
+    /** WLTP-rated full-charge range for the 62 kWh pack, conservative rounding. */
+    override val estimatedFullRangeKm = 385.0
+
+    override val initializationCommands = listOf(
+        "AT Z", "AT E0", "AT L0", "AT S1", "AT H1", "AT SP 5", "AT SH 79B", "AT CRA 7BB",
+    )
+
+    override val pollingCommands = listOf("2101", "2161")
+
+    override val supportedMetrics = setOf(TelemetryMetric.SOC, TelemetryMetric.SOH)
+
+    override fun parseResponse(command: String, rawResponse: String): TelemetryUpdate? {
+        val cmd = command.uppercase().replace(" ", "")
+        val marker = when (cmd) {
+            "2101" -> "6101"
+            "2161" -> "6161"
+            else -> return null
+        }
+        val payload = IsoTp.assemblePayload(rawResponse).hexBytesAfter(marker) ?: return null
+        fun byte(index: Int): Int = payload[index].toInt() and 0xFF
+
+        return when (cmd) {
+            // Group 0x01 reply: SOC = (byte31<<16 | byte32<<8 | byte33) / 10000, in percent.
+            "2101" -> {
+                if (payload.size <= 33) return null
+                val raw = (byte(31) shl 16) or (byte(32) shl 8) or byte(33)
+                TelemetryUpdate.Soc(raw / 10_000.0)
+            }
+            // Group 0x61 reply: SOH = (byte2<<8 | byte3) / 100, in percent.
+            else -> {
+                if (payload.size <= 3) return null
+                TelemetryUpdate.Soh(((byte(2) shl 8) or byte(3)) / 100.0)
+            }
+        }
+    }
+}
+
+/**
+ * Community OBD profile for 2022–2024 Hyundai IONIQ 5 and Kia EV6.
+ *
+ * Commands and byte formulas come from iternio/ev-obd-pids (Apache-2.0), hkmc/Ioniq5.json.
+ * Validate against the connected vehicle before treating this as a dealer-grade diagnostic
+ * profile.
+ */
+class HyundaiKiaEgmpProfile : VehicleProfile {
+    override val vehicleName = "Hyundai/Kia E-GMP (IONIQ 5 / EV6)"
+    override val isElectricVehicle = true
+    override val batteryUsableCapacityKWh = 77.4
+
+    /** Conservative WLTP range across IONIQ 5 / EV6 trims. */
+    override val estimatedFullRangeKm = 460.0
+
+    override val initializationCommands = listOf(
+        "AT Z", "AT E0", "AT L0", "AT S1", "AT H1", "AT ST FF", "AT SP 6",
+    )
+
+    override val pollingCommands = listOf("ATCRA7EC", "220101", "220105")
+
+    override val supportedMetrics = setOf(
+        // Secondary updates come from the same replies: pack power (V/A/kW) plus the 12 V aux
+        // reading from 220101, and SOC plus SOH from 220105. Pack temperature is deliberately
+        // not advertised — the only source entries in hkmc_Ioniq5.json for it are
+        // underscore-disabled and collide with the pack-voltage bytes used here.
+        TelemetryMetric.POWER, TelemetryMetric.PACK_VOLTAGE, TelemetryMetric.PACK_CURRENT,
+        TelemetryMetric.SOC, TelemetryMetric.SOH, TelemetryMetric.AUX_12V,
+    )
+
+    private fun payload(command: String, rawResponse: String): ByteArray? {
+        val marker = if (command == "220101") "620101" else "620105"
+        return IsoTp.assemblePayload(rawResponse).hexBytesAfter(marker)
+    }
+
+    override fun parseResponse(command: String, rawResponse: String): TelemetryUpdate? {
+        val bytes = payload(command, rawResponse) ?: return null
+        fun byte(index: Int): Int = bytes[index].toInt() and 0xFF
+        fun word(index: Int): Int = (byte(index) shl 8) or byte(index + 1)
+
+        return when (command) {
+            // ABRP: current=((Signed(K)*256)+L)/10, voltage=((N<<8)+O)/10.
+            "220101" -> {
+                if (bytes.size <= 14) return null
+                val current = (word(10) and 0xFFFF).toShort() / 10.0
+                val voltage = word(13) / 10.0
+                TelemetryUpdate.Power(voltage, current, voltage * current / 1_000.0)
+            }
+            // ABRP: SOC=ag/2. SOC is the priority update; SOH remains available through
+            // [parseResponses].
+            "220105" -> {
+                if (bytes.size <= 32) return null
+                TelemetryUpdate.Soc(byte(32) / 2.0)
+            }
+            else -> null
+        }
+    }
+
+    /**
+     * Emits the primary metric from [parseResponse] plus any secondary metric decodable from
+     * the same payload: 12 V aux voltage alongside pack power, and SOH alongside SOC.
+     */
+    override fun parseResponses(command: String, rawResponse: String): List<TelemetryUpdate> {
+        val base = parseResponse(command, rawResponse) ?: return emptyList()
+        val bytes = payload(command, rawResponse) ?: return listOf(base)
+        fun byte(index: Int): Int = bytes[index].toInt() and 0xFF
+
+        return when (command) {
+            // ABRP: _Aux_Bat_Voltage = ae*0.1 (byte 30).
+            "220101" -> {
+                if (bytes.size <= 30) return listOf(base)
+                listOf(base, TelemetryUpdate.Aux12V(byte(30) * 0.1))
+            }
+            // ABRP: SOH = ((aa<<8)+ab)/10 (bytes 26/27).
+            "220105" -> {
+                if (bytes.size <= 27) return listOf(base)
+                val soh = ((byte(26) shl 8) or byte(27)) / 10.0
+                if (soh in 0.0..100.0) listOf(base, TelemetryUpdate.Soh(soh)) else listOf(base)
+            }
+            else -> listOf(base)
+        }
+    }
+}
