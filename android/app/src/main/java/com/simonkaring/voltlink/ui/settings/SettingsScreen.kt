@@ -588,7 +588,7 @@ private fun SettingDivider() {
 }
 
 @Composable
-private fun SegmentedRow(options: List<Pair<String, String>>, selected: String, onSelect: (String) -> Unit) {
+internal fun SegmentedRow(options: List<Pair<String, String>>, selected: String, onSelect: (String) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         options.forEach { (name, label) ->
             val isSelected = name == selected

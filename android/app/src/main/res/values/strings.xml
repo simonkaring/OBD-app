@@ -195,10 +195,26 @@
 
     <!-- Vehicle catalog. -->
     <string name="catalog_title">Choose vehicle</string>
-    <string name="catalog_search">Search brand or model</string>
+    <string name="catalog_search">Search brand, model or year</string>
+    <string name="catalog_search_models">Search %1$s</string>
     <string name="catalog_clear_search">Clear search</string>
     <string name="catalog_loading">Loading catalog…</string>
     <string name="catalog_empty">No matching vehicle. Use “EV / Vehicle Not Listed” under Generic.</string>
+    <string name="catalog_back">Back</string>
+    <string name="catalog_current_vehicle">Current · %1$s</string>
+    <string name="catalog_model_year">Model year</string>
+    <string name="catalog_year_unspecified">Year not specified</string>
+    <string name="catalog_year_unspecified_hint">Show every variant of this model</string>
+    <string name="catalog_filter_ev">EV</string>
+    <string name="catalog_filter_all">All</string>
+    <plurals name="catalog_models_count">
+        <item quantity="one">%1$d model</item>
+        <item quantity="other">%1$d models</item>
+    </plurals>
+    <plurals name="catalog_variants_count">
+        <item quantity="one">%1$d variant</item>
+        <item quantity="other">%1$d variants</item>
+    </plurals>
     <string name="catalog_generic">Generic decoding · live values depend on your car</string>
     <string name="catalog_powertrain_ev">EV</string>
     <string name="catalog_powertrain_phev">PHEV</string>

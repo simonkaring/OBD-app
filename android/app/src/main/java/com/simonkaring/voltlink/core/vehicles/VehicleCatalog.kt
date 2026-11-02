@@ -82,6 +82,23 @@ data class VehicleModelEntry(
         return result.sortedDescending()
     }
 
+    /**
+     * Matches a free-text query against the fields the picker advertises: brand, model family,
+     * model, variant name and model year. Year labels are ranges ("2020-2023", "2019+"), so a
+     * bare year is matched through the expanded year list rather than as a substring.
+     */
+    fun matchesCatalogQuery(query: String): Boolean {
+        val wanted = query.trim()
+        if (wanted.isEmpty()) return true
+        if (brandName.contains(wanted, ignoreCase = true)) return true
+        if (modelName.contains(wanted, ignoreCase = true)) return true
+        if (resolvedVariantDisplayName.contains(wanted, ignoreCase = true)) return true
+        if (!modelFamilyName.isNullOrBlank() && modelFamilyName.contains(wanted, ignoreCase = true)) return true
+        if (years.contains(wanted, ignoreCase = true)) return true
+        val year = wanted.toIntOrNull() ?: return false
+        return year in modelYears()
+    }
+
     private companion object {
         val YEAR_LABEL = Regex("^[0-9]{4}(-[0-9]{4}|\\+)?$")
     }
