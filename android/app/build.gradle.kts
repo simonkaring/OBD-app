@@ -99,3 +99,21 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+/**
+ * Runs the screenshot tests and copies the PNGs into `app/build/screenshots`.
+ *
+ * `adb` must be on PATH (it is while the emulator/device is attached). Filter to the screenshot
+ * class with `-Pandroid.testInstrumentationRunnerArguments.class=com.simonkaring.voltlink.ScreenshotTest`
+ * when the rest of the instrumentation suite does not need to run again.
+ */
+tasks.register<Exec>("recordScreenshots") {
+    group = "verification"
+    description = "Captures the dashboard, charging and settings screens from the connected device."
+    dependsOn("connectedDebugAndroidTest")
+
+    val remote = "/sdcard/Download/voltlink-screenshots"
+    val output = layout.buildDirectory.dir("screenshots")
+    doFirst { output.get().asFile.mkdirs() }
+    commandLine("adb", "pull", "$remote/.", output.get().asFile.absolutePath)
+}

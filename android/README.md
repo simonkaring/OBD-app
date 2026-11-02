@@ -37,6 +37,10 @@ cd android
 ./gradlew assembleDebug                 # build the APK
 ./gradlew testDebugUnitTest             # engine unit tests (ISO-TP, profiles, telemetry, layouts)
 ./gradlew connectedDebugAndroidTest     # Compose UI tests (needs an emulator/device)
+
+# Screenshot tests: dashboard, charging and settings → app/build/screenshots
+./gradlew recordScreenshots \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.simonkaring.voltlink.ScreenshotTest
 ./gradlew installDebug                  # install on a connected device/emulator
 ./gradlew lintDebug                     # Android lint
 ./gradlew assembleRelease               # R8 + resource shrinking (3.3 MB)
@@ -54,6 +58,12 @@ $ANDROID_HOME/emulator/emulator -avd VoltLinkPixel -gpu host -memory 4096 -cores
 #   $ANDROID_HOME/extras/google/auto/desktop-head-unit
 #   adb forward tcp:5277 tcp:5277   (from a phone/emulator with the Desktop Head Unit enabled)
 ```
+
+`ScreenshotTest` records the dashboard, charging and settings screens as PNGs under
+`app/build/screenshots/` (the test copies them to `/sdcard/Download/voltlink-screenshots`
+through the instrumentation shell so they survive the post-test uninstall). The assertions
+cover a rendered, non-blank frame of the expected size rather than a pixel baseline: exact
+pixels depend on device density, fonts and API level, so compare runs across devices by eye.
 
 `local.properties` points Gradle at the local SDK (`sdk.dir=…`). AGP 9 supplies Kotlin
 support directly, so there is no `org.jetbrains.kotlin.android` plugin. `androidx.core` is
