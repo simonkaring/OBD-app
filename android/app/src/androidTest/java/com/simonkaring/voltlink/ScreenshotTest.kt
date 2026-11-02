@@ -4,13 +4,17 @@ import android.Manifest
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
+import com.simonkaring.voltlink.core.demo.DemoScenario
 import java.io.File
 import java.io.FileOutputStream
 import org.junit.Assert.assertTrue
@@ -20,7 +24,7 @@ import org.junit.runner.RunWith
 
 /**
  * Records the app's screens as PNGs for visual review of design changes: dashboard, trip
- * log, charging, diagnostics, settings and the mirrored HUD.
+ * log, charging, diagnostics, an expanded DTC entry, settings and the mirrored HUD.
  *
  * Each capture is copied out of the app's private storage into
  * `/sdcard/Download/voltlink-screenshots/`, which `adb pull` can read and which survives the
@@ -74,11 +78,54 @@ class ScreenshotTest {
     fun diagnosticsScreenshot() {
         awaitDemoDashboard()
 
+        // Scan rather than capture the untouched screen: the scanner state outlives an activity
+        // in the instrumentation process, so "scan not performed" would depend on test order.
+        // Clear the demo fault first so this capture stays a no-codes screen either way.
+        (rule.activity.application as VoltLinkApplication).vehicleData.simulation
+            .clearInjectedFault()
         rule.onNodeWithText("Diagnostics").performClick().assertIsSelected()
-        rule.waitUntil(timeoutMillis = 15_000) {
-            rule.onAllNodesWithText("System health").fetchSemanticsNodes().isNotEmpty()
+        rule.onNodeWithText("Scan DTCs").performClick()
+        rule.waitUntil(timeoutMillis = 20_000) {
+            rule.onAllNodesWithText("No fault codes reported by the ECUs that answered.")
+                .fetchSemanticsNodes().isNotEmpty()
         }
         capture("diagnostics")
+    }
+
+    @Test
+    fun dtcDetailScreenshot() {
+        awaitDemoDashboard()
+
+        // The simulated ECUs only report P0A80 while the fault scenario is active, so inject it
+        // before the scan and restore the default driving cycle afterwards.
+        val app = rule.activity.application as VoltLinkApplication
+        app.vehicleData.simulation.scenario = DemoScenario.FAULT_INJECTION
+        try {
+            rule.onNodeWithText("Diagnostics").performClick().assertIsSelected()
+            rule.onNodeWithText("Scan DTCs").performClick()
+
+            // The card only shows the curated title once the scan has finished.
+            rule.waitUntil(timeoutMillis = 20_000) {
+                rule.onAllNodesWithText("Replace Hybrid/EV Battery Pack").fetchSemanticsNodes().isNotEmpty()
+            }
+            rule.onNodeWithText("Replace Hybrid/EV Battery Pack").performClick()
+
+            // Expanding the card reveals the repair guidance the screenshot is meant to show.
+            rule.waitUntil(timeoutMillis = 15_000) {
+                rule.onAllNodesWithText("Possible fixes").fetchSemanticsNodes().isNotEmpty()
+            }
+            // Bring the repair guidance into view; it sits below the fold on a phone screen.
+            // The expansion animates in, so let it finish before the list can scroll.
+            rule.waitForIdle()
+            Thread.sleep(SETTLE_MILLIS)
+            rule.onNode(hasScrollAction()).performScrollToNode(
+                hasText("Perform battery module balancing or pack replacement", substring = true),
+            )
+            capture("dtc-detail")
+        } finally {
+            // Also leaves the fault scenario, so later captures start from a clean demo state.
+            app.vehicleData.simulation.clearInjectedFault()
+        }
     }
 
     @Test

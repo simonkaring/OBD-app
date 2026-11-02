@@ -109,7 +109,7 @@ dependencies {
  */
 tasks.register<Exec>("recordScreenshots") {
     group = "verification"
-    description = "Captures the dashboard, charging and settings screens from the connected device."
+    description = "Captures every app screen from the connected device."
     dependsOn("connectedDebugAndroidTest")
 
     val remote = "/sdcard/Download/voltlink-screenshots"
