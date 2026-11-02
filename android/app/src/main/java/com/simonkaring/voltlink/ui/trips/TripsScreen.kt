@@ -62,6 +62,7 @@ import com.simonkaring.voltlink.services.TripLocationService
 import com.simonkaring.voltlink.services.TripTracker
 import com.simonkaring.voltlink.services.VehicleDataManager
 import com.simonkaring.voltlink.ui.UnitPrefs
+import com.simonkaring.voltlink.ui.components.EmptyState
 import com.simonkaring.voltlink.ui.theme.Theme
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
@@ -244,10 +245,10 @@ fun TripsScreen(
 
         if (trips.isEmpty()) {
             item {
-                Text(
-                    stringResource(R.string.trips_empty),
-                    color = Theme.textSecondary,
-                    fontSize = 13.sp,
+                EmptyState(
+                    icon = Icons.Filled.Route,
+                    title = stringResource(R.string.trips_empty_title),
+                    message = stringResource(R.string.trips_empty),
                 )
             }
         }

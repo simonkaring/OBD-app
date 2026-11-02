@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -293,10 +295,12 @@ private fun ConnectionHeader(
         connectionState.isConnected -> Theme.regenGreen
         else -> Theme.criticalRed
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(10.dp).clip(CircleShape).background(statusColor))
-        Spacer(Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
+    // The status line owns a full row so a long vehicle name ellipsizes instead of wrapping
+    // into the action chips; the chips get their own row underneath.
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(statusColor))
+            Spacer(Modifier.width(7.dp))
             Text(
                 text = when {
                     isDemoMode -> stringResource(R.string.dashboard_status_demo)
@@ -306,29 +310,38 @@ private fun ConnectionHeader(
                     else -> stringResource(R.string.dashboard_status_disconnected)
                 },
                 color = Theme.textPrimary,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(vehicleName, color = Theme.textSecondary, fontSize = 12.sp)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = vehicleName,
+                color = Theme.textSecondary,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+            )
         }
-        HeaderButton(
-            icon = Icons.Filled.GridView,
-            label = stringResource(R.string.dashboard_button_layout),
-            tint = if (isCustomized) Theme.electricCyan else Theme.gaugeCyan,
-            onClick = onOpenCustomize,
-        )
-        Spacer(Modifier.width(8.dp))
-        HeaderButton(
-            icon = Icons.Filled.Vrpano,
-            label = stringResource(R.string.dashboard_button_hud),
-            onClick = onOpenHud,
-        )
-        Spacer(Modifier.width(8.dp))
-        HeaderButton(
-            icon = Icons.Filled.Tune,
-            label = stringResource(R.string.dashboard_button_controls),
-            onClick = onOpenDemoControls,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HeaderButton(
+                icon = Icons.Filled.GridView,
+                label = stringResource(R.string.dashboard_button_layout),
+                tint = if (isCustomized) Theme.electricCyan else Theme.textSecondary,
+                onClick = onOpenCustomize,
+            )
+            HeaderButton(
+                icon = Icons.Filled.Vrpano,
+                label = stringResource(R.string.dashboard_button_hud),
+                onClick = onOpenHud,
+            )
+            HeaderButton(
+                icon = Icons.Filled.Tune,
+                label = stringResource(R.string.dashboard_button_controls),
+                onClick = onOpenDemoControls,
+            )
+        }
     }
 }
 
@@ -337,7 +350,7 @@ private fun HeaderButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
-    tint: Color = Theme.gaugeCyan,
+    tint: Color = Theme.textSecondary,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -345,10 +358,10 @@ private fun HeaderButton(
             .clip(RoundedCornerShape(10.dp))
             .background(Theme.subtleFill)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
+            .padding(horizontal = 11.dp, vertical = 7.dp),
     ) {
-        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(5.dp))
+        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(6.dp))
         Text(label, color = Theme.textPrimary, fontSize = 12.sp)
     }
 }

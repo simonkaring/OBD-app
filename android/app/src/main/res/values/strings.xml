@@ -38,6 +38,7 @@
     <string name="dashboard_status_disconnected">Disconnected</string>
     <string name="dashboard_charging_banner">Charging · %1$.1f kW</string>
     <string name="chart_title">Live telemetry</string>
+    <string name="chart_empty_title">Waiting for the first sample</string>
     <string name="chart_waiting">Waiting for vehicle data</string>
     <string name="chart_collecting">Collecting samples…</string>
 
@@ -84,6 +85,7 @@
     <string name="charging_eta_needs_power">Time to target needs a live charge-power reading.</string>
     <string name="charging_history_title">Charging history</string>
     <string name="charging_history_empty">No charging sessions recorded yet. A session is saved once the vehicle reports charging for more than 90 seconds.</string>
+    <string name="charging_history_empty_title">No sessions yet</string>
     <string name="charging_share_csv">Share CSV</string>
     <string name="charging_stat_state_of_charge">state of charge</string>
     <string name="charging_stat_peak">peak</string>
@@ -114,8 +116,11 @@
     <string name="settings_scan_adapters">Scan for adapters</string>
     <string name="settings_disconnect">Disconnect</string>
     <string name="settings_vehicle">Vehicle</string>
-    <string name="settings_profile_metrics">%1$s · %2$d published metrics</string>
-    <string name="settings_profile_metrics_only">%1$d published metrics</string>
+    <string name="settings_profile_metrics">%1$s · %2$s</string>
+    <plurals name="settings_published_metrics">
+        <item quantity="one">%1$d published metric</item>
+        <item quantity="other">%1$d published metrics</item>
+    </plurals>
     <string name="settings_change">Change</string>
     <string name="settings_browse_catalog">Browse vehicle catalog</string>
     <string name="settings_metric_status">Metric status</string>
@@ -220,6 +225,7 @@
     <string name="dx_clear">Clear codes</string>
     <string name="dx_demo_hint">Demo mode: the simulated vehicle reports P0A80 when the fault scenario is active.</string>
     <string name="dx_none">No fault codes reported by the ECUs that answered.</string>
+    <string name="dx_none_title">No stored fault codes</string>
     <string name="dx_conditions">Conditions at fault</string>
     <string name="dx_symptoms">Symptoms</string>
     <string name="dx_fixes">Possible fixes</string>
@@ -239,6 +245,7 @@
     <string name="trips_count_one">1 trip</string>
     <string name="trips_count_many">%1$d trips</string>
     <string name="trips_empty">No trips recorded yet. Start a recording from the dashboard or let auto trips begin once you drive.</string>
+    <string name="trips_empty_title">No trips yet</string>
     <string name="trips_month">THIS MONTH</string>
     <string name="trips_stat_distance">distance</string>
     <string name="trips_stat_energy">energy</string>

@@ -72,16 +72,28 @@ fun LiveTelemetryChart(
         }
         Box(modifier = Modifier.fillMaxWidth().height(150.dp)) {
             if (history.size < 2 || isUnavailable || values.all { it.isEmpty() }) {
-                Text(
-                    text = if (isUnavailable) {
-                        stringResource(R.string.chart_waiting)
-                    } else {
-                        stringResource(R.string.chart_collecting)
-                    },
-                    color = Theme.textSecondary,
-                    fontSize = 12.sp,
+                Column(
                     modifier = Modifier.align(Alignment.Center),
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = if (isUnavailable) {
+                            stringResource(R.string.chart_waiting)
+                        } else {
+                            stringResource(R.string.chart_empty_title)
+                        },
+                        color = Theme.textPrimary,
+                        fontSize = 13.sp,
+                    )
+                    if (!isUnavailable) {
+                        Text(
+                            text = stringResource(R.string.chart_collecting),
+                            color = Theme.textSecondary,
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
             } else {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     // Grid: three horizontal hairlines plus a zero baseline for power.

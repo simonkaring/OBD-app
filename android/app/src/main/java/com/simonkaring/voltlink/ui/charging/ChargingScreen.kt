@@ -50,6 +50,7 @@ import com.simonkaring.voltlink.data.HistoryStore
 import com.simonkaring.voltlink.services.ChargingTracker
 import com.simonkaring.voltlink.services.VehicleDataManager
 import com.simonkaring.voltlink.ui.UnitPrefs
+import com.simonkaring.voltlink.ui.components.EmptyState
 import com.simonkaring.voltlink.ui.theme.Theme
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -111,7 +112,11 @@ fun ChargingScreen(
 
                 Text(
                     text = stringResource(R.string.charging_soc_percent, snapshot.stateOfChargePct),
-                    color = if (snapshot.stateOfChargePct < 20) Theme.criticalRed else Theme.regenGreen,
+                    color = when {
+                        snapshot.stateOfChargePct < 20 -> Theme.criticalRed
+                        state.isCharging -> Theme.regenGreen
+                        else -> Theme.gaugeCyan
+                    },
                     fontSize = 40.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -183,20 +188,29 @@ fun ChargingScreen(
         }
 
         item {
-            Text(
-                stringResource(R.string.charging_history_title),
-                color = Theme.textPrimary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.Bolt,
+                    contentDescription = null,
+                    tint = Theme.textSecondary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    stringResource(R.string.charging_history_title),
+                    color = Theme.textPrimary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
 
         if (sessions.isEmpty()) {
             item {
-                Text(
-                    stringResource(R.string.charging_history_empty),
-                    color = Theme.textSecondary,
-                    fontSize = 13.sp,
+                EmptyState(
+                    icon = Icons.Filled.Bolt,
+                    title = stringResource(R.string.charging_history_empty_title),
+                    message = stringResource(R.string.charging_history_empty),
                 )
             }
         }

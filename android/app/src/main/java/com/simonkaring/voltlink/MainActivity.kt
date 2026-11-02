@@ -35,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.simonkaring.voltlink.core.shortcuts.AppCommand
 import com.simonkaring.voltlink.core.shortcuts.AppShortcuts
@@ -159,13 +162,27 @@ private fun VoltLinkRoot(
                         selected = tab == entry,
                         onClick = { tab = entry },
                         icon = { Icon(entry.icon, contentDescription = stringResource(entry.label)) },
-                        label = { Text(stringResource(entry.label)) },
+                        // One line, never wrapped: at a raised system font scale (1.15 on many
+                        // phones) "Diagnostics" would otherwise break as "Diagnostic / s" and
+                        // grow the bar.
+                        label = {
+                            Text(
+                                stringResource(entry.label),
+                                fontSize = 10.sp,
+                                fontWeight = if (tab == entry) FontWeight.SemiBold else FontWeight.Normal,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        // Unselected labels stay close to the background so the accent pill,
+                        // not five bright labels, is what marks the current tab.
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Theme.onAccent,
                             selectedTextColor = Theme.electricCyan,
                             indicatorColor = Theme.electricCyan,
-                            unselectedIconColor = Theme.textSecondary,
-                            unselectedTextColor = Theme.textSecondary,
+                            unselectedIconColor = Theme.textSecondary.copy(alpha = 0.55f),
+                            unselectedTextColor = Theme.textSecondary.copy(alpha = 0.55f),
                         ),
                     )
                 }

@@ -2,6 +2,8 @@ package com.simonkaring.voltlink.ui.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,16 +53,34 @@ fun DemoControlsSheet(manager: VehicleDataManager, onDismiss: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // Scrolls when the system font scale makes the scenario list and sliders taller
+                // than the sheet, instead of clipping the title or the action row.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                stringResource(R.string.demo_title),
-                color = Theme.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+            // Reset sits with the title so the bottom row keeps its two full-width buttons; as a
+            // trailing row item it was squeezed into a column of single letters at 1.15× text.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.demo_title),
+                    color = Theme.textPrimary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = {
+                    speedOverride = null
+                    throttleOverride = null
+                    regenOverride = null
+                    simulation.userSpeedOverride = null
+                    simulation.userThrottleOverride = null
+                    simulation.userRegenOverride = null
+                }) {
+                    Text(stringResource(R.string.action_reset), color = Theme.textSecondary)
+                }
+            }
             Text(
                 stringResource(R.string.demo_hint),
                 color = Theme.textSecondary,
@@ -129,27 +151,23 @@ fun DemoControlsSheet(manager: VehicleDataManager, onDismiss: () -> Unit) {
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Theme.electricCyan),
                 ) {
-                    Text(stringResource(R.string.demo_mode), color = Theme.onAccent, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.demo_mode),
+                        color = Theme.onAccent,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
                 }
                 OutlinedButton(onClick = { manager.setDemoMode(false) }) {
-                    Text(stringResource(R.string.demo_live), color = Theme.textPrimary)
+                    Text(stringResource(R.string.demo_live), color = Theme.textPrimary, maxLines = 1)
                 }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = {
-                    speedOverride = null
-                    throttleOverride = null
-                    regenOverride = null
-                    simulation.userSpeedOverride = null
-                    simulation.userThrottleOverride = null
-                    simulation.userRegenOverride = null
-                }) {
-                    Text(stringResource(R.string.action_reset), color = Theme.textSecondary)
-                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SliderRow(
     label: String,
@@ -169,10 +187,29 @@ private fun SliderRow(
                 fontSize = 13.sp,
             )
         }
+        // Material's stock slider draws its thumb and track from the theme's secondary
+        // container, which left a lilac bar and a second dot at the end of an empty track.
+        // Use the app accent for the fill, a white thumb, and no ticks or stop dot.
+        val colors = SliderDefaults.colors(
+            thumbColor = Theme.textPrimary,
+            activeTrackColor = Theme.electricCyan,
+            inactiveTrackColor = Theme.trackBackground,
+            activeTickColor = Color.Transparent,
+            inactiveTickColor = Color.Transparent,
+        )
         Slider(
             value = value ?: range.start,
             onValueChange = onChange,
             valueRange = range,
+            colors = colors,
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    enabled = true,
+                    colors = colors,
+                    drawStopIndicator = {},
+                )
+            },
         )
     }
 }

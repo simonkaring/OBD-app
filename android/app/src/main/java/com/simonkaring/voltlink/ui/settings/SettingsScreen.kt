@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -158,18 +159,21 @@ fun SettingsScreen(
                             color = Theme.textPrimary,
                             fontSize = 14.sp,
                         )
+                        val metricCount = manager.selectedProfile.supportedMetrics.size
+                        val metricCountLabel = pluralStringResource(
+                            R.plurals.settings_published_metrics,
+                            metricCount,
+                            metricCount,
+                        )
                         Text(
                             if (selectedModelName != null) {
                                 stringResource(
                                     R.string.settings_profile_metrics,
                                     manager.selectedProfile.vehicleName,
-                                    manager.selectedProfile.supportedMetrics.size,
+                                    metricCountLabel,
                                 )
                             } else {
-                                stringResource(
-                                    R.string.settings_profile_metrics_only,
-                                    manager.selectedProfile.supportedMetrics.size,
-                                )
+                                metricCountLabel
                             },
                             color = Theme.textSecondary,
                             fontSize = 12.sp,

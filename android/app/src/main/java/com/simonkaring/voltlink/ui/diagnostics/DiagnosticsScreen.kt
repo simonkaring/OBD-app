@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,6 +41,7 @@ import com.simonkaring.voltlink.core.obd.DtcSeverity
 import com.simonkaring.voltlink.core.obd.FreezeFrameSignal
 import com.simonkaring.voltlink.services.DtcScannerService
 import com.simonkaring.voltlink.services.VehicleDataManager
+import com.simonkaring.voltlink.ui.components.EmptyState
 import com.simonkaring.voltlink.ui.theme.Theme
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -104,10 +107,12 @@ fun DiagnosticsScreen(
                     )
                 }
                 Spacer(Modifier.height(4.dp))
+                val canScan = !state.isScanning && (isDemoMode || isConnected.isConnected)
+                val canClear = !state.isScanning && state.codes.isNotEmpty()
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Button(
                         onClick = { scanner.scan() },
-                        enabled = !state.isScanning && (isDemoMode || isConnected.isConnected),
+                        enabled = canScan,
                         colors = ButtonDefaults.buttonColors(containerColor = Theme.electricCyan),
                     ) {
                         if (state.isScanning) {
@@ -116,15 +121,18 @@ fun DiagnosticsScreen(
                         }
                         Text(
                             if (state.isScanning) stringResource(R.string.dx_scanning) else stringResource(R.string.dx_scan),
-                            color = Theme.onAccent,
+                            color = if (canScan) Theme.onAccent else Theme.textSecondary,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
                     OutlinedButton(
                         onClick = { scanner.clearCodes() },
-                        enabled = !state.isScanning && state.codes.isNotEmpty(),
+                        enabled = canClear,
                     ) {
-                        Text(stringResource(R.string.dx_clear), color = Theme.textPrimary)
+                        Text(
+                            stringResource(R.string.dx_clear),
+                            color = if (canClear) Theme.textPrimary else Theme.textSecondary.copy(alpha = 0.45f),
+                        )
                     }
                 }
                 if (isDemoMode) {
@@ -139,11 +147,10 @@ fun DiagnosticsScreen(
 
         if (state.codes.isEmpty() && state.scanSucceeded) {
             item {
-                Text(
-                    stringResource(R.string.dx_none),
-                    color = Theme.textSecondary,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(horizontal = 4.dp),
+                EmptyState(
+                    icon = Icons.Filled.CheckCircle,
+                    title = stringResource(R.string.dx_none_title),
+                    message = stringResource(R.string.dx_none),
                 )
             }
         }
