@@ -111,7 +111,7 @@ Implemented in this pass:
 | Launcher shortcuts | Start/stop trip, scan fault codes, open charging — the App Intents equivalent; the trip label tracks the recorder |
 | Service reminder | Last vehicle-reported distance to service with 500/1000/2000/5000 km thresholds and a weekly alert |
 | Vehicle catalog | `assets/vehicle_catalog.json` (69 brands, 599 models) browsed brand → model family → model year → variant, with an EV/All filter and one search field that matches brand, model, family or model year. The picked row selects its profile and remembers the model name for trips, the widget and reminders |
-| Android Auto / AAOS | `CarAppService` + `PaneTemplate` pane with SoC, power, speed and range, refreshed from the same live snapshot as the phone UI |
+| Android Auto / AAOS | `CarAppService` + `PaneTemplate` pane with SoC, power, speed and range, refreshed from the same live snapshot as the phone UI; discovered through the `com.google.android.gms.car.application` meta-data and `res/xml/automotive_app_desc.xml` (template capability) |
 | AI log analyzer | Gemini (`AIza…`) or OpenAI (`sk-…`) decoding of the captured OBD trace; the key is AES-GCM encrypted under an Android Keystore key |
 | Cloud backup | Opt-in mirror of trips, charging sessions and battery health to a folder picked with the system picker; restore merges the newest file by id and never deletes local rows |
 | Live Update | Charging notification promoted (`setRequestPromotedOngoing`) with a `ProgressStyle` bar, target point and short critical SoC text on Android 16+ |

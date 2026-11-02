@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android Auto reads this through the com.google.android.gms.car.application meta-data in the
+    manifest. Without the template capability the CarAppService is never offered to the car host.
+-->
+<automotiveApp>
+    <uses name="template" />
+</automotiveApp>
