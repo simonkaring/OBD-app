@@ -8,8 +8,10 @@ build tooling nor source is shared between them.
 - `ios/` — the Swift iOS + CarPlay app, its generated `VoltLink.xcodeproj`, the
   SwiftPM package and tests, `Tools/`, `scratch/`, and the OKF knowledge bundle.
   **Paths in this guide are relative to `ios/` unless noted.**
-- `android/` — reserved for the Android app. Implementation has not started;
-  only `android/README.md` exists today. Do not add Android code to `ios/`.
+- `android/` — the Kotlin + Jetpack Compose Android app (own Gradle build,
+  `android/app/...`), its own `android/knowledge/` OKF bundle and tests. See
+  [`android/README.md`](android/README.md) for commands, architecture and the iOS
+  parity matrix. Do not add Android code to `ios/`.
 
 ## Project
 
@@ -51,24 +53,38 @@ Both build products compile in Swift 6 language mode (`swiftLanguageModes: [.v6]
 and `SWIFT_VERSION = 6.0`). Do not reintroduce Swift 5 mode or weaken the
 concurrency checks.
 
-## Knowledge Bundle (OKF)
+## Knowledge Bundles (OKF)
 
-`ios/knowledge/` is an Open Knowledge Format v0.2 bundle: plain markdown with YAML
-frontmatter that gives humans and AI agents a navigable reference to this
-codebase. `knowledge/architecture/` is hand-authored; `knowledge/vehicles/`,
-`knowledge/telemetry/`, and `knowledge/diagnostics/` are generated from the
-vehicle registry, `TelemetryMetric`, and the curated DTC seed.
+Both projects ship their own Open Knowledge Format v0.2 bundle: plain markdown with
+YAML frontmatter that gives humans and AI agents a navigable reference to that
+project. They stay independent like the projects themselves — neither bundle
+imports or describes the other's sources.
 
-- From `ios/`, after changing `VehicleProfileID`, any vehicle profile's commands or
-  `supportedMetrics`, `Core/Telemetry/TelemetryMetric.swift`, or
-  `Data/Seed/dtc_definitions.json`, run `swift run VoltLinkCLI okf export`.
-- Update the relevant `ios/knowledge/architecture/*.md` concept when the data flow,
-  concurrency rules, charging/trip behavior, demo mode, or test commands change.
-  New architecture docs are indexed automatically by the next export.
-- `swift test` fails when the checked-in bundle drifts from its sources
-  (`KnowledgeBundleTests`). Never hand-edit generated concepts or `index.md`.
+| Project | Bundle | Regenerate | Drift gate |
+| --- | --- | --- | --- |
+| `ios/` | `ios/knowledge/` | `swift run VoltLinkCLI okf export` | `swift test` (`KnowledgeBundleTests`) |
+| `android/` | `android/knowledge/` | `./gradlew testDebugUnitTest --tests '*KnowledgeBundleTest' -Pokf.export=true` | `./gradlew testDebugUnitTest` |
+
+In both bundles `architecture/` is hand-authored and `vehicles/`, `telemetry/`,
+`diagnostics/`, and every `index.md` are generated.
+
+- **iOS sources:** `VehicleProfileID`, any vehicle profile's commands or
+  `supportedMetrics`, `Core/Telemetry/TelemetryMetric.swift`, and
+  `Data/Seed/dtc_definitions.json`.
+- **Android sources:** `VehicleProfileId`, any profile's commands or
+  `supportedMetrics`, `core/telemetry/TelemetryMetric.kt`,
+  `app/src/main/assets/dtc_definitions.json`, and
+  `app/src/main/assets/vehicle_catalog.json`.
+- Update the relevant `<bundle>/architecture/*.md` concept in the project you changed
+  when the data flow, concurrency rules, charging/trip behavior, demo mode, or test
+  commands change. New architecture docs are indexed automatically by the next
+  export.
+- Both gates fail the normal test command, so regenerate before running the suite.
+  Never hand-edit generated concepts or `index.md`.
 - Keep frontmatter `type`, `title`, and a one-line `description` on every
   hand-authored concept; they drive the generated indexes.
+- Hand-authored concepts are never rewritten by an export, but the indexes are:
+  adding a link to a new architecture page needs an export, not an index edit.
 
 ## Architecture
 

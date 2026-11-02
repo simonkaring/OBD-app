@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -61,6 +64,20 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+// The OKF bundle generator lives in the unit-test source set (src/test/.../okf) so it can read
+// the live profiles; these properties tell it where the repository and the asset seeds are.
+// Regenerate with `-Pokf.export=true`, validate with a plain `testDebugUnitTest`.
+tasks.withType<Test>().configureEach {
+    systemProperty("okf.root", rootProject.projectDir.absolutePath)
+    systemProperty("okf.assets", project.file("src/main/assets").absolutePath)
+    systemProperty("okf.export", providers.gradleProperty("okf.export").getOrElse("false"))
+    // The bundle is read (and on export, rewritten) by the tests, so it is an input: a hand-edited
+    // or stale concept has to re-run the check instead of being skipped as UP-TO-DATE.
+    inputs.dir(rootProject.file("knowledge"))
+        .withPropertyName("androidKnowledgeBundle")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {
