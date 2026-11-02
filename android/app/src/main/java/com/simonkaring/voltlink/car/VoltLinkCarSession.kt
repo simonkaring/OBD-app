@@ -10,7 +10,9 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.VoltLinkApplication
+import com.simonkaring.voltlink.data.CarTileKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -66,9 +68,22 @@ class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
         val scan = app.dtcScanner.state.value
         val storedCodes = scan.lastScanDate?.let { scan.codes.size }
 
+        val healthText: (Int?) -> String = { codes ->
+            when {
+                codes == null -> carContext.getString(R.string.car_row_not_scanned)
+                codes == 0 -> carContext.getString(R.string.car_row_no_codes)
+                else -> carContext.getString(R.string.car_row_stored_codes, codes)
+            }
+        }
+
         val pane = Pane.Builder().apply {
             app.vehicleData.settings.carTileLayout.value.tiles.forEach { tile ->
-                addRow(row(tile.title, carRowValue(tile, summary, snapshot, storedCodes)))
+                val title = if (tile == CarTileKind.Health) {
+                    carContext.getString(R.string.car_row_health)
+                } else {
+                    tile.title
+                }
+                addRow(row(title, carRowValue(tile, summary, snapshot, storedCodes, healthText)))
             }
         }.build()
 

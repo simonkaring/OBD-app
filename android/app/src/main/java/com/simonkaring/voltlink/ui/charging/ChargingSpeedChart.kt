@@ -20,8 +20,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.data.ChargingSample
 import com.simonkaring.voltlink.ui.UnitPrefs
 import com.simonkaring.voltlink.ui.theme.Theme
@@ -159,16 +161,18 @@ fun ChargingSpeedChart(
 
         if (selected != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                Readout(formatElapsed(selected.minute * 60), "Elapsed")
+                Readout(formatElapsed(selected.minute * 60), stringResource(R.string.chart_elapsed))
                 Readout(
                     String.format(Locale.US, "%.1f %s", units.powerValue(selected.powerKW), units.powerUnitLabel),
-                    "Speed",
+                    stringResource(R.string.chart_power_label),
                 )
-                selected.socPct?.let { soc -> Readout(String.format(Locale.US, "%.0f%%", soc), "Battery") }
+                selected.socPct?.let { soc ->
+                    Readout(String.format(Locale.US, "%.0f%%", soc), stringResource(R.string.chart_battery))
+                }
             }
         } else {
             Text(
-                "Drag across the curve to inspect a moment",
+                stringResource(R.string.chart_scrub_hint),
                 color = Theme.textSecondary,
                 fontSize = 10.sp,
             )

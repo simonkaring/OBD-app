@@ -51,13 +51,21 @@ class NotificationService(private val context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val system = context.getSystemService(NotificationManager::class.java) ?: return
         system.createNotificationChannel(
-            NotificationChannel(CHANNEL_ALERTS, "Vehicle alerts", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Charging finished, charge target reached, fault codes and adapter loss"
+            NotificationChannel(
+                CHANNEL_ALERTS,
+                context.getString(R.string.notif_channel_alerts),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = context.getString(R.string.notif_channel_alerts_desc)
             },
         )
         system.createNotificationChannel(
-            NotificationChannel(CHANNEL_CHARGING, "Charging status", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Ongoing notification while the vehicle is charging"
+            NotificationChannel(
+                CHANNEL_CHARGING,
+                context.getString(R.string.notif_channel_charging),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = context.getString(R.string.notif_channel_charging_desc)
                 setShowBadge(false)
             },
         )
@@ -94,8 +102,11 @@ class NotificationService(private val context: Context) {
             ?.takeIf { it.isFinite() && it > 0 }
             ?.let { seconds ->
                 val minutes = (seconds / 60).toInt().coerceAtLeast(1)
-                if (minutes >= 60) String.format(Locale.US, "%dh %02dmin to %d%%", minutes / 60, minutes % 60, target)
-                else String.format(Locale.US, "%d min to %d%%", minutes, target)
+                if (minutes >= 60) {
+                    context.getString(R.string.notif_eta_hours, minutes / 60, minutes % 60, target)
+                } else {
+                    context.getString(R.string.notif_eta_minutes, minutes, target)
+                }
             }
 
         val progressStyle = NotificationCompat.ProgressStyle()
@@ -117,14 +128,13 @@ class NotificationService(private val context: Context) {
             )
 
         val text = buildString {
-            append(String.format(Locale.US, "%.1f kW", powerKW))
-            append(" · target ").append(target).append('%')
+            append(context.getString(R.string.notif_charging_text, powerKW, target))
             eta?.let { append(" · ").append(it) }
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_CHARGING)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(String.format(Locale.US, "Charging · %.0f%%", soc))
+            .setContentTitle(context.getString(R.string.notif_charging_title, soc))
             .setContentText(text)
             .setSubText(eta)
             .setProgress(100, soc.toInt(), false)
@@ -151,47 +161,41 @@ class NotificationService(private val context: Context) {
 
     fun notifyChargingFinished(startSocPct: Double, endSocPct: Double, energyKWh: Double) {
         notify(
-            "Charging finished",
-            String.format(
-                Locale.US,
-                "%.0f%% → %.0f%% (%.1f kWh delivered)",
-                startSocPct,
-                endSocPct,
-                energyKWh,
-            ),
+            context.getString(R.string.notif_finished_title),
+            context.getString(R.string.notif_finished_body, startSocPct, endSocPct, energyKWh),
         )
     }
 
     fun notifyChargeTargetReached(targetPct: Int, socPct: Double) {
         notify(
-            "Charge target reached",
-            String.format(Locale.US, "Battery at %.0f%%, target %d%%", socPct, targetPct),
+            context.getString(R.string.notif_target_title),
+            context.getString(R.string.notif_target_body, socPct, targetPct),
         )
     }
 
     fun notifyFaultCodes(count: Int) {
         if (count <= 0) return
         notify(
-            if (count == 1) "1 fault code found" else "$count fault codes found",
-            "Open VoltLink diagnostics for details and repair guidance.",
+            if (count == 1) {
+                context.getString(R.string.notif_faults_one)
+            } else {
+                context.getString(R.string.notif_faults_many, count)
+            },
+            context.getString(R.string.notif_faults_body),
         )
     }
 
     fun notifyAdapterLost(tripInProgress: Boolean) {
         notify(
-            "OBD adapter disconnected",
-            if (tripInProgress) {
-                "The adapter dropped during a trip recording. Reconnect the scanner."
-            } else {
-                "Reconnect the scanner to resume live telemetry."
-            },
+            context.getString(R.string.notif_adapter_title),
+            context.getString(if (tripInProgress) R.string.notif_adapter_trip else R.string.notif_adapter_idle),
         )
     }
 
     fun notifyServiceDue(distanceKm: Double) {
         notify(
-            "Service due",
-            String.format(Locale.US, "%.0f km until the next vehicle service", distanceKm),
+            context.getString(R.string.notif_service_title),
+            context.getString(R.string.notif_service_body, distanceKm),
         )
     }
 

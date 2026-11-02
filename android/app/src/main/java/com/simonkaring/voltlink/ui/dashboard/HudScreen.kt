@@ -17,10 +17,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
 import com.simonkaring.voltlink.services.VehicleDataManager
 import com.simonkaring.voltlink.ui.UnitPrefs
@@ -56,7 +58,7 @@ fun HudScreen(manager: VehicleDataManager, units: UnitPrefs, onExit: () -> Unit)
             modifier = Modifier.fillMaxWidth().padding(24.dp),
         ) {
             Text(
-                text = if (isDemoMode) "DEMO" else "VOLTLINK",
+                text = stringResource(if (isDemoMode) R.string.hud_demo else R.string.hud_brand),
                 color = Theme.textSecondary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -100,7 +102,7 @@ fun HudScreen(manager: VehicleDataManager, units: UnitPrefs, onExit: () -> Unit)
                 )
             }
             Spacer(Modifier.height(28.dp))
-            Text("Tap to exit", color = Theme.textSecondary, fontSize = 13.sp)
+            Text(stringResource(R.string.hud_exit), color = Theme.textSecondary, fontSize = 13.sp)
         }
     }
 }

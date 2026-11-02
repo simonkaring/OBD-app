@@ -44,12 +44,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.export.ExportShare
 import com.simonkaring.voltlink.core.export.TripExport
 import com.simonkaring.voltlink.core.history.TripHistoryInsights
@@ -126,7 +128,11 @@ fun TripsScreen(
                     ))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (state.isRecording) "Recording trip" else "Ready to record",
+                        text = if (state.isRecording) {
+                            stringResource(R.string.trips_recording)
+                        } else {
+                            stringResource(R.string.trips_ready)
+                        },
                         color = if (state.isRecording) Theme.regenGreen else Theme.textSecondary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -134,7 +140,7 @@ fun TripsScreen(
                     if (state.isAutoTripEnabled) {
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Auto",
+                            stringResource(R.string.trips_auto),
                             color = Theme.electricCyan,
                             fontSize = 10.sp,
                             modifier = Modifier
@@ -154,9 +160,8 @@ fun TripsScreen(
                     )
                 }
                 Text(
-                    text = String.format(
-                        Locale.US,
-                        "%.1f %s logged",
+                    text = stringResource(
+                        R.string.trips_logged,
                         state.current?.distanceKm?.let {
                             if (units.distanceLabel() == "mi") it * 0.621371 else it
                         } ?: 0.0,
@@ -166,9 +171,10 @@ fun TripsScreen(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
-                if (state.stationarySecondsRemaining != null) {
+                val stationarySeconds = state.stationarySecondsRemaining
+                if (stationarySeconds != null) {
                     Text(
-                        "Stationary · auto-stop in ${state.stationarySecondsRemaining}s",
+                        stringResource(R.string.trips_stationary, stationarySeconds),
                         color = Theme.highPowerAmber,
                         fontSize = 12.sp,
                     )
@@ -198,14 +204,18 @@ fun TripsScreen(
                         ),
                     ) {
                         Text(
-                            if (state.isRecording) "Stop Trip" else "Start Trip",
+                            if (state.isRecording) stringResource(R.string.trips_stop) else stringResource(R.string.trips_start),
                             color = Theme.onAccent,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
                     TextButton(onClick = { tracker.setAutoTrips(!state.isAutoTripEnabled) }) {
                         Text(
-                            if (state.isAutoTripEnabled) "Disable auto trips" else "Enable auto trips",
+                            if (state.isAutoTripEnabled) {
+                                stringResource(R.string.trips_disable_auto)
+                            } else {
+                                stringResource(R.string.trips_enable_auto)
+                            },
                             color = Theme.textSecondary,
                         )
                     }
@@ -222,16 +232,20 @@ fun TripsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Route, contentDescription = null, tint = Theme.textSecondary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Trip history", color = Theme.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.trips_history), color = Theme.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.weight(1f))
-                Text("${trips.size} trips", color = Theme.textSecondary, fontSize = 12.sp)
+                Text(
+                    if (trips.size == 1) stringResource(R.string.trips_count_one) else stringResource(R.string.trips_count_many, trips.size),
+                    color = Theme.textSecondary,
+                    fontSize = 12.sp,
+                )
             }
         }
 
         if (trips.isEmpty()) {
             item {
                 Text(
-                    "No trips recorded yet. Start a recording from the dashboard or let auto trips begin once you drive.",
+                    stringResource(R.string.trips_empty),
                     color = Theme.textSecondary,
                     fontSize = 13.sp,
                 )
@@ -259,10 +273,14 @@ private fun MonthlySummaryCard(insights: TripHistoryInsights, units: UnitPrefs) 
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("THIS MONTH", color = Theme.electricCyan, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.trips_month), color = Theme.electricCyan, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
             Text(
-                if (insights.tripCount == 1) "1 trip" else "${insights.tripCount} trips",
+                if (insights.tripCount == 1) {
+                    stringResource(R.string.trips_count_one)
+                } else {
+                    stringResource(R.string.trips_count_many, insights.tripCount)
+                },
                 color = Theme.textSecondary,
                 fontSize = 11.sp,
             )
@@ -275,17 +293,20 @@ private fun MonthlySummaryCard(insights: TripHistoryInsights, units: UnitPrefs) 
                     if (miles) insights.distanceKm * 0.621371 else insights.distanceKm,
                     units.distanceLabel(),
                 ),
-                "distance",
+                stringResource(R.string.trips_stat_distance),
             )
-            InsightStat(String.format(Locale.US, "%.1f kWh", insights.energyKWh), "energy")
+            InsightStat(
+                String.format(Locale.US, "%.1f kWh", insights.energyKWh),
+                stringResource(R.string.trips_stat_energy),
+            )
             InsightStat(
                 String.format(Locale.US, "%.1f kWh/100km", insights.efficiencyKWhPer100Km),
-                "efficiency",
+                stringResource(R.string.trips_stat_efficiency),
             )
             if (insights.hasCost) {
                 InsightStat(
                     NumberFormat.getCurrencyInstance().format(insights.cost),
-                    "cost",
+                    stringResource(R.string.trips_stat_cost),
                 )
             }
         }
@@ -327,9 +348,18 @@ private fun TripCard(trip: TripRecord, units: UnitPrefs, onClick: () -> Unit) {
         }
         Text(trip.vehicleName, color = Theme.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Stat(String.format(Locale.US, "%.1f %s", distance, units.distanceLabel()), "distance")
-            Stat(String.format(Locale.US, "%.1f kWh/100km", trip.efficiencyKWhPer100Km), "efficiency")
-            Stat(String.format(Locale.US, "%.0f%% → %.0f%%", trip.startSocPct, trip.endSocPct), "SoC")
+            Stat(
+                String.format(Locale.US, "%.1f %s", distance, units.distanceLabel()),
+                stringResource(R.string.trips_stat_distance),
+            )
+            Stat(
+                String.format(Locale.US, "%.1f kWh/100km", trip.efficiencyKWhPer100Km),
+                stringResource(R.string.trips_stat_efficiency),
+            )
+            Stat(
+                String.format(Locale.US, "%.0f%% → %.0f%%", trip.startSocPct, trip.endSocPct),
+                stringResource(R.string.trips_stat_soc),
+            )
         }
     }
 }
@@ -367,13 +397,17 @@ private fun TripDetail(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Theme.electricCyan)
+                Icon(
+                    Icons.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.trips_back),
+                    tint = Theme.electricCyan,
+                )
                 Spacer(Modifier.width(4.dp))
-                Text("Trips", color = Theme.electricCyan)
+                Text(stringResource(R.string.trips_title), color = Theme.electricCyan)
             }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { scope.launch { onDelete() } }) {
-                Text("Delete", color = Theme.criticalRed)
+                Text(stringResource(R.string.trips_delete), color = Theme.criticalRed)
             }
         }
         Text(dateFormatter.format(trip.startTime), color = Theme.textSecondary, fontSize = 12.sp)
@@ -388,18 +422,42 @@ private fun TripDetail(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Stat(String.format(Locale.US, "%.1f %s", distance, units.distanceLabel()), "distance")
-                Stat(String.format(Locale.US, "%d min", trip.duration.toMinutes()), "duration")
-                Stat(String.format(Locale.US, "%.0f %s", units.speedValue(trip.computedAverageSpeedKmH), units.speedUnit), "avg speed")
+                Stat(
+                    String.format(Locale.US, "%.1f %s", distance, units.distanceLabel()),
+                    stringResource(R.string.trips_stat_distance),
+                )
+                Stat(
+                    String.format(Locale.US, "%d min", trip.duration.toMinutes()),
+                    stringResource(R.string.trips_stat_duration),
+                )
+                Stat(
+                    String.format(Locale.US, "%.0f %s", units.speedValue(trip.computedAverageSpeedKmH), units.speedUnit),
+                    stringResource(R.string.trips_stat_avg_speed),
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Stat(String.format(Locale.US, "%.1f kWh", trip.totalKWhUsed), "energy used")
-                Stat(String.format(Locale.US, "%.1f kWh", trip.totalKWhRecovered ?: 0.0), "recovered")
-                Stat(String.format(Locale.US, "%.0f kW", trip.maxPowerKW), "peak power")
+                Stat(
+                    String.format(Locale.US, "%.1f kWh", trip.totalKWhUsed),
+                    stringResource(R.string.trips_stat_energy_used),
+                )
+                Stat(
+                    String.format(Locale.US, "%.1f kWh", trip.totalKWhRecovered ?: 0.0),
+                    stringResource(R.string.trips_stat_recovered),
+                )
+                Stat(
+                    String.format(Locale.US, "%.0f kW", trip.maxPowerKW),
+                    stringResource(R.string.trips_stat_peak_power),
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Stat(String.format(Locale.US, "%.1f kWh/100km", trip.efficiencyKWhPer100Km), "efficiency")
-                Stat(String.format(Locale.US, "%.0f%% → %.0f%%", trip.startSocPct, trip.endSocPct), "state of charge")
+                Stat(
+                    String.format(Locale.US, "%.1f kWh/100km", trip.efficiencyKWhPer100Km),
+                    stringResource(R.string.trips_stat_efficiency),
+                )
+                Stat(
+                    String.format(Locale.US, "%.0f%% → %.0f%%", trip.startSocPct, trip.endSocPct),
+                    stringResource(R.string.trips_stat_state_of_charge),
+                )
             }
         }
 
@@ -420,7 +478,7 @@ private fun TripDetail(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Theme.subtleFill),
                 ) {
-                    Text("Share GPX", color = Theme.textPrimary, fontSize = 13.sp)
+                    Text(stringResource(R.string.trips_share_gpx), color = Theme.textPrimary, fontSize = 13.sp)
                 }
             }
             Button(
@@ -436,7 +494,7 @@ private fun TripDetail(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Theme.subtleFill),
             ) {
-                Text("Share CSV", color = Theme.textPrimary, fontSize = 13.sp)
+                Text(stringResource(R.string.trips_share_csv), color = Theme.textPrimary, fontSize = 13.sp)
             }
         }
 
@@ -449,7 +507,12 @@ private fun TripDetail(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Recorded telemetry", color = Theme.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.trips_recorded),
+                    color = Theme.textPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 SampleChart(samples)
             }
         }
@@ -484,8 +547,8 @@ private fun SampleChart(samples: List<TripSample>) {
         drawPath(path(samples.map { it.speedKmH }, maxSpeed, false), Theme.regenGreen, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
     }
     Row {
-        Text("Power", color = Theme.gaugeCyan, fontSize = 11.sp)
+        Text(stringResource(R.string.chart_series_power), color = Theme.gaugeCyan, fontSize = 11.sp)
         Spacer(Modifier.width(12.dp))
-        Text("Speed", color = Theme.regenGreen, fontSize = 11.sp)
+        Text(stringResource(R.string.chart_series_speed), color = Theme.regenGreen, fontSize = 11.sp)
     }
 }

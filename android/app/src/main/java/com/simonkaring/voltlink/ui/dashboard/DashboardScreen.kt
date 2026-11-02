@@ -35,11 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.obd.BleConnectionState
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
 import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
@@ -297,11 +299,11 @@ private fun ConnectionHeader(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = when {
-                    isDemoMode -> "Demo mode"
-                    connectionState is BleConnectionState.Connecting -> "Connecting…"
-                    connectionState.isConnected -> "Connected"
-                    connectionState is BleConnectionState.Scanning -> "Scanning…"
-                    else -> "Disconnected"
+                    isDemoMode -> stringResource(R.string.dashboard_status_demo)
+                    connectionState is BleConnectionState.Connecting -> stringResource(R.string.dashboard_status_connecting)
+                    connectionState.isConnected -> stringResource(R.string.dashboard_status_connected)
+                    connectionState is BleConnectionState.Scanning -> stringResource(R.string.dashboard_status_scanning)
+                    else -> stringResource(R.string.dashboard_status_disconnected)
                 },
                 color = Theme.textPrimary,
                 fontSize = 14.sp,
@@ -311,14 +313,22 @@ private fun ConnectionHeader(
         }
         HeaderButton(
             icon = Icons.Filled.GridView,
-            label = "Layout",
+            label = stringResource(R.string.dashboard_button_layout),
             tint = if (isCustomized) Theme.electricCyan else Theme.gaugeCyan,
             onClick = onOpenCustomize,
         )
         Spacer(Modifier.width(8.dp))
-        HeaderButton(icon = Icons.Filled.Vrpano, label = "HUD", onClick = onOpenHud)
+        HeaderButton(
+            icon = Icons.Filled.Vrpano,
+            label = stringResource(R.string.dashboard_button_hud),
+            onClick = onOpenHud,
+        )
         Spacer(Modifier.width(8.dp))
-        HeaderButton(icon = Icons.Filled.Tune, label = "Controls", onClick = onOpenDemoControls)
+        HeaderButton(
+            icon = Icons.Filled.Tune,
+            label = stringResource(R.string.dashboard_button_controls),
+            onClick = onOpenDemoControls,
+        )
     }
 }
 
@@ -358,7 +368,7 @@ fun ChargingBanner(snapshot: TelemetrySnapshot, modifier: Modifier = Modifier) {
         Icon(Icons.Filled.Bolt, contentDescription = null, tint = Theme.regenGreen)
         Spacer(Modifier.width(8.dp))
         Text(
-            text = String.format(Locale.US, "Charging · %.1f kW", snapshot.chargePowerKW),
+            text = stringResource(R.string.dashboard_charging_banner, snapshot.chargePowerKW),
             color = Theme.textPrimary,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,

@@ -33,11 +33,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
 import com.simonkaring.voltlink.ui.theme.Theme
 import java.util.Locale
@@ -273,14 +275,19 @@ fun BatteryLevelBar(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (isCharging) "⚡ High Voltage Battery" else "High Voltage Battery",
+                text = stringResource(if (isCharging) R.string.gauges_hv_battery_charging else R.string.gauges_hv_battery),
                 color = Theme.textSecondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
             if (batteryTempLabel != null) {
-                Text("HV: $batteryTempLabel", color = Theme.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.gauges_hv_prefix, batteryTempLabel),
+                    color = Theme.textPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -319,7 +326,7 @@ fun BatteryLevelBar(
         }
         if (startSocPct != null && socPct != null && socPct - startSocPct >= 0.5) {
             Text(
-                text = String.format(Locale.US, "Charging started at %.0f%%  ·  +%.0f%% gained", startSocPct, socPct - startSocPct),
+                text = stringResource(R.string.gauges_charging_started, startSocPct, socPct - startSocPct),
                 color = Theme.textSecondary,
                 fontSize = 12.sp,
             )

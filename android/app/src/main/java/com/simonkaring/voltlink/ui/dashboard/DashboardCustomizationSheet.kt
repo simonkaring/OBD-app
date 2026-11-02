@@ -32,8 +32,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.annotation.StringRes
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
 import com.simonkaring.voltlink.data.DashboardLayout
 import com.simonkaring.voltlink.data.DashboardWidgetConfig
@@ -72,7 +75,7 @@ fun DashboardCustomizationSheet(
                 .padding(16.dp),
         ) {
             Text(
-                "Customize dashboard",
+                stringResource(R.string.dashboard_customize_title),
                 color = Theme.textPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -80,8 +83,7 @@ fun DashboardCustomizationSheet(
             Text(profileName, color = Theme.electricCyan, fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
             Text(
-                "Compatible means this profile defines the signal. Live means it is arriving " +
-                    "from the car. Half-width widgets pair up two per row.",
+                stringResource(R.string.dashboard_customize_hint),
                 color = Theme.textSecondary,
                 fontSize = 11.sp,
             )
@@ -118,7 +120,7 @@ fun DashboardCustomizationSheet(
                         .filter { metric -> layout.widgets.none { it.kind == DashboardWidgetKind.Metric(metric) } }
                         .sortedBy { it.displayName }
                     Text(
-                        "Add a widget",
+                        stringResource(R.string.dashboard_add_widget),
                         color = Theme.textPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -126,7 +128,7 @@ fun DashboardCustomizationSheet(
                     )
                     if (missing.isEmpty()) {
                         Text(
-                            "Every metric this profile reports is already on the dashboard.",
+                            stringResource(R.string.dashboard_all_widgets_added),
                             color = Theme.textSecondary,
                             fontSize = 11.sp,
                         )
@@ -146,7 +148,12 @@ fun DashboardCustomizationSheet(
                     val chartSupported = listOf(TelemetryMetric.POWER, TelemetryMetric.SPEED)
                         .filter { it in supportedMetrics }
                     if (chartSupported.isNotEmpty()) {
-                        AddRow("Live chart (${chartSupported.joinToString(" & ") { it.displayName }})") {
+                        AddRow(
+                            stringResource(
+                                R.string.dashboard_add_chart,
+                                chartSupported.joinToString(" & ") { it.displayName },
+                            ),
+                        ) {
                             update(
                                 layout.widgets + DashboardWidgetConfig(
                                     DashboardWidgetKind.Chart(chartSupported),
@@ -162,11 +169,11 @@ fun DashboardCustomizationSheet(
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { onChange(DashboardLayout.default) }) {
-                    Text("Reset", color = Theme.textSecondary, fontSize = 13.sp)
+                    Text(stringResource(R.string.action_reset), color = Theme.textSecondary, fontSize = 13.sp)
                 }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = onDismiss) {
-                    Text("Done", color = Theme.electricCyan, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.action_done), color = Theme.electricCyan, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -180,19 +187,19 @@ private fun widgetStatus(
     liveMetrics: Set<TelemetryMetric>,
     isConnected: Boolean,
     isDemoMode: Boolean,
-): Pair<String, Boolean> {
+): Pair<Int, Boolean> {
     val metrics = widget.metrics
     val compatible = metrics.all { it in supportedMetrics }
-    if (!compatible) return "Not compatible with selected profile" to false
-    if (!isConnected && !isDemoMode) return "Compatible · Not connected" to true
+    if (!compatible) return R.string.status_incompatible to false
+    if (!isConnected && !isDemoMode) return R.string.status_compatible_not_connected to true
     val live = isDemoMode || metrics.all { it in liveMetrics }
-    return (if (live) "Live" else "Compatible · No data") to true
+    return (if (live) R.string.status_live else R.string.status_compatible_no_data) to true
 }
 
 @Composable
 private fun WidgetEditorRow(
     widget: DashboardWidgetConfig,
-    status: Pair<String, Boolean>,
+    status: Pair<Int, Boolean>,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onMoveUp: () -> Unit,
@@ -213,7 +220,7 @@ private fun WidgetEditorRow(
             Column(Modifier.weight(1f)) {
                 Text(widget.title, color = Theme.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    status.first,
+                    stringResource(status.first),
                     color = if (status.second) Theme.textSecondary else Theme.highPowerAmber,
                     fontSize = 10.sp,
                 )
@@ -221,7 +228,7 @@ private fun WidgetEditorRow(
             IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(30.dp)) {
                 Icon(
                     Icons.Filled.KeyboardArrowUp,
-                    contentDescription = "Move up",
+                    contentDescription = stringResource(R.string.action_move_up),
                     tint = if (canMoveUp) Theme.textSecondary else Theme.trackBackground,
                     modifier = Modifier.size(18.dp),
                 )
@@ -229,7 +236,7 @@ private fun WidgetEditorRow(
             IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(30.dp)) {
                 Icon(
                     Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Move down",
+                    contentDescription = stringResource(R.string.action_move_down),
                     tint = if (canMoveDown) Theme.textSecondary else Theme.trackBackground,
                     modifier = Modifier.size(18.dp),
                 )
@@ -237,7 +244,7 @@ private fun WidgetEditorRow(
             IconButton(onClick = onRemove, modifier = Modifier.size(30.dp)) {
                 Icon(
                     Icons.Filled.Close,
-                    contentDescription = "Remove widget",
+                    contentDescription = stringResource(R.string.dashboard_remove_widget),
                     tint = Theme.textSecondary,
                     modifier = Modifier.size(16.dp),
                 )
@@ -246,12 +253,16 @@ private fun WidgetEditorRow(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             if (widget.kind is DashboardWidgetKind.Metric) {
                 WidgetStyle.entries.forEach { style ->
-                    ChoiceChip(styleLabel(style), widget.style == style) { onStyle(style) }
+                    ChoiceChip(stringResource(styleLabel(style)), widget.style == style) { onStyle(style) }
                 }
             }
             Spacer(Modifier.weight(1f))
-            ChoiceChip("Half", widget.size == WidgetSize.MEDIUM) { onSize(WidgetSize.MEDIUM) }
-            ChoiceChip("Full", widget.size == WidgetSize.LARGE) { onSize(WidgetSize.LARGE) }
+            ChoiceChip(stringResource(R.string.widget_size_half), widget.size == WidgetSize.MEDIUM) {
+                onSize(WidgetSize.MEDIUM)
+            }
+            ChoiceChip(stringResource(R.string.widget_size_full), widget.size == WidgetSize.LARGE) {
+                onSize(WidgetSize.LARGE)
+            }
         }
     }
 }
@@ -284,15 +295,21 @@ private fun AddRow(label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = Theme.textPrimary, fontSize = 12.sp, modifier = Modifier.weight(1f))
-        Icon(Icons.Filled.Add, contentDescription = "Add", tint = Theme.electricCyan, modifier = Modifier.size(16.dp))
+        Icon(
+            Icons.Filled.Add,
+            contentDescription = stringResource(R.string.action_add),
+            tint = Theme.electricCyan,
+            modifier = Modifier.size(16.dp),
+        )
         Spacer(Modifier.width(2.dp))
     }
 }
 
-private fun styleLabel(style: WidgetStyle): String = when (style) {
-    WidgetStyle.NUMERIC -> "Number"
-    WidgetStyle.DIAL -> "Dial"
-    WidgetStyle.BAR -> "Bar"
+@StringRes
+private fun styleLabel(style: WidgetStyle): Int = when (style) {
+    WidgetStyle.NUMERIC -> R.string.widget_style_number
+    WidgetStyle.DIAL -> R.string.widget_style_dial
+    WidgetStyle.BAR -> R.string.widget_style_bar
 }
 
 private fun List<DashboardWidgetConfig>.replaceAt(index: Int, value: DashboardWidgetConfig): List<DashboardWidgetConfig> =

@@ -35,10 +35,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.export.ExportShare
 import com.simonkaring.voltlink.core.export.TripExport
 import com.simonkaring.voltlink.core.telemetry.ChargingTimeEstimator
@@ -94,17 +96,21 @@ fun ChargingScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (state.isCharging) "Charging" else "Not charging",
+                        text = if (state.isCharging) {
+                            stringResource(R.string.charging_status_charging)
+                        } else {
+                            stringResource(R.string.charging_status_not_charging)
+                        },
                         color = Theme.textPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
-                    Text("target $target%", color = Theme.textSecondary, fontSize = 12.sp)
+                    Text(stringResource(R.string.charging_target, target), color = Theme.textSecondary, fontSize = 12.sp)
                 }
 
                 Text(
-                    text = String.format(Locale.US, "%.0f%%", snapshot.stateOfChargePct),
+                    text = stringResource(R.string.charging_soc_percent, snapshot.stateOfChargePct),
                     color = if (snapshot.stateOfChargePct < 20) Theme.criticalRed else Theme.regenGreen,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.Bold,
@@ -137,24 +143,28 @@ fun ChargingScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
                     ChargeStat(
                         String.format(Locale.US, "%.1f kW", snapshot.chargePowerKW),
-                        if (snapshot.chargePowerKW > ChargingTimeEstimator.DC_POWER_THRESHOLD_KW) "DC power" else "power",
+                        if (snapshot.chargePowerKW > ChargingTimeEstimator.DC_POWER_THRESHOLD_KW) {
+                            stringResource(R.string.charging_dc_power)
+                        } else {
+                            stringResource(R.string.charging_power)
+                        },
                     )
                     ChargeStat(
                         when {
                             state.secondsToTarget == null -> "—"
-                            state.secondsToTarget == 0.0 -> "Reached"
+                            state.secondsToTarget == 0.0 -> stringResource(R.string.charging_reached)
                             else -> formatDuration(state.secondsToTarget!!)
                         },
-                        "to $target%",
+                        stringResource(R.string.charging_to_target, target),
                     )
                     ChargeStat(
                         String.format(Locale.US, "%.1f kWh", state.current?.totalKWhDelivered ?: 0.0),
-                        "delivered",
+                        stringResource(R.string.charging_delivered),
                     )
                 }
                 if (state.isCharging && state.secondsToTarget == null) {
                     Text(
-                        "Time to target needs a live charge-power reading.",
+                        stringResource(R.string.charging_eta_needs_power),
                         color = Theme.textSecondary,
                         fontSize = 11.sp,
                     )
@@ -174,7 +184,7 @@ fun ChargingScreen(
 
         item {
             Text(
-                "Charging history",
+                stringResource(R.string.charging_history_title),
                 color = Theme.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -184,7 +194,7 @@ fun ChargingScreen(
         if (sessions.isEmpty()) {
             item {
                 Text(
-                    "No charging sessions recorded yet. A session is saved once the vehicle reports charging for more than 90 seconds.",
+                    stringResource(R.string.charging_history_empty),
                     color = Theme.textSecondary,
                     fontSize = 13.sp,
                 )
@@ -224,16 +234,19 @@ private fun SessionCard(session: ChargingSessionRecord, units: UnitPrefs) {
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             ChargeStat(
                 String.format(Locale.US, "%.0f%% → %.0f%%", session.startSocPct, session.endSocPct),
-                "state of charge",
+                stringResource(R.string.charging_stat_state_of_charge),
             )
-            ChargeStat(String.format(Locale.US, "%.1f kWh", session.totalKWhDelivered), "delivered")
-            ChargeStat(String.format(Locale.US, "%.0f kW", session.peakPowerKW), "peak")
-            ChargeStat(formatDuration(session.duration.seconds.toDouble()), "duration")
+            ChargeStat(
+                String.format(Locale.US, "%.1f kWh", session.totalKWhDelivered),
+                stringResource(R.string.charging_delivered),
+            )
+            ChargeStat(String.format(Locale.US, "%.0f kW", session.peakPowerKW), stringResource(R.string.charging_stat_peak))
+            ChargeStat(formatDuration(session.duration.seconds.toDouble()), stringResource(R.string.charging_stat_duration))
         }
         val points = ChargingSpeedCurve.session(session.samples)
         if (points.size >= 2) {
             ChargingSpeedChart(points = points, units = units)
-            Text("Charging speed over time", color = Theme.textSecondary, fontSize = 10.sp)
+            Text(stringResource(R.string.charging_speed_over_time), color = Theme.textSecondary, fontSize = 10.sp)
         }
         TextButton(
             onClick = {
@@ -248,7 +261,7 @@ private fun SessionCard(session: ChargingSessionRecord, units: UnitPrefs) {
             },
             contentPadding = PaddingValues(0.dp),
         ) {
-            Text("Share CSV", color = Theme.electricCyan, fontSize = 12.sp)
+            Text(stringResource(R.string.charging_share_csv), color = Theme.electricCyan, fontSize = 12.sp)
         }
     }
 }
@@ -270,9 +283,15 @@ private fun BatteryHealthCard(health: List<BatteryHealthRecord>) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Battery health", color = Theme.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             Text(
-                String.format(Locale.US, "%.1f%% SOH", latest.sohPct),
+                stringResource(R.string.battery_health_title),
+                color = Theme.textPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                stringResource(R.string.battery_health_soh, latest.sohPct),
                 color = Theme.regenGreen,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -293,16 +312,20 @@ private fun BatteryHealthCard(health: List<BatteryHealthRecord>) {
         }
         Row {
             Text(
-                String.format(Locale.US, "%+.1f%% since first reading", change),
+                stringResource(R.string.battery_health_change, change),
                 color = if (change < 0) Theme.highPowerAmber else Theme.textSecondary,
                 fontSize = 11.sp,
                 modifier = Modifier.weight(1f),
             )
-            Text("${health.size} daily readings", color = Theme.textSecondary, fontSize = 11.sp)
+            Text(
+                stringResource(R.string.battery_health_readings, health.size),
+                color = Theme.textSecondary,
+                fontSize = 11.sp,
+            )
         }
         if (projection != null) {
             Text(
-                String.format(Locale.US, "Projected %.1f%% per year", projection),
+                stringResource(R.string.battery_health_projection, projection),
                 color = Theme.textSecondary,
                 fontSize = 11.sp,
             )

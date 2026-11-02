@@ -9,4 +9,289 @@
     <string name="widget_live">Live</string>
     <string name="widget_charging">Charging</string>
     <string name="widget_stale">Stale</string>
+
+    <!-- Shared actions and status words. -->
+    <string name="action_add">Add</string>
+    <string name="action_done">Done</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_close">Close</string>
+    <string name="action_show">Show</string>
+    <string name="action_hide">Hide</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_move_up">Move up</string>
+    <string name="action_move_down">Move down</string>
+    <string name="status_live">Live</string>
+    <string name="status_no_data">No data</string>
+    <string name="status_not_connected">Not connected</string>
+    <string name="status_compatible_no_data">Compatible · No data</string>
+    <string name="status_compatible_not_connected">Compatible · Not connected</string>
+    <string name="status_incompatible">Not compatible with selected profile</string>
+
+    <!-- Dashboard. -->
+    <string name="dashboard_button_layout">Layout</string>
+    <string name="dashboard_button_hud">HUD</string>
+    <string name="dashboard_button_controls">Controls</string>
+    <string name="dashboard_status_demo">Demo mode</string>
+    <string name="dashboard_status_connecting">Connecting…</string>
+    <string name="dashboard_status_connected">Connected</string>
+    <string name="dashboard_status_scanning">Scanning…</string>
+    <string name="dashboard_status_disconnected">Disconnected</string>
+    <string name="dashboard_charging_banner">Charging · %1$.1f kW</string>
+    <string name="chart_title">Live telemetry</string>
+    <string name="chart_waiting">Waiting for vehicle data</string>
+    <string name="chart_collecting">Collecting samples…</string>
+
+    <!-- Dashboard customization. -->
+    <string name="dashboard_customize_title">Customize dashboard</string>
+    <string name="dashboard_customize_hint">Compatible means this profile defines the signal. Live means it is arriving from the car. Half-width widgets pair up two per row.</string>
+    <string name="dashboard_add_widget">Add a widget</string>
+    <string name="dashboard_all_widgets_added">Every metric this profile reports is already on the dashboard.</string>
+    <string name="dashboard_add_chart">Live chart (%1$s)</string>
+    <string name="dashboard_remove_widget">Remove widget</string>
+    <string name="widget_style_number">Number</string>
+    <string name="widget_style_dial">Dial</string>
+    <string name="widget_style_bar">Bar</string>
+    <string name="widget_size_half">Half</string>
+    <string name="widget_size_full">Full</string>
+
+    <!-- Profile metric status. -->
+    <string name="metric_status_title">Profile metric status</string>
+    <string name="metric_status_subtitle">%1$s — %2$d metrics</string>
+    <string name="metric_status_obdb_notice">OBDb community profile: experimental definitions. Compare readings with your car. Charging assumes negative pack current means charging and needs fresh stationary wheel speed. Coolant temperature is not battery-cell temperature. Adapted from OBDb/Mercedes-Benz-EQA under CC BY-SA 4.0.</string>
+    <string name="metric_status_footer">"Live" means this metric arrived in the most recent poll cycle. A metric drops back to "No data" after repeated failed polls for its command.</string>
+
+    <!-- Android Auto layout. -->
+    <string name="car_layout_title">Android Auto layout</string>
+    <string name="car_layout_usage">%1$d of %2$d rows used</string>
+    <string name="car_layout_add_row">Add a row</string>
+    <string name="car_layout_full">The pane is full. Remove a row to add another.</string>
+    <string name="car_layout_remove_row">Remove row</string>
+    <string name="car_row_health">Diagnostics</string>
+    <string name="car_row_not_scanned">Not scanned</string>
+    <string name="car_row_no_codes">No stored codes</string>
+    <string name="car_row_stored_codes">%1$d stored codes</string>
+
+    <!-- Charging. -->
+    <string name="charging_status_charging">Charging</string>
+    <string name="charging_status_not_charging">Not charging</string>
+    <string name="charging_target">target %1$d%%</string>
+    <string name="charging_soc_percent">%1$.0f%%</string>
+    <string name="charging_dc_power">DC power</string>
+    <string name="charging_power">power</string>
+    <string name="charging_to_target">to %1$d%%</string>
+    <string name="charging_delivered">delivered</string>
+    <string name="charging_reached">Reached</string>
+    <string name="charging_eta_needs_power">Time to target needs a live charge-power reading.</string>
+    <string name="charging_history_title">Charging history</string>
+    <string name="charging_history_empty">No charging sessions recorded yet. A session is saved once the vehicle reports charging for more than 90 seconds.</string>
+    <string name="charging_share_csv">Share CSV</string>
+    <string name="charging_stat_state_of_charge">state of charge</string>
+    <string name="charging_stat_peak">peak</string>
+    <string name="charging_stat_duration">duration</string>
+    <string name="battery_health_title">Battery health</string>
+    <string name="battery_health_soh">%1$.1f%% SOH</string>
+    <string name="battery_health_change">%1$+.1f%% since first reading</string>
+    <string name="battery_health_readings">%1$d daily readings</string>
+    <string name="battery_health_projection">Projected %1$.1f%% per year</string>
+
+    <!-- Navigation. -->
+    <string name="tab_telemetry">Telemetry</string>
+    <string name="tab_log">Log</string>
+    <string name="tab_charging">Charging</string>
+    <string name="tab_diagnostics">Diagnostics</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Settings. -->
+    <string name="settings_connection">Connection</string>
+    <string name="settings_demo_title">Demo / Simulation mode</string>
+    <string name="settings_demo_subtitle">Stream simulated telemetry without an adapter</string>
+    <string name="settings_state_connected">Connected to %1$s</string>
+    <string name="settings_state_connecting">Connecting to %1$s…</string>
+    <string name="settings_state_scanning">Scanning for adapters…</string>
+    <string name="settings_state_demo">Demo mode active</string>
+    <string name="settings_state_none">No adapter connected</string>
+    <string name="settings_scanning">Scanning…</string>
+    <string name="settings_scan_adapters">Scan for adapters</string>
+    <string name="settings_disconnect">Disconnect</string>
+    <string name="settings_vehicle">Vehicle</string>
+    <string name="settings_profile_metrics">%1$s · %2$d published metrics</string>
+    <string name="settings_profile_metrics_only">%1$d published metrics</string>
+    <string name="settings_change">Change</string>
+    <string name="settings_browse_catalog">Browse vehicle catalog</string>
+    <string name="settings_metric_status">Metric status</string>
+    <string name="settings_units">Units</string>
+    <string name="settings_distance_speed">Distance &amp; speed</string>
+    <string name="settings_temperature">Temperature</string>
+    <string name="settings_power">Power</string>
+    <string name="settings_charging">Charging</string>
+    <string name="settings_charge_target">Charge target: %1$d%%</string>
+    <string name="settings_charge_target_hint">Used by the Charging tab to estimate time to target; the opt-in alert fires once per session.</string>
+    <string name="settings_price_per_kwh">Electricity price per kWh</string>
+    <string name="settings_price_hint">In your local currency. Used for the monthly cost estimate on the Log tab; 0 hides it.</string>
+    <string name="settings_service_reminder">Service reminder</string>
+    <string name="settings_next_service">Next service in %1$.0f %2$s</string>
+    <string name="settings_no_service_interval">No service interval reported by this vehicle yet.</string>
+    <string name="settings_remind_below">Remind me below</string>
+    <string name="settings_reminder_hint">One reminder a week at most, and only while vehicle notifications are enabled above.</string>
+    <string name="settings_alerts">Alerts</string>
+    <string name="settings_notifications_title">Vehicle notifications</string>
+    <string name="settings_notifications_subtitle">Charging finished, charge target, fault codes and adapter loss</string>
+    <string name="settings_notifications_hint">An ongoing notification mirrors charging progress on the lock screen while the car is plugged in.</string>
+    <string name="settings_backup">Backup</string>
+    <string name="settings_android_auto">Android Auto</string>
+    <string name="settings_car_rows">Rows shown on the car pane, in order: %1$s</string>
+    <string name="settings_edit_car_layout">Edit car layout</string>
+    <string name="settings_widget">Home screen widget</string>
+    <string name="settings_widget_hint">State of charge, power and speed on the home screen, refreshed from the live snapshot.</string>
+    <string name="settings_add_widget">Add widget</string>
+    <string name="settings_widget_pin_unsupported">This launcher does not support pinning. Add the widget from the launcher\'s widget picker.</string>
+    <string name="settings_ai_analyzer">AI log analyzer</string>
+    <string name="settings_obd_terminal">OBD terminal</string>
+    <string name="settings_recent_commands">%1$d recent commands</string>
+    <string name="settings_obd_contribution_hint">Fields every command the active profile decoded, with the response it came from, so a maintainer can review or contribute the decoding.</string>
+    <string name="settings_export_contribution">Export PID contribution</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_app">VoltLink for Android</string>
+    <string name="settings_about_body">Native Compose companion to VoltLink iOS. OBD-II / UDS telemetry, diagnostics and demo simulation.</string>
+    <string name="settings_about_credits">EQA OBDb signals adapted from OBDb/Mercedes-Benz-EQA (CC BY-SA 4.0); DTC descriptions from Wal33D (MIT).</string>
+    <string name="settings_device_rssi">%1$d dBm</string>
+
+    <!-- Cloud backup card. -->
+    <string name="backup_title">Cloud backup</string>
+    <string name="backup_subtitle">Mirror history to a folder you choose</string>
+    <string name="backup_hint">Off by default: trip and charging history stays on this device until you turn this on.</string>
+    <string name="backup_folder_saved">Backup folder saved.</string>
+    <string name="backup_folder">Folder: %1$s</string>
+    <string name="backup_no_folder">No folder chosen yet</string>
+    <string name="backup_choose_folder">Choose folder</string>
+    <string name="backup_change_folder">Change folder</string>
+    <string name="backup_success">Backed up %1$d trips and %2$d charging sessions to %3$s.</string>
+    <string name="backup_failed">Backup failed: %1$s</string>
+    <string name="backup_working">Working…</string>
+    <string name="backup_now">Back up now</string>
+    <string name="backup_all_present">Everything in the backup is already on this device.</string>
+    <string name="backup_restore">Restore</string>
+    <string name="backup_restore_failed">Restore failed: %1$s</string>
+    <string name="backup_last">Last backup: %1$s</string>
+    <string name="backup_none">No backup written yet</string>
+    <string name="backup_footer">Files are named voltlink-backup-&lt;date&gt;.json. Restore merges the newest file and never deletes local rows.</string>
+
+    <!-- AI log analyzer card. -->
+    <string name="ai_hint">Send the captured OBD trace to Gemini or OpenAI for PID/DID decoding help. The key is stored encrypted on this device only.</string>
+    <string name="ai_key_label">API key · Gemini (AIza…) or OpenAI (sk-…)</string>
+    <string name="ai_hide_key">Hide key</string>
+    <string name="ai_show_key">Show key</string>
+    <string name="ai_save_key">Save key</string>
+    <string name="ai_analyzing">Analyzing…</string>
+    <string name="ai_analyze">Analyze log</string>
+    <string name="ai_failed">Analysis failed: %1$s</string>
+    <string name="ai_captured">%1$d commands captured</string>
+    <string name="ai_need_key">Save a key to enable analysis. The last 120 commands are sent.</string>
+
+    <!-- Vehicle catalog. -->
+    <string name="catalog_title">Choose vehicle</string>
+    <string name="catalog_search">Search brand or model</string>
+    <string name="catalog_clear_search">Clear search</string>
+    <string name="catalog_loading">Loading catalog…</string>
+    <string name="catalog_empty">No matching vehicle. Use “EV / Vehicle Not Listed” under Generic.</string>
+    <string name="catalog_generic">Generic decoding · live values depend on your car</string>
+    <string name="catalog_powertrain_ev">EV</string>
+    <string name="catalog_powertrain_phev">PHEV</string>
+    <string name="catalog_powertrain_ice">ICE</string>
+
+    <!-- HUD and demo controls. -->
+    <string name="hud_demo">DEMO</string>
+    <string name="hud_brand">VOLTLINK</string>
+    <string name="hud_exit">Tap to exit</string>
+    <string name="demo_title">Demo / Simulation</string>
+    <string name="demo_hint">Drive the app without an adapter. Scenarios are generated by the same simulation engine used in Demo Mode.</string>
+    <string name="demo_manual_speed">Manual speed</string>
+    <string name="demo_throttle">Throttle</string>
+    <string name="demo_regen">Regen strength</string>
+    <string name="demo_mode">Demo Mode</string>
+    <string name="demo_live">Live Adapter</string>
+    <string name="demo_auto">Auto</string>
+
+    <!-- Diagnostics. -->
+    <string name="dx_health">System health</string>
+    <string name="dx_last_scan">Last scan %1$s</string>
+    <string name="dx_scanning">Scanning…</string>
+    <string name="dx_scan">Scan DTCs</string>
+    <string name="dx_clear">Clear codes</string>
+    <string name="dx_demo_hint">Demo mode: the simulated vehicle reports P0A80 when the fault scenario is active.</string>
+    <string name="dx_none">No fault codes reported by the ECUs that answered.</string>
+    <string name="dx_conditions">Conditions at fault</string>
+    <string name="dx_symptoms">Symptoms</string>
+    <string name="dx_fixes">Possible fixes</string>
+    <string name="dx_tap_hint">Tap for freeze frame and repair guidance</string>
+
+    <!-- Trips. -->
+    <string name="trips_recording">Recording trip</string>
+    <string name="trips_ready">Ready to record</string>
+    <string name="trips_auto">Auto</string>
+    <string name="trips_logged">%1$.1f %2$s logged</string>
+    <string name="trips_stationary">Stationary · auto-stop in %1$ds</string>
+    <string name="trips_stop">Stop Trip</string>
+    <string name="trips_start">Start Trip</string>
+    <string name="trips_disable_auto">Disable auto trips</string>
+    <string name="trips_enable_auto">Enable auto trips</string>
+    <string name="trips_history">Trip history</string>
+    <string name="trips_count_one">1 trip</string>
+    <string name="trips_count_many">%1$d trips</string>
+    <string name="trips_empty">No trips recorded yet. Start a recording from the dashboard or let auto trips begin once you drive.</string>
+    <string name="trips_month">THIS MONTH</string>
+    <string name="trips_stat_distance">distance</string>
+    <string name="trips_stat_energy">energy</string>
+    <string name="trips_stat_efficiency">efficiency</string>
+    <string name="trips_stat_cost">cost</string>
+    <string name="trips_stat_soc">SoC</string>
+    <string name="trips_title">Trips</string>
+    <string name="trips_back">Back</string>
+    <string name="trips_delete">Delete</string>
+    <string name="trips_stat_duration">duration</string>
+    <string name="trips_stat_avg_speed">avg speed</string>
+    <string name="trips_stat_energy_used">energy used</string>
+    <string name="trips_stat_recovered">recovered</string>
+    <string name="trips_stat_peak_power">peak power</string>
+    <string name="trips_stat_state_of_charge">state of charge</string>
+    <string name="trips_share_gpx">Share GPX</string>
+    <string name="trips_share_csv">Share CSV</string>
+    <string name="trips_recorded">Recorded telemetry</string>
+
+    <!-- Notifications. -->
+    <string name="notif_channel_alerts">Vehicle alerts</string>
+    <string name="notif_channel_alerts_desc">Charging finished, charge target reached, fault codes and adapter loss</string>
+    <string name="notif_channel_charging">Charging status</string>
+    <string name="notif_channel_charging_desc">Ongoing notification while the vehicle is charging</string>
+    <string name="notif_eta_hours">%1$dh %2$02dmin to %3$d%%</string>
+    <string name="notif_eta_minutes">%1$d min to %2$d%%</string>
+    <string name="notif_charging_text">%1$.1f kW · target %2$d%%</string>
+    <string name="notif_charging_title">Charging · %1$.0f%%</string>
+    <string name="notif_finished_title">Charging finished</string>
+    <string name="notif_finished_body">%1$.0f%% → %2$.0f%% (%3$.1f kWh delivered)</string>
+    <string name="notif_target_title">Charge target reached</string>
+    <string name="notif_target_body">Battery at %1$.0f%%, target %2$d%%</string>
+    <string name="notif_faults_one">1 fault code found</string>
+    <string name="notif_faults_many">%1$d fault codes found</string>
+    <string name="notif_faults_body">Open VoltLink diagnostics for details and repair guidance.</string>
+    <string name="notif_adapter_title">OBD adapter disconnected</string>
+    <string name="notif_adapter_trip">The adapter dropped during a trip recording. Reconnect the scanner.</string>
+    <string name="notif_adapter_idle">Reconnect the scanner to resume live telemetry.</string>
+    <string name="notif_service_title">Service due</string>
+    <string name="notif_service_body">%1$.0f km until the next vehicle service</string>
+
+    <!-- Pack bar gauge. -->
+    <string name="gauges_hv_battery">High Voltage Battery</string>
+    <string name="gauges_hv_battery_charging">⚡ High Voltage Battery</string>
+    <string name="gauges_hv_prefix">HV: %1$s</string>
+    <string name="gauges_charging_started">Charging started at %1$.0f%%  ·  +%2$.0f%% gained</string>
+    <string name="chart_series_power">Power</string>
+    <string name="chart_series_speed">Speed</string>
+
+    <!-- Charging speed chart. -->
+    <string name="chart_elapsed">Elapsed</string>
+    <string name="chart_power_label">Speed</string>
+    <string name="chart_battery">Battery</string>
+    <string name="chart_scrub_hint">Drag across the curve to inspect a moment</string>
+    <string name="charging_speed_over_time">Charging speed over time</string>
 </resources>

@@ -28,10 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.obd.DtcCode
 import com.simonkaring.voltlink.core.obd.DtcSeverity
 import com.simonkaring.voltlink.core.obd.FreezeFrameSignal
@@ -67,7 +69,7 @@ fun DiagnosticsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("System health", color = Theme.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.dx_health), color = Theme.textSecondary, fontSize = 12.sp)
                 Text(
                     text = state.healthSummary,
                     color = when {
@@ -82,9 +84,12 @@ fun DiagnosticsScreen(
                 )
                 if (state.lastScanDate != null) {
                     Text(
-                        text = "Last scan " + DateTimeFormatter.ofPattern("d MMM HH:mm")
-                            .withZone(ZoneId.systemDefault())
-                            .format(state.lastScanDate),
+                        text = stringResource(
+                            R.string.dx_last_scan,
+                            DateTimeFormatter.ofPattern("d MMM HH:mm")
+                                .withZone(ZoneId.systemDefault())
+                                .format(state.lastScanDate),
+                        ),
                         color = Theme.textSecondary,
                         fontSize = 12.sp,
                     )
@@ -109,18 +114,22 @@ fun DiagnosticsScreen(
                             CircularProgressIndicator(modifier = Modifier.height(16.dp).width(16.dp), strokeWidth = 2.dp, color = Theme.onAccent)
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (state.isScanning) "Scanning…" else "Scan DTCs", color = Theme.onAccent, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (state.isScanning) stringResource(R.string.dx_scanning) else stringResource(R.string.dx_scan),
+                            color = Theme.onAccent,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                     OutlinedButton(
                         onClick = { scanner.clearCodes() },
                         enabled = !state.isScanning && state.codes.isNotEmpty(),
                     ) {
-                        Text("Clear codes", color = Theme.textPrimary)
+                        Text(stringResource(R.string.dx_clear), color = Theme.textPrimary)
                     }
                 }
                 if (isDemoMode) {
                     Text(
-                        "Demo mode: the simulated vehicle reports P0A80 when the fault scenario is active.",
+                        stringResource(R.string.dx_demo_hint),
                         color = Theme.textSecondary,
                         fontSize = 11.sp,
                     )
@@ -131,7 +140,7 @@ fun DiagnosticsScreen(
         if (state.codes.isEmpty() && state.scanSucceeded) {
             item {
                 Text(
-                    "No fault codes reported by the ECUs that answered.",
+                    stringResource(R.string.dx_none),
                     color = Theme.textSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 4.dp),
@@ -186,7 +195,7 @@ private fun DtcCard(code: DtcCode, expanded: Boolean, onToggle: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 val frames = code.freezeFrameData
                 if (frames != null && frames.isNotEmpty()) {
-                    Section("Conditions at fault") {
+                    Section(stringResource(R.string.dx_conditions)) {
                         FreezeFrameSignal.orderedValues(frames).forEach { (label, value) ->
                             Row(Modifier.fillMaxWidth()) {
                                 Text(label, color = Theme.textSecondary, fontSize = 12.sp, modifier = Modifier.weight(1f))
@@ -196,12 +205,12 @@ private fun DtcCard(code: DtcCode, expanded: Boolean, onToggle: () -> Unit) {
                     }
                 }
                 if (code.symptoms.isNotEmpty()) {
-                    Section("Symptoms") {
+                    Section(stringResource(R.string.dx_symptoms)) {
                         code.symptoms.forEach { Text("• $it", color = Theme.textSecondary, fontSize = 12.sp) }
                     }
                 }
                 if (code.possibleFixes.isNotEmpty()) {
-                    Section("Possible fixes") {
+                    Section(stringResource(R.string.dx_fixes)) {
                         code.possibleFixes.forEach { Text("• $it", color = Theme.textSecondary, fontSize = 12.sp) }
                     }
                 }
@@ -211,7 +220,7 @@ private fun DtcCard(code: DtcCode, expanded: Boolean, onToggle: () -> Unit) {
             }
         }
         if (!expanded) {
-            Text("Tap for freeze frame and repair guidance", color = Theme.textSecondary, fontSize = 10.sp)
+            Text(stringResource(R.string.dx_tap_hint), color = Theme.textSecondary, fontSize = 10.sp)
         }
     }
 }

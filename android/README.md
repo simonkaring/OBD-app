@@ -23,6 +23,11 @@ Compose and the Android Bluetooth LE stack, with no shared build tooling with `i
   Android 16 Live Update charging card.
 - **Trip GPS**: a foreground location recorder fills the route samples while a trip records,
   which enables the GPX export; the permission is requested from the Start Trip action only.
+- **Customizable UI**: dashboard widgets persist their metric, style, width and order, the
+  car pane has its own persisted row layout, and Settings lists which profile metrics are
+  live. Charging sessions plot speed over time with a scrubbable readout.
+- **Localized copy**: every user-visible string lives in `res/values/strings.xml` (253 keys),
+  so a translation only needs another `values-<lang>` folder.
 
 ## Build & run
 
@@ -30,9 +35,11 @@ Compose and the Android Bluetooth LE stack, with no shared build tooling with `i
 cd android
 
 ./gradlew assembleDebug                 # build the APK
-./gradlew testDebugUnitTest             # engine unit tests (ISO-TP, profiles, telemetry)
+./gradlew testDebugUnitTest             # engine unit tests (ISO-TP, profiles, telemetry, layouts)
+./gradlew connectedDebugAndroidTest     # Compose UI tests (needs an emulator/device)
 ./gradlew installDebug                  # install on a connected device/emulator
 ./gradlew lintDebug                     # Android lint
+./gradlew assembleRelease               # R8 + resource shrinking (3.3 MB)
 
 # Widget and shortcuts are wired through the manifest:
 #   .core.widget.TelemetryWidgetProvider  (Add widget from Settings)
@@ -53,6 +60,11 @@ support directly, so there is no `org.jetbrains.kotlin.android` plugin. `android
 pinned to 1.18.0 because `NotificationCompat.ProgressStyle` and `setRequestPromotedOngoing`
 (the Android 16 Live Update API) arrive there, while 1.19 would require AGP 9.1.
 
+Release signing is injected, never committed: set `VOLTLINK_KEYSTORE`, `VOLTLINK_KEYSTORE_PASSWORD`,
+`VOLTLINK_KEY_ALIAS` and `VOLTLINK_KEY_PASSWORD` (environment or `~/.gradle/gradle.properties`)
+and `assembleRelease` produces a signed APK; without them it stays unsigned. CI runs
+`.github/workflows/android.yml` (unit tests, lint, debug + test APKs, R8 release).
+
 Runtime permissions: `BLUETOOTH_SCAN` and `BLUETOOTH_CONNECT` on first launch (Android 12+),
 `ACCESS_FINE_LOCATION` below that for scanning, `POST_NOTIFICATIONS` only when alerts are
 enabled in Settings, and `ACCESS_FINE_LOCATION` for the trip route only when the user taps
@@ -64,7 +76,10 @@ Implemented in this pass:
 
 | Area | Notes |
 | --- | --- |
-| Live telemetry dashboard | Power dial (bidirectional draw/regen), SoC and speed dials, HV pack bar, rolling power/speed chart, secondary metric tiles |
+| Live telemetry dashboard | Widget layout is user configurable (metric, dial/bar/number style, half/full width, order) and persisted; default is speed + power dials, SoC bar, 12 V and average consumption tiles, rolling chart |
+| Profile metric status | Settings sheet listing every metric the active profile supports as Live, No data or Not connected, with the OBDb provenance notice |
+| Car pane layout | Android Auto rows chosen and ordered in Settings, capped at eight, health row backed by the last DTC scan |
+| Scrubbable charge chart | Charge power against elapsed time with a drag readout of time, speed and SoC, for live and recorded sessions |
 | BLE ELM327 transport | Scan/connect/discover, command queue, 4 s timeout, stale-response drain, routing-failure recovery, OBD terminal log |
 | ISO-TP / UDS decoding | Same multi-ECU bucket parser, 11- and 29-bit headers, plausibility bounds |
 | Vehicle profiles | EQA 250, EQA OBDb community, VW MEB, Hyundai/Kia E-GMP, Nissan Leaf 62 kWh (OVMS), 18 ABRP-backed community profiles (Mach-E, Kona / Niro, e-Golf, e-Up!, Mini SE, Zoe ZE50/ZE40, ZS EV, I-Pace, Bolt, e:Ny1, U5, Atto 3, i3, S05), generic OBD-II, generic EV |

@@ -30,11 +30,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.ai.AIKeyStore
 import com.simonkaring.voltlink.core.ai.AILogAnalyzer
 import com.simonkaring.voltlink.core.ai.AILogAnalyzerError
@@ -61,8 +63,7 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
     val scope = rememberCoroutineScope()
 
     Text(
-        "Send the captured OBD trace to Gemini or OpenAI for PID/DID decoding help. " +
-            "The key is stored encrypted on this device only.",
+        stringResource(R.string.ai_hint),
         color = Theme.textSecondary,
         fontSize = 11.sp,
     )
@@ -73,7 +74,7 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
         onValueChange = { key = it.trim() },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        label = { Text("API key · Gemini (AIza…) or OpenAI (sk-…)", fontSize = 11.sp) },
+        label = { Text(stringResource(R.string.ai_key_label), fontSize = 11.sp) },
         visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Theme.textPrimary,
@@ -88,7 +89,11 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
 
     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
         TextButton(onClick = { showKey = !showKey }, contentPadding = PaddingValues(0.dp)) {
-            Text(if (showKey) "Hide key" else "Show key", color = Theme.textSecondary, fontSize = 12.sp)
+            Text(
+                if (showKey) stringResource(R.string.ai_hide_key) else stringResource(R.string.ai_show_key),
+                color = Theme.textSecondary,
+                fontSize = 12.sp,
+            )
         }
         Spacer(Modifier.weight(1f))
         TextButton(
@@ -100,7 +105,7 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
             },
             contentPadding = PaddingValues(0.dp),
         ) {
-            Text("Save key", color = Theme.electricCyan, fontSize = 12.sp)
+            Text(stringResource(R.string.ai_save_key), color = Theme.electricCyan, fontSize = 12.sp)
         }
     }
 
@@ -122,7 +127,10 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
                     } catch (e: AILogAnalyzerError) {
                         error = e.message
                     } catch (e: Exception) {
-                        error = "Analysis failed: ${e.message ?: e.javaClass.simpleName}"
+                        error = context.getString(
+                            R.string.ai_failed,
+                            e.message ?: e.javaClass.simpleName,
+                        )
                     } finally {
                         isAnalyzing = false
                     }
@@ -132,7 +140,7 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
             colors = ButtonDefaults.buttonColors(containerColor = Theme.electricCyan),
         ) {
             Text(
-                if (isAnalyzing) "Analyzing…" else "Analyze log",
+                if (isAnalyzing) stringResource(R.string.ai_analyzing) else stringResource(R.string.ai_analyze),
                 color = Theme.onAccent,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -145,7 +153,7 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
             )
         } else {
             Text(
-                "${log.size} commands captured",
+                stringResource(R.string.ai_captured, log.size),
                 color = Theme.textSecondary,
                 fontSize = 11.sp,
             )
@@ -154,7 +162,7 @@ fun AILogAnalysisCard(log: List<ObdLogEntry>, vehicleName: String) {
 
     if (savedKey.isEmpty()) {
         Text(
-            "Save a key to enable analysis. The last 120 commands are sent.",
+            stringResource(R.string.ai_need_key),
             color = Theme.textSecondary,
             fontSize = 10.sp,
         )

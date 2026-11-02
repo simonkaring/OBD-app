@@ -28,11 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
 import com.simonkaring.voltlink.data.CarTileKind
 import com.simonkaring.voltlink.data.CarTileLayout
@@ -64,13 +66,13 @@ fun CarTileEditorSheet(
                 .padding(16.dp),
         ) {
             Text(
-                "Android Auto layout",
+                stringResource(R.string.car_layout_title),
                 color = Theme.textPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                "${layout.tiles.size} of ${CarTileLayout.MAX_TILES} rows used",
+                stringResource(R.string.car_layout_usage, layout.tiles.size, CarTileLayout.MAX_TILES),
                 color = Theme.electricCyan,
                 fontSize = 12.sp,
             )
@@ -102,7 +104,7 @@ fun CarTileEditorSheet(
                         ) {
                             Icon(
                                 Icons.Filled.KeyboardArrowUp,
-                                contentDescription = "Move up",
+                                contentDescription = stringResource(R.string.action_move_up),
                                 tint = if (index > 0) Theme.textSecondary else Theme.trackBackground,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -114,7 +116,7 @@ fun CarTileEditorSheet(
                         ) {
                             Icon(
                                 Icons.Filled.KeyboardArrowDown,
-                                contentDescription = "Move down",
+                                contentDescription = stringResource(R.string.action_move_down),
                                 tint = if (index < layout.tiles.lastIndex) Theme.textSecondary else Theme.trackBackground,
                                 modifier = Modifier.size(18.dp),
                             )
@@ -125,7 +127,7 @@ fun CarTileEditorSheet(
                         ) {
                             Icon(
                                 Icons.Filled.Close,
-                                contentDescription = "Remove row",
+                                contentDescription = stringResource(R.string.car_layout_remove_row),
                                 tint = Theme.textSecondary,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -136,7 +138,7 @@ fun CarTileEditorSheet(
                 item {
                     val canAdd = layout.tiles.size < CarTileLayout.MAX_TILES
                     Text(
-                        "Add a row",
+                        stringResource(R.string.car_layout_add_row),
                         color = Theme.textPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -144,13 +146,13 @@ fun CarTileEditorSheet(
                     )
                     if (!canAdd) {
                         Text(
-                            "The pane is full. Remove a row to add another.",
+                            stringResource(R.string.car_layout_full),
                             color = Theme.textSecondary,
                             fontSize = 11.sp,
                         )
                     } else {
                         if (layout.tiles.none { it == CarTileKind.Health }) {
-                            AddRow("Diagnostics") { update(layout.tiles + CarTileKind.Health) }
+                            AddRow(stringResource(R.string.car_row_health)) { update(layout.tiles + CarTileKind.Health) }
                         }
                         supportedMetrics
                             .filter { metric -> layout.tiles.none { it == CarTileKind.Metric(metric) } }
@@ -165,11 +167,11 @@ fun CarTileEditorSheet(
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { onChange(CarTileLayout.default) }) {
-                    Text("Reset", color = Theme.textSecondary, fontSize = 13.sp)
+                    Text(stringResource(R.string.action_reset), color = Theme.textSecondary, fontSize = 13.sp)
                 }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = onDismiss) {
-                    Text("Done", color = Theme.electricCyan, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.action_done), color = Theme.electricCyan, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -188,7 +190,12 @@ private fun AddRow(label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = Theme.textPrimary, fontSize = 12.sp, modifier = Modifier.weight(1f))
-        Icon(Icons.Filled.Add, contentDescription = "Add", tint = Theme.electricCyan, modifier = Modifier.size(16.dp))
+        Icon(
+            Icons.Filled.Add,
+            contentDescription = stringResource(R.string.action_add),
+            tint = Theme.electricCyan,
+            modifier = Modifier.size(16.dp),
+        )
         Spacer(Modifier.width(2.dp))
     }
 }

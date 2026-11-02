@@ -25,8 +25,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
 import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
 import com.simonkaring.voltlink.ui.UnitPrefs
@@ -42,7 +44,7 @@ fun LiveTelemetryChart(
     series: List<TelemetryMetric> = listOf(TelemetryMetric.POWER, TelemetryMetric.SPEED),
     modifier: Modifier = Modifier,
     isUnavailable: Boolean = false,
-    title: String = "Live telemetry",
+    title: String? = null,
 ) {
     // Stable colours per position so reordering a chart's series keeps its legend readable.
     val colors = series.mapIndexed { index, _ -> seriesColor(index) }
@@ -57,7 +59,12 @@ fun LiveTelemetryChart(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, color = Theme.textPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(
+                title ?: stringResource(R.string.chart_title),
+                color = Theme.textPrimary,
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f),
+            )
             series.forEachIndexed { index, metric ->
                 if (index > 0) Spacer(Modifier.width(10.dp))
                 LegendDot(metric.displayName, colors[index])
@@ -66,7 +73,11 @@ fun LiveTelemetryChart(
         Box(modifier = Modifier.fillMaxWidth().height(150.dp)) {
             if (history.size < 2 || isUnavailable || values.all { it.isEmpty() }) {
                 Text(
-                    text = if (isUnavailable) "Waiting for vehicle data" else "Collecting samples…",
+                    text = if (isUnavailable) {
+                        stringResource(R.string.chart_waiting)
+                    } else {
+                        stringResource(R.string.chart_collecting)
+                    },
                     color = Theme.textSecondary,
                     fontSize = 12.sp,
                     modifier = Modifier.align(Alignment.Center),

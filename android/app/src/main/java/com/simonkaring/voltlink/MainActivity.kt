@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.simonkaring.voltlink.core.shortcuts.AppCommand
 import com.simonkaring.voltlink.core.shortcuts.AppShortcuts
@@ -85,12 +87,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Tab(val label: String, val icon: ImageVector) {
-    TELEMETRY("Telemetry", Icons.Filled.Insights),
-    LOG("Log", Icons.Filled.Route),
-    CHARGING("Charging", Icons.Filled.Bolt),
-    DIAGNOSTICS("Diagnostics", Icons.Filled.Build),
-    SETTINGS("Settings", Icons.Filled.Settings),
+private enum class Tab(@StringRes val label: Int, val icon: ImageVector) {
+    TELEMETRY(R.string.tab_telemetry, Icons.Filled.Insights),
+    LOG(R.string.tab_log, Icons.Filled.Route),
+    CHARGING(R.string.tab_charging, Icons.Filled.Bolt),
+    DIAGNOSTICS(R.string.tab_diagnostics, Icons.Filled.Build),
+    SETTINGS(R.string.tab_settings, Icons.Filled.Settings),
 }
 
 @Composable
@@ -156,8 +158,8 @@ private fun VoltLinkRoot(
                     NavigationBarItem(
                         selected = tab == entry,
                         onClick = { tab = entry },
-                        icon = { Icon(entry.icon, contentDescription = entry.label) },
-                        label = { Text(entry.label) },
+                        icon = { Icon(entry.icon, contentDescription = stringResource(entry.label)) },
+                        label = { Text(stringResource(entry.label)) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Theme.onAccent,
                             selectedTextColor = Theme.electricCyan,

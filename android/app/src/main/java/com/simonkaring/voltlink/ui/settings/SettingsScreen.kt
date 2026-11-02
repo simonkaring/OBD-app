@@ -39,11 +39,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.export.ExportShare
 import com.simonkaring.voltlink.core.obd.BleConnectionState
 import com.simonkaring.voltlink.core.vehicles.CommunityContributionBuilder
@@ -96,22 +98,23 @@ fun SettingsScreen(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 8.dp, bottom = 24.dp),
     ) {
         item {
-            SettingsCard("Connection") {
+            SettingsCard(stringResource(R.string.settings_connection)) {
                 ToggleRow(
-                    title = "Demo / Simulation mode",
-                    subtitle = "Stream simulated telemetry without an adapter",
+                    title = stringResource(R.string.settings_demo_title),
+                    subtitle = stringResource(R.string.settings_demo_subtitle),
                     checked = isDemoMode,
                     onCheckedChange = { manager.setDemoMode(it) },
                 )
                 SettingDivider()
                 Text(
                     text = when (val state = connectionState) {
-                        is BleConnectionState.Ready -> "Connected to ${state.deviceName}"
-                        is BleConnectionState.Connecting -> "Connecting to ${state.deviceName}…"
+                        is BleConnectionState.Ready -> stringResource(R.string.settings_state_connected, state.deviceName)
+                        is BleConnectionState.Connecting ->
+                            stringResource(R.string.settings_state_connecting, state.deviceName)
                         is BleConnectionState.Error -> state.message
-                        BleConnectionState.Scanning -> "Scanning for adapters…"
-                        BleConnectionState.DemoMode -> "Demo mode active"
-                        BleConnectionState.Disconnected -> "No adapter connected"
+                        BleConnectionState.Scanning -> stringResource(R.string.settings_state_scanning)
+                        BleConnectionState.DemoMode -> stringResource(R.string.settings_state_demo)
+                        BleConnectionState.Disconnected -> stringResource(R.string.settings_state_none)
                     },
                     color = Theme.textSecondary,
                     fontSize = 12.sp,
@@ -123,13 +126,17 @@ fun SettingsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Theme.electricCyan),
                     ) {
                         Text(
-                            if (connectionState is BleConnectionState.Scanning) "Scanning…" else "Scan for adapters",
+                            if (connectionState is BleConnectionState.Scanning) {
+                                stringResource(R.string.settings_scanning)
+                            } else {
+                                stringResource(R.string.settings_scan_adapters)
+                            },
                             color = Theme.onAccent,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
                     TextButton(onClick = { manager.disconnect() }) {
-                        Text("Disconnect", color = Theme.textSecondary)
+                        Text(stringResource(R.string.settings_disconnect), color = Theme.textSecondary)
                     }
                 }
                 if (devices.isNotEmpty() && !isDemoMode) {
@@ -140,7 +147,7 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("Vehicle") {
+            SettingsCard(stringResource(R.string.settings_vehicle)) {
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { showProfiles = !showProfiles },
                     verticalAlignment = Alignment.CenterVertically,
@@ -153,27 +160,37 @@ fun SettingsScreen(
                         )
                         Text(
                             if (selectedModelName != null) {
-                                "${manager.selectedProfile.vehicleName} · " +
-                                    "${manager.selectedProfile.supportedMetrics.size} published metrics"
+                                stringResource(
+                                    R.string.settings_profile_metrics,
+                                    manager.selectedProfile.vehicleName,
+                                    manager.selectedProfile.supportedMetrics.size,
+                                )
                             } else {
-                                "${manager.selectedProfile.supportedMetrics.size} published metrics"
+                                stringResource(
+                                    R.string.settings_profile_metrics_only,
+                                    manager.selectedProfile.supportedMetrics.size,
+                                )
                             },
                             color = Theme.textSecondary,
                             fontSize = 12.sp,
                         )
                     }
-                    Text(if (showProfiles) "Close" else "Change", color = Theme.electricCyan, fontSize = 13.sp)
+                    Text(
+                        if (showProfiles) stringResource(R.string.action_close) else stringResource(R.string.settings_change),
+                        color = Theme.electricCyan,
+                        fontSize = 13.sp,
+                    )
                 }
                 Row {
                     TextButton(onClick = { showCatalog = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                        Text("Browse vehicle catalog", color = Theme.electricCyan, fontSize = 13.sp)
+                        Text(stringResource(R.string.settings_browse_catalog), color = Theme.electricCyan, fontSize = 13.sp)
                     }
                     Spacer(Modifier.width(12.dp))
                     TextButton(
                         onClick = { showMetricStatus = true },
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
                     ) {
-                        Text("Metric status", color = Theme.electricCyan, fontSize = 13.sp)
+                        Text(stringResource(R.string.settings_metric_status), color = Theme.electricCyan, fontSize = 13.sp)
                     }
                 }
                 if (showProfiles) {
@@ -203,22 +220,22 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("Units") {
-                Text("Distance & speed", color = Theme.textSecondary, fontSize = 12.sp)
+            SettingsCard(stringResource(R.string.settings_units)) {
+                Text(stringResource(R.string.settings_distance_speed), color = Theme.textSecondary, fontSize = 12.sp)
                 SegmentedRow(
                     options = DistanceUnit.entries.map { it.name to it.label },
                     selected = distanceUnit.name,
                     onSelect = { name -> settings.setDistanceUnit(DistanceUnit.valueOf(name)) },
                 )
                 Spacer(Modifier.height(10.dp))
-                Text("Temperature", color = Theme.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.settings_temperature), color = Theme.textSecondary, fontSize = 12.sp)
                 SegmentedRow(
                     options = TemperatureUnit.entries.map { it.name to it.label },
                     selected = temperatureUnit.name,
                     onSelect = { name -> settings.setTemperatureUnit(TemperatureUnit.valueOf(name)) },
                 )
                 Spacer(Modifier.height(10.dp))
-                Text("Power", color = Theme.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.settings_power), color = Theme.textSecondary, fontSize = 12.sp)
                 SegmentedRow(
                     options = PowerUnit.entries.map { it.name to it.label },
                     selected = powerUnit.name,
@@ -228,9 +245,9 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("Charging") {
+            SettingsCard(stringResource(R.string.settings_charging)) {
                 Text(
-                    "Charge target: $chargeTarget%",
+                    stringResource(R.string.settings_charge_target, chargeTarget),
                     color = Theme.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -242,12 +259,12 @@ fun SettingsScreen(
                     steps = 49,
                 )
                 Text(
-                    "Used by the Charging tab to estimate time to target; the opt-in alert fires once per session.",
+                    stringResource(R.string.settings_charge_target_hint),
                     color = Theme.textSecondary,
                     fontSize = 11.sp,
                 )
                 Spacer(Modifier.height(10.dp))
-                Text("Electricity price per kWh", color = Theme.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.settings_price_per_kwh), color = Theme.textSecondary, fontSize = 12.sp)
                 // Seeded once from the store: keying this on the flow would re-format the field
                 // while the user is still typing.
                 var priceText by remember {
@@ -266,8 +283,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    "In your local currency. Used for the monthly cost estimate on the Log tab; " +
-                        "0 hides it.",
+                    stringResource(R.string.settings_price_hint),
                     color = Theme.textSecondary,
                     fontSize = 11.sp,
                 )
@@ -275,26 +291,25 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("Service reminder") {
+            SettingsCard(stringResource(R.string.settings_service_reminder)) {
                 val latest by serviceReminder.latest.collectAsStateWithLifecycle()
                 val threshold by serviceReminder.thresholdKm.collectAsStateWithLifecycle()
                 val miles = distanceUnit == DistanceUnit.MILES
                 Text(
                     text = latest?.let { snapshot ->
                         val value = if (miles) snapshot.remainingKm * 0.621371 else snapshot.remainingKm
-                        String.format(
-                            Locale.US,
-                            "Next service in %.0f %s",
+                        stringResource(
+                            R.string.settings_next_service,
                             value,
                             if (miles) "mi" else "km",
                         )
-                    } ?: "No service interval reported by this vehicle yet.",
+                    } ?: stringResource(R.string.settings_no_service_interval),
                     color = Theme.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(6.dp))
-                Text("Remind me below", color = Theme.textSecondary, fontSize = 12.sp)
+                Text(stringResource(R.string.settings_remind_below), color = Theme.textSecondary, fontSize = 12.sp)
                 // Thresholds stay stored in kilometers; only the label follows the unit setting.
                 SegmentedRow(
                     options = ServiceReminderMonitor.options.map {
@@ -309,7 +324,7 @@ fun SettingsScreen(
                     onSelect = { value -> serviceReminder.setThresholdKm(value.toDouble()) },
                 )
                 Text(
-                    "One reminder a week at most, and only while vehicle notifications are enabled above.",
+                    stringResource(R.string.settings_reminder_hint),
                     color = Theme.textSecondary,
                     fontSize = 11.sp,
                 )
@@ -317,10 +332,10 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("Alerts") {
+            SettingsCard(stringResource(R.string.settings_alerts)) {
                 ToggleRow(
-                    title = "Vehicle notifications",
-                    subtitle = "Charging finished, charge target, fault codes and adapter loss",
+                    title = stringResource(R.string.settings_notifications_title),
+                    subtitle = stringResource(R.string.settings_notifications_subtitle),
                     checked = notificationsEnabled,
                     onCheckedChange = { enabled ->
                         // Permission is requested from this user action, never at launch.
@@ -333,7 +348,7 @@ fun SettingsScreen(
                     },
                 )
                 Text(
-                    "An ongoing notification mirrors charging progress on the lock screen while the car is plugged in.",
+                    stringResource(R.string.settings_notifications_hint),
                     color = Theme.textSecondary,
                     fontSize = 11.sp,
                 )
@@ -341,16 +356,15 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("Backup") {
+            SettingsCard(stringResource(R.string.settings_backup)) {
                 CloudBackupCard(store = historyStore)
             }
         }
 
         item {
-            SettingsCard("Android Auto") {
+            SettingsCard(stringResource(R.string.settings_android_auto)) {
                 Text(
-                    "Rows shown on the car pane, in order: " +
-                        carLayout.tiles.joinToString(", ") { it.title },
+                    stringResource(R.string.settings_car_rows, carLayout.tiles.joinToString(", ") { it.title }),
                     color = Theme.textSecondary,
                     fontSize = 11.sp,
                 )
@@ -359,15 +373,19 @@ fun SettingsScreen(
                     onClick = { showCarLayout = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Theme.subtleFill),
                 ) {
-                    Text("Edit car layout", color = Theme.textPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.settings_edit_car_layout),
+                        color = Theme.textPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }
 
         item {
-            SettingsCard("Home screen widget") {
+            SettingsCard(stringResource(R.string.settings_widget)) {
                 Text(
-                    "State of charge, power and speed on the home screen, refreshed from the live snapshot.",
+                    stringResource(R.string.settings_widget_hint),
                     color = Theme.textSecondary,
                     fontSize = 11.sp,
                 )
@@ -386,11 +404,15 @@ fun SettingsScreen(
                     enabled = canPin,
                     colors = ButtonDefaults.buttonColors(containerColor = Theme.subtleFill),
                 ) {
-                    Text("Add widget", color = Theme.textPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.settings_add_widget),
+                        color = Theme.textPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
                 if (!canPin) {
                     Text(
-                        "This launcher does not support pinning. Add the widget from the launcher's widget picker.",
+                        stringResource(R.string.settings_widget_pin_unsupported),
                         color = Theme.textSecondary,
                         fontSize = 10.sp,
                     )
@@ -399,20 +421,28 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("AI log analyzer") {
+            SettingsCard(stringResource(R.string.settings_ai_analyzer)) {
                 AILogAnalysisCard(log = log, vehicleName = manager.vehicleDisplayName)
             }
         }
 
         item {
-            SettingsCard("OBD terminal") {
+            SettingsCard(stringResource(R.string.settings_obd_terminal)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("${log.size} recent commands", color = Theme.textSecondary, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Text(
+                        stringResource(R.string.settings_recent_commands, log.size),
+                        color = Theme.textSecondary,
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(1f),
+                    )
                     TextButton(onClick = { showLog = !showLog }) {
-                        Text(if (showLog) "Hide" else "Show", color = Theme.electricCyan)
+                        Text(
+                            if (showLog) stringResource(R.string.action_hide) else stringResource(R.string.action_show),
+                            color = Theme.electricCyan,
+                        )
                     }
                     TextButton(onClick = { manager.clearObdLog() }) {
-                        Text("Clear", color = Theme.textSecondary)
+                        Text(stringResource(R.string.action_clear), color = Theme.textSecondary)
                     }
                 }
                 if (showLog) {
@@ -424,8 +454,7 @@ fun SettingsScreen(
                     }
                 }
                 Text(
-                    "Fields every command the active profile decoded, with the response it came " +
-                        "from, so a maintainer can review or contribute the decoding.",
+                    stringResource(R.string.settings_obd_contribution_hint),
                     color = Theme.textSecondary,
                     fontSize = 11.sp,
                 )
@@ -451,7 +480,7 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Theme.subtleFill),
                 ) {
                     Text(
-                        "Export PID contribution",
+                        stringResource(R.string.settings_export_contribution),
                         color = Theme.textPrimary,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -461,16 +490,16 @@ fun SettingsScreen(
         }
 
         item {
-            SettingsCard("About") {
-                Text("VoltLink for Android", color = Theme.textPrimary, fontSize = 14.sp)
+            SettingsCard(stringResource(R.string.settings_about)) {
+                Text(stringResource(R.string.settings_about_app), color = Theme.textPrimary, fontSize = 14.sp)
                 Text(
-                    "Native Compose companion to VoltLink iOS. OBD-II / UDS telemetry, diagnostics and demo simulation.",
+                    stringResource(R.string.settings_about_body),
                     color = Theme.textSecondary,
                     fontSize = 12.sp,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "EQA OBDb signals adapted from OBDb/Mercedes-Benz-EQA (CC BY-SA 4.0); DTC descriptions from Wal33D (MIT).",
+                    stringResource(R.string.settings_about_credits),
                     color = Theme.textSecondary,
                     fontSize = 10.sp,
                 )
@@ -519,7 +548,7 @@ private fun DeviceRow(device: BleDeviceInfo, onConnect: () -> Unit) {
             Text(device.name, color = Theme.textPrimary, fontSize = 13.sp)
             Text(device.address, color = Theme.textSecondary, fontSize = 11.sp)
         }
-        Text("${device.rssi} dBm", color = Theme.textSecondary, fontSize = 11.sp)
+        Text(stringResource(R.string.settings_device_rssi, device.rssi), color = Theme.textSecondary, fontSize = 11.sp)
     }
 }
 

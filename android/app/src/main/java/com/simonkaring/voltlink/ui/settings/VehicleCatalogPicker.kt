@@ -32,12 +32,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.vehicles.Powertrain
 import com.simonkaring.voltlink.core.vehicles.VehicleBrand
 import com.simonkaring.voltlink.core.vehicles.VehicleCatalog
@@ -71,14 +73,14 @@ fun VehicleCatalogPicker(manager: VehicleDataManager, onDismiss: () -> Unit) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "Choose vehicle",
+                    stringResource(R.string.catalog_title),
                     color = Theme.textPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f).padding(vertical = 14.dp),
                 )
                 TextButton(onClick = onDismiss) {
-                    Text("Close", color = Theme.electricCyan)
+                    Text(stringResource(R.string.action_close), color = Theme.electricCyan)
                 }
             }
 
@@ -93,7 +95,7 @@ fun VehicleCatalogPicker(manager: VehicleDataManager, onDismiss: () -> Unit) {
                 Icon(Icons.Filled.Search, contentDescription = null, tint = Theme.textSecondary)
                 Box(Modifier.weight(1f).padding(start = 8.dp)) {
                     if (query.isEmpty()) {
-                        Text("Search brand or model", color = Theme.textSecondary, fontSize = 14.sp)
+                        Text(stringResource(R.string.catalog_search), color = Theme.textSecondary, fontSize = 14.sp)
                     }
                     BasicTextField(
                         value = query,
@@ -106,7 +108,7 @@ fun VehicleCatalogPicker(manager: VehicleDataManager, onDismiss: () -> Unit) {
                 if (query.isNotEmpty()) {
                     Icon(
                         Icons.Filled.Close,
-                        contentDescription = "Clear search",
+                        contentDescription = stringResource(R.string.catalog_clear_search),
                         tint = Theme.textSecondary,
                         modifier = Modifier.clickable { query = "" },
                     )
@@ -122,7 +124,7 @@ fun VehicleCatalogPicker(manager: VehicleDataManager, onDismiss: () -> Unit) {
 
             if (brands == null) {
                 Text(
-                    "Loading catalog…",
+                    stringResource(R.string.catalog_loading),
                     color = Theme.textSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 20.dp),
@@ -151,7 +153,7 @@ fun VehicleCatalogPicker(manager: VehicleDataManager, onDismiss: () -> Unit) {
                 if (rows.isEmpty()) {
                     item {
                         Text(
-                            "No matching vehicle. Use “EV / Vehicle Not Listed” under Generic.",
+                            stringResource(R.string.catalog_empty),
                             color = Theme.textSecondary,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(vertical = 16.dp),
@@ -200,7 +202,7 @@ private fun CatalogRow(
                 }
             }
             Text(
-                powertrainBadge(model),
+                stringResource(powertrainBadge(model)),
                 color = Theme.textSecondary,
                 fontSize = 11.sp,
             )
@@ -222,7 +224,7 @@ private fun CatalogRow(
             if (model.hasDedicatedProfile) {
                 "${model.profileId.displayName} · ${model.telemetrySupport.label}"
             } else {
-                "Generic decoding · live values depend on your car"
+                stringResource(R.string.catalog_generic)
             },
             color = if (model.hasDedicatedProfile) Theme.regenGreen else Theme.textSecondary,
             fontSize = 10.sp,
@@ -230,9 +232,9 @@ private fun CatalogRow(
     }
 }
 
-private fun powertrainBadge(model: VehicleModelEntry): String =
+private fun powertrainBadge(model: VehicleModelEntry): Int =
     when (model.powertrain) {
-        Powertrain.EV -> "EV"
-        Powertrain.PHEV -> "PHEV"
-        Powertrain.ICE -> "ICE"
+        Powertrain.EV -> R.string.catalog_powertrain_ev
+        Powertrain.PHEV -> R.string.catalog_powertrain_phev
+        Powertrain.ICE -> R.string.catalog_powertrain_ice
     }

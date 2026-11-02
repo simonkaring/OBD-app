@@ -47,18 +47,27 @@ data class CarTelemetrySummary(
     }
 }
 
+/** English fallback for callers without a Context; the car UI passes localized copy in. */
+fun defaultHealthText(storedCodes: Int?): String = when {
+    storedCodes == null -> "Not scanned"
+    storedCodes == 0 -> "No stored codes"
+    else -> "$storedCodes stored codes"
+}
+
 /**
  * Formatted value for one configured car row. The four driving rows reuse the summary strings,
  * every other metric falls back to its own SI value and unit; the health row reports the last
  * DTC scan instead of telemetry, which is why [storedCodes] is null until a scan has run.
  */
-fun carRowValue(kind: CarTileKind, summary: CarTelemetrySummary, snapshot: TelemetrySnapshot, storedCodes: Int?): String =
+fun carRowValue(
+    kind: CarTileKind,
+    summary: CarTelemetrySummary,
+    snapshot: TelemetrySnapshot,
+    storedCodes: Int?,
+    healthText: (Int?) -> String = ::defaultHealthText,
+): String =
     when (kind) {
-        CarTileKind.Health -> when {
-            storedCodes == null -> "Not scanned"
-            storedCodes == 0 -> "No stored codes"
-            else -> "$storedCodes stored codes"
-        }
+        CarTileKind.Health -> healthText(storedCodes)
         is CarTileKind.Metric -> when (kind.metric) {
             TelemetryMetric.SOC -> summary.stateOfCharge
             TelemetryMetric.POWER -> summary.power
