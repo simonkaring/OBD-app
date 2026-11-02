@@ -59,6 +59,16 @@ class SettingsStore(context: Context) {
     private val _notificationsEnabled = MutableStateFlow(prefs.getBoolean(KEY_NOTIFICATIONS, false))
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
 
+    private val _dashboardLayout = MutableStateFlow(
+        DashboardLayout.decode(prefs.getString(KEY_DASHBOARD_LAYOUT, null)),
+    )
+    val dashboardLayout: StateFlow<DashboardLayout> = _dashboardLayout.asStateFlow()
+
+    private val _carTileLayout = MutableStateFlow(
+        CarTileLayout.decode(prefs.getString(KEY_CAR_LAYOUT, null)),
+    )
+    val carTileLayout: StateFlow<CarTileLayout> = _carTileLayout.asStateFlow()
+
     var lastAdapterAddress: String?
         get() = prefs.getString(KEY_LAST_ADAPTER, null)
         set(value) = prefs.edit().putString(KEY_LAST_ADAPTER, value).apply()
@@ -110,6 +120,16 @@ class SettingsStore(context: Context) {
         prefs.edit().putBoolean(KEY_NOTIFICATIONS, enabled).apply()
     }
 
+    fun setDashboardLayout(layout: DashboardLayout) {
+        _dashboardLayout.value = layout
+        prefs.edit().putString(KEY_DASHBOARD_LAYOUT, layout.encode()).apply()
+    }
+
+    fun setCarTileLayout(layout: CarTileLayout) {
+        _carTileLayout.value = layout
+        prefs.edit().putString(KEY_CAR_LAYOUT, layout.encode()).apply()
+    }
+
     companion object {
         private const val KEY_PROFILE = "selected_profile"
         private const val KEY_MODEL_ID = "selected_model_id"
@@ -121,6 +141,8 @@ class SettingsStore(context: Context) {
         private const val KEY_CHARGE_TARGET = "charge_target"
         private const val KEY_TRIP_COST = "trip_cost_per_kwh"
         private const val KEY_NOTIFICATIONS = "notifications_enabled"
+        private const val KEY_DASHBOARD_LAYOUT = "dashboard_layout"
+        private const val KEY_CAR_LAYOUT = "car_tile_layout"
         private const val KEY_LAST_ADAPTER = "last_adapter"
     }
 }

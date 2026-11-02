@@ -47,6 +47,7 @@ import com.simonkaring.voltlink.data.ChargingSessionRecord
 import com.simonkaring.voltlink.data.HistoryStore
 import com.simonkaring.voltlink.services.ChargingTracker
 import com.simonkaring.voltlink.services.VehicleDataManager
+import com.simonkaring.voltlink.ui.UnitPrefs
 import com.simonkaring.voltlink.ui.theme.Theme
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -62,6 +63,7 @@ fun ChargingScreen(
     manager: VehicleDataManager,
     tracker: ChargingTracker,
     store: HistoryStore,
+    units: UnitPrefs = UnitPrefs(),
     modifier: Modifier = Modifier,
 ) {
     val state by tracker.state.collectAsStateWithLifecycle()
@@ -157,6 +159,12 @@ fun ChargingScreen(
                         fontSize = 11.sp,
                     )
                 }
+                val livePoints = state.current?.samples
+                    ?.let { ChargingSpeedCurve.session(it.takeLast(180)) }
+                    .orEmpty()
+                if (livePoints.size >= 2) {
+                    ChargingSpeedChart(points = livePoints, units = units)
+                }
             }
         }
 
@@ -184,7 +192,7 @@ fun ChargingScreen(
         }
 
         items(sessions, key = { it.id }) { session ->
-            SessionCard(session)
+            SessionCard(session, units)
         }
     }
 }
@@ -198,7 +206,7 @@ private fun ChargeStat(value: String, label: String) {
 }
 
 @Composable
-private fun SessionCard(session: ChargingSessionRecord) {
+private fun SessionCard(session: ChargingSessionRecord, units: UnitPrefs) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Column(
@@ -222,26 +230,10 @@ private fun SessionCard(session: ChargingSessionRecord) {
             ChargeStat(String.format(Locale.US, "%.0f kW", session.peakPowerKW), "peak")
             ChargeStat(formatDuration(session.duration.seconds.toDouble()), "duration")
         }
-        if (session.samples.size >= 2) {
-            // Charge curve: power against SoC.
-            Canvas(modifier = Modifier.fillMaxWidth().height(70.dp)) {
-                val maxPower = maxOf(1.0, session.samples.maxOf { it.powerKW })
-                val sorted = session.samples.sortedBy { it.socPct }
-                val path = Path()
-                sorted.forEachIndexed { index, sample ->
-                    val x = (sample.socPct / 100.0 * size.width).toFloat()
-                    val y = (size.height - (sample.powerKW / maxPower) * size.height).toFloat()
-                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                }
-                drawPath(path, Theme.gaugeCyan, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
-                drawLine(
-                    Theme.chartGrid,
-                    Offset(0f, size.height - 1f),
-                    Offset(size.width, size.height - 1f),
-                    strokeWidth = 1f,
-                )
-            }
-            Text("Charging speed over state of charge", color = Theme.textSecondary, fontSize = 10.sp)
+        val points = ChargingSpeedCurve.session(session.samples)
+        if (points.size >= 2) {
+            ChargingSpeedChart(points = points, units = units)
+            Text("Charging speed over time", color = Theme.textSecondary, fontSize = 10.sp)
         }
         TextButton(
             onClick = {

@@ -56,18 +56,21 @@ class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
     }
 
     override fun onGetTemplate(): Template {
+        val snapshot = app.vehicleData.telemetry.value
         val summary = CarTelemetrySummary.of(
-            snapshot = app.vehicleData.telemetry.value,
+            snapshot = snapshot,
             isDemoMode = app.vehicleData.isDemoMode.value,
             connection = app.vehicleData.connectionState.value,
         )
+        // The health row reflects the last scan, which the pane cannot trigger itself.
+        val scan = app.dtcScanner.state.value
+        val storedCodes = scan.lastScanDate?.let { scan.codes.size }
 
-        val pane = Pane.Builder()
-            .addRow(row("State of charge", summary.stateOfCharge))
-            .addRow(row("Power", summary.power))
-            .addRow(row("Speed", summary.speed))
-            .addRow(row("Range", summary.range))
-            .build()
+        val pane = Pane.Builder().apply {
+            app.vehicleData.settings.carTileLayout.value.tiles.forEach { tile ->
+                addRow(row(tile.title, carRowValue(tile, summary, snapshot, storedCodes)))
+            }
+        }.build()
 
         return PaneTemplate.Builder(pane)
             .setTitle(summary.title)

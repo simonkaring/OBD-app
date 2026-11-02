@@ -4,6 +4,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+/** Reads a release-signing value from -P/gradle.properties first, then the environment. */
+fun signingValue(name: String): String? =
+    providers.gradleProperty(name).orNull ?: System.getenv(name)
+
 android {
     namespace = "com.simonkaring.voltlink"
     compileSdk = 36
@@ -12,18 +16,34 @@ android {
         applicationId = "com.simonkaring.voltlink"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Release signing is injected by CI (or a local gradle.properties); it never lives in the
+    // repository. Without these values a release build stays unsigned instead of failing.
+    val keystorePath = signingValue("VOLTLINK_KEYSTORE")
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = signingValue("VOLTLINK_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("VOLTLINK_KEY_ALIAS")
+                keyPassword = signingValue("VOLTLINK_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 
@@ -74,6 +94,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

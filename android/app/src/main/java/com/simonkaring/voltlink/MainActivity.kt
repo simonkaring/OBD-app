@@ -187,6 +187,7 @@ private fun VoltLinkRoot(
                     manager = vehicleData,
                     tracker = chargingTracker,
                     store = historyStore,
+                    units = units,
                 )
                 Tab.DIAGNOSTICS -> DiagnosticsScreen(manager = vehicleData, scanner = scanner)
                 Tab.SETTINGS -> SettingsScreen(

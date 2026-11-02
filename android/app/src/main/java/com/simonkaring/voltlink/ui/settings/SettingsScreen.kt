@@ -84,7 +84,11 @@ fun SettingsScreen(
     var showProfiles by remember { mutableStateOf(false) }
     var showCatalog by remember { mutableStateOf(false) }
     var showLog by remember { mutableStateOf(false) }
+    var showMetricStatus by remember { mutableStateOf(false) }
+    var showCarLayout by remember { mutableStateOf(false) }
     val selectedModelName by settings.selectedModelName.collectAsStateWithLifecycle()
+    val liveMetrics by manager.liveMetrics.collectAsStateWithLifecycle()
+    val carLayout by settings.carTileLayout.collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 14.dp),
@@ -160,8 +164,17 @@ fun SettingsScreen(
                     }
                     Text(if (showProfiles) "Close" else "Change", color = Theme.electricCyan, fontSize = 13.sp)
                 }
-                TextButton(onClick = { showCatalog = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                    Text("Browse vehicle catalog", color = Theme.electricCyan, fontSize = 13.sp)
+                Row {
+                    TextButton(onClick = { showCatalog = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                        Text("Browse vehicle catalog", color = Theme.electricCyan, fontSize = 13.sp)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    TextButton(
+                        onClick = { showMetricStatus = true },
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                    ) {
+                        Text("Metric status", color = Theme.electricCyan, fontSize = 13.sp)
+                    }
                 }
                 if (showProfiles) {
                     Spacer(Modifier.height(8.dp))
@@ -334,6 +347,24 @@ fun SettingsScreen(
         }
 
         item {
+            SettingsCard("Android Auto") {
+                Text(
+                    "Rows shown on the car pane, in order: " +
+                        carLayout.tiles.joinToString(", ") { it.title },
+                    color = Theme.textSecondary,
+                    fontSize = 11.sp,
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { showCarLayout = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Theme.subtleFill),
+                ) {
+                    Text("Edit car layout", color = Theme.textPrimary, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
+        item {
             SettingsCard("Home screen widget") {
                 Text(
                     "State of charge, power and speed on the home screen, refreshed from the live snapshot.",
@@ -449,6 +480,27 @@ fun SettingsScreen(
 
     if (showCatalog) {
         VehicleCatalogPicker(manager) { showCatalog = false }
+    }
+
+    if (showMetricStatus) {
+        ProfileMetricStatusSheet(
+            profileName = manager.vehicleDisplayName,
+            supportedMetrics = manager.selectedProfile.supportedMetrics,
+            liveMetrics = liveMetrics,
+            isConnected = connectionState.isConnected,
+            isDemoMode = isDemoMode,
+            isCommunityObdbProfile = profileId == VehicleProfileId.MERCEDES_EQ_A_OBDb,
+            onDismiss = { showMetricStatus = false },
+        )
+    }
+
+    if (showCarLayout) {
+        CarTileEditorSheet(
+            layout = carLayout,
+            supportedMetrics = manager.selectedProfile.supportedMetrics,
+            onChange = { settings.setCarTileLayout(it) },
+            onDismiss = { showCarLayout = false },
+        )
     }
 }
 

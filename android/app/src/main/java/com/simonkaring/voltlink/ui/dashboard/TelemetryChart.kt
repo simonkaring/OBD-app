@@ -21,26 +21,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
 import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
+import com.simonkaring.voltlink.ui.UnitPrefs
 import com.simonkaring.voltlink.ui.theme.Theme
+import java.util.Locale
 import kotlin.math.abs
 
-/** Rolling power + speed stream, mirroring the iOS Swift Charts tile. */
+/** Rolling multi-metric stream, mirroring the iOS Swift Charts tile. */
 @Composable
 fun LiveTelemetryChart(
     history: List<TelemetrySnapshot>,
+    units: UnitPrefs,
+    series: List<TelemetryMetric> = listOf(TelemetryMetric.POWER, TelemetryMetric.SPEED),
     modifier: Modifier = Modifier,
     isUnavailable: Boolean = false,
+    title: String = "Live telemetry",
 ) {
-    val powers = history.map { it.powerKW }
-    val speeds = history.map { it.speedKmH }
-    val maxPower = maxOf(1.0, powers.maxOfOrNull { abs(it) } ?: 1.0)
-    val maxSpeed = maxOf(1.0, speeds.maxOfOrNull { it } ?: 1.0)
+    // Stable colours per position so reordering a chart's series keeps its legend readable.
+    val colors = series.mapIndexed { index, _ -> seriesColor(index) }
+    val values = series.map { metric -> history.map { units.value(metric, it) } }
 
     Column(
         modifier = modifier
@@ -51,13 +57,14 @@ fun LiveTelemetryChart(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Live telemetry", color = Theme.textPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
-            LegendDot("Power", Theme.gaugeCyan)
-            Spacer(Modifier.width(10.dp))
-            LegendDot("Speed", Theme.regenGreen)
+            Text(title, color = Theme.textPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            series.forEachIndexed { index, metric ->
+                if (index > 0) Spacer(Modifier.width(10.dp))
+                LegendDot(metric.displayName, colors[index])
+            }
         }
         Box(modifier = Modifier.fillMaxWidth().height(150.dp)) {
-            if (history.size < 2 || isUnavailable) {
+            if (history.size < 2 || isUnavailable || values.all { it.isEmpty() }) {
                 Text(
                     text = if (isUnavailable) "Waiting for vehicle data" else "Collecting samples…",
                     color = Theme.textSecondary,
@@ -77,52 +84,55 @@ fun LiveTelemetryChart(
                         )
                     }
 
-                    fun pathFor(values: List<Double>, maxValue: Double, center: Boolean): Path {
+                    values.forEachIndexed { index, samples ->
+                        val maxValue = maxOf(1.0, samples.maxOfOrNull { abs(it) } ?: 1.0)
+                        val centered = series[index] == TelemetryMetric.POWER
                         val path = Path()
-                        val stepX = size.width / (values.size - 1).coerceAtLeast(1)
-                        values.forEachIndexed { index, value ->
-                            val fraction = if (center) {
+                        val stepX = size.width / (samples.size - 1).coerceAtLeast(1)
+                        samples.forEachIndexed { sampleIndex, value ->
+                            val fraction = if (centered) {
                                 0.5 - (value / maxValue) * 0.45
                             } else {
                                 0.95 - (value / maxValue) * 0.9
                             }
-                            val point = Offset(index * stepX, (fraction * size.height).toFloat())
-                            if (index == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
+                            val point = Offset(sampleIndex * stepX, (fraction * size.height).toFloat())
+                            if (sampleIndex == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
                         }
-                        return path
+                        drawPath(
+                            path = path,
+                            color = colors[index],
+                            style = Stroke(width = if (index == 0) 2.5.dp.toPx() else 2.0.dp.toPx(), cap = StrokeCap.Round),
+                        )
                     }
-
-                    drawPath(
-                        path = pathFor(powers, maxPower, center = true),
-                        color = Theme.gaugeCyan,
-                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
-                    )
-                    drawPath(
-                        path = pathFor(speeds, maxSpeed, center = false),
-                        color = Theme.regenGreen,
-                        style = Stroke(width = 2.0.dp.toPx(), cap = StrokeCap.Round),
-                    )
                 }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = String.format(java.util.Locale.US, "%.0f kW", powers.lastOrNull() ?: 0.0),
-                color = Theme.gaugeCyan,
-                fontSize = 12.sp,
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = String.format(java.util.Locale.US, "%.0f km/h", speeds.lastOrNull() ?: 0.0),
-                color = Theme.regenGreen,
-                fontSize = 12.sp,
-            )
+            series.forEachIndexed { index, metric ->
+                if (index > 0) Spacer(Modifier.width(14.dp))
+                Text(
+                    text = String.format(
+                        Locale.US,
+                        "%.${metric.decimalPlaces}f %s",
+                        units.value(metric, history.lastOrNull() ?: TelemetrySnapshot()),
+                        units.unit(metric),
+                    ),
+                    color = colors[index],
+                    fontSize = 12.sp,
+                )
+            }
         }
     }
 }
 
+private fun seriesColor(index: Int): Color = when (index % 3) {
+    0 -> Theme.gaugeCyan
+    1 -> Theme.regenGreen
+    else -> Theme.highPowerAmber
+}
+
 @Composable
-private fun LegendDot(label: String, color: androidx.compose.ui.graphics.Color) {
+private fun LegendDot(label: String, color: Color) {
     Box(Modifier.size(7.dp).clip(CircleShape).background(color))
     Spacer(Modifier.width(4.dp))
     Text(label, color = Theme.textSecondary, fontSize = 11.sp)

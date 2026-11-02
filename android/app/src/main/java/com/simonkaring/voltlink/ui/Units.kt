@@ -33,6 +33,11 @@ data class UnitPrefs(
 
     fun speedValue(kmh: Double): Double = if (distance == DistanceUnit.MILES) kmh * 0.621371 else kmh
 
+    /** Converts an already-decoded power reading (kW) for render-only surfaces. */
+    fun powerValue(kilowatts: Double): Double = if (power == PowerUnit.HORSEPOWER) kilowatts * 1.34102 else kilowatts
+
+    val powerUnitLabel: String get() = power.label
+
     val speedUnit: String get() = if (distance == DistanceUnit.MILES) "mph" else "km/h"
 
     val distanceUnitLabel: String get() = if (distance == DistanceUnit.MILES) "mi" else "km"
