@@ -39,7 +39,7 @@ cd android
 ./gradlew connectedDebugAndroidTest     # Compose UI tests (needs an emulator/device)
 
 # Screenshot tests: dashboard, trips, charging, diagnostics (+ an expanded DTC),
-# settings and HUD → app/build/screenshots
+# demo controls sheet, settings and HUD → app/build/screenshots
 ./gradlew recordScreenshots \
   -Pandroid.testInstrumentationRunnerArguments.class=com.simonkaring.voltlink.ScreenshotTest
 ./gradlew installDebug                  # install on a connected device/emulator
@@ -61,8 +61,8 @@ $ANDROID_HOME/emulator/emulator -avd VoltLinkPixel -gpu host -memory 4096 -cores
 ```
 
 `ScreenshotTest` records the dashboard, trip log, charging, diagnostics (including an expanded
-fault-code entry after injecting the demo fault scenario), settings and HUD screens as PNGs
-under `app/build/screenshots/` (the test copies them to
+fault-code entry after injecting the demo fault scenario), the demo control sheet, settings and
+HUD screens as PNGs under `app/build/screenshots/` (the test copies them to
 `/sdcard/Download/voltlink-screenshots` through the instrumentation shell so they survive the
 post-test uninstall). The HUD capture is mirrored on both axes, exactly as it appears in the
 windshield. The assertions cover a rendered, non-blank frame of the expected size rather than

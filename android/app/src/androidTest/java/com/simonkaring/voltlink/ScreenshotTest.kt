@@ -3,6 +3,8 @@ package com.simonkaring.voltlink
 import android.Manifest
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -11,6 +13,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
@@ -24,7 +28,8 @@ import org.junit.runner.RunWith
 
 /**
  * Records the app's screens as PNGs for visual review of design changes: dashboard, trip
- * log, charging, diagnostics, an expanded DTC entry, settings and the mirrored HUD.
+ * log, charging, diagnostics, an expanded DTC entry, the demo control sheet, settings and the
+ * mirrored HUD.
  *
  * Each capture is copied out of the app's private storage into
  * `/sdcard/Download/voltlink-screenshots/`, which `adb pull` can read and which survives the
@@ -129,6 +134,37 @@ class ScreenshotTest {
     }
 
     @Test
+    fun demoControlsScreenshot() {
+        awaitDemoDashboard()
+
+        // The dashboard header's Controls button opens the demo/simulation sheet.
+        rule.onNodeWithText("Controls").performClick()
+        rule.waitUntil(timeoutMillis = 15_000) {
+            rule.onAllNodesWithText("Diagnostic Fault Injection").fetchSemanticsNodes().isNotEmpty()
+        }
+        try {
+            // The sheet opens half-height, which cuts off the sliders; drag it open so the whole
+            // control set is in the frame. The drag starts on the title, away from the sliders.
+            repeat(MAX_SHEET_DRAGS) {
+                if (isDisplayed("Live Adapter")) return@repeat
+                rule.onNodeWithText("Demo / Simulation").performTouchInput {
+                    swipe(
+                        start = Offset(centerX, centerY + 400f),
+                        end = Offset(centerX, centerY - 400f),
+                        durationMillis = 400,
+                    )
+                }
+                rule.waitForIdle()
+            }
+            capture("demo-controls")
+        } finally {
+            // Dismiss so the sheet's scrim does not sit over the captures that follow.
+            rule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            rule.waitUntil(timeoutMillis = 10_000) { !isDisplayed("Demo / Simulation") }
+        }
+    }
+
+    @Test
     fun hudScreenshot() {
         awaitDemoDashboard()
 
@@ -157,6 +193,10 @@ class ScreenshotTest {
             rule.onAllNodesWithText("Demo mode").fetchSemanticsNodes().isNotEmpty()
         }
     }
+
+    /** Whether a node with this text exists and is fully on screen. */
+    private fun isDisplayed(text: String): Boolean =
+        runCatching { rule.onNodeWithText(text).assertIsDisplayed() }.isSuccess
 
     private fun capture(name: String) {
         rule.waitForIdle()
@@ -225,6 +265,7 @@ class ScreenshotTest {
 
     private companion object {
         const val REMOTE_DIRECTORY = "/sdcard/Download/voltlink-screenshots"
+        const val MAX_SHEET_DRAGS = 3
         const val SETTLE_MILLIS = 750L
         const val SAMPLE_STEP = 32
     }
