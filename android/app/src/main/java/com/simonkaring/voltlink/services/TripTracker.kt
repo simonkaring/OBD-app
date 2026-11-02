@@ -54,6 +54,19 @@ class TripTracker(
 
     val history: StateFlow<List<TripRecord>> get() = store.trips
 
+    /**
+     * Simulated driving is never persisted: the history database holds measured trips only.
+     * Switching sources closes an in-flight recording under the mode it was started in.
+     */
+    var isDemoMode: Boolean = false
+        private set
+
+    fun setDemoMode(enabled: Boolean) {
+        if (enabled == isDemoMode) return
+        stop(_state.value.current?.endSocPct ?: 0.0)
+        isDemoMode = enabled
+    }
+
     fun setAutoTrips(enabled: Boolean) {
         _state.value = _state.value.copy(isAutoTripEnabled = enabled)
         if (!enabled) resetStationary()
@@ -83,12 +96,18 @@ class TripTracker(
             endSocPct = endSoc,
             averageSpeedKmH = trip.computedAverageSpeedKmH,
         )
-        scope.launch {
-            try {
-                store.saveTrip(finished, samples)
-                _state.value = _state.value.copy(current = null, isRecording = false, averageConsumption = null)
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(error = "Trip history could not be saved: ${e.message}")
+        // A demo trip is closed like any other but never written to the history database.
+        if (isDemoMode) {
+            _state.value = _state.value.copy(current = null, isRecording = false, averageConsumption = null)
+        } else {
+            val sampleCopy = samples.toList()
+            scope.launch {
+                try {
+                    store.saveTrip(finished, sampleCopy)
+                    _state.value = _state.value.copy(current = null, isRecording = false, averageConsumption = null)
+                } catch (e: Exception) {
+                    _state.value = _state.value.copy(error = "Trip history could not be saved: ${e.message}")
+                }
             }
         }
         resetStationary()
@@ -196,8 +215,9 @@ class TripTracker(
         }
         _state.value = _state.value.copy(current = updated, averageConsumption = consumption)
 
+        val persistSnapshot = !isDemoMode
         lastSaveAt?.let { last ->
-            if (Duration.between(last, now).seconds >= 30) {
+            if (persistSnapshot && Duration.between(last, now).seconds >= 30) {
                 lastSaveAt = now
                 val snapshotTrip = updated
                 val sampleCopy = samples.toList()

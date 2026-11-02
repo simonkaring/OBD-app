@@ -9,7 +9,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -19,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import com.simonkaring.voltlink.core.demo.DemoScenario
+import com.simonkaring.voltlink.ui.settings.DEMO_MODE_TOGGLE_TAG
 import java.io.File
 import java.io.FileOutputStream
 import org.junit.Assert.assertTrue
@@ -187,8 +190,23 @@ class ScreenshotTest {
         capture("settings")
     }
 
-    /** The shell starts in demo mode; the status chip proves simulated telemetry is flowing. */
+    /**
+     * Switches demo mode on, since it never starts by itself, and waits for simulated telemetry
+     * to drive the dashboard. Every capture below runs against this simulated feed.
+     */
     private fun awaitDemoDashboard() {
+        rule.waitUntil(timeoutMillis = 15_000) {
+            rule.onAllNodesWithText("Telemetry").fetchSemanticsNodes().isNotEmpty()
+        }
+        // The application outlives an activity, so an earlier test may have switched it on.
+        if (!isDisplayed("Demo mode")) {
+            rule.onNodeWithText("Settings").performClick()
+            rule.waitUntil(timeoutMillis = 15_000) {
+                rule.onAllNodesWithTag(DEMO_MODE_TOGGLE_TAG).fetchSemanticsNodes().isNotEmpty()
+            }
+            rule.onNodeWithTag(DEMO_MODE_TOGGLE_TAG).performClick()
+            rule.onNodeWithText("Telemetry").performClick()
+        }
         rule.waitUntil(timeoutMillis = 15_000) {
             rule.onAllNodesWithText("Demo mode").fetchSemanticsNodes().isNotEmpty()
         }

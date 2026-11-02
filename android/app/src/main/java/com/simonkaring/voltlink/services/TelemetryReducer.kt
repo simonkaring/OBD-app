@@ -29,6 +29,13 @@ class TelemetryReducer(private var capacityKWh: Double) {
         capacityKWh = kWh
     }
 
+    /** Drops the snapshot along with its validity, for when the telemetry source changes. */
+    fun reset() {
+        snapshot = TelemetrySnapshot()
+        explicitChargingStatus = null
+        resetValidity()
+    }
+
     fun resetValidity() {
         liveMetrics = emptySet()
         obdSpeedUpdatedAt = null

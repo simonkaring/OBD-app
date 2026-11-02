@@ -46,16 +46,18 @@ class VehicleDataManager(
     private val _liveMetrics = MutableStateFlow<Set<TelemetryMetric>>(emptySet())
     val liveMetrics: StateFlow<Set<TelemetryMetric>> = _liveMetrics.asStateFlow()
 
-    private val _connectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.DemoMode)
+    private val _connectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
     val connectionState: StateFlow<BleConnectionState> = _connectionState.asStateFlow()
 
-    private val _isDemoMode = MutableStateFlow(settings.demoMode.value)
+    // Demo mode is never persisted: every launch starts disconnected and the simulation only
+    // runs while the user has it switched on.
+    private val _isDemoMode = MutableStateFlow(false)
     val isDemoMode: StateFlow<Boolean> = _isDemoMode.asStateFlow()
 
     private val bleConnection = BleObdConnection(context, scope)
     private val mockAdapter = MockObdAdapter(scope)
     private val demoProfile = com.simonkaring.voltlink.core.demo.DemoProfile()
-    private var connection: ObdConnection = if (_isDemoMode.value) mockAdapter else bleConnection
+    private var connection: ObdConnection = bleConnection
 
     val discoveredDevices get() = bleConnection.discoveredDevices
     val obdLog: StateFlow<List<ObdLogEntry>> get() = connection.log
@@ -73,10 +75,6 @@ class VehicleDataManager(
     init {
         configurePollingLoop()
         observeConnectionState()
-        if (_isDemoMode.value) {
-            mockAdapter.startSimulation()
-            startPolling()
-        }
     }
 
     private fun observeConnectionState() {
@@ -92,20 +90,23 @@ class VehicleDataManager(
 
     // ---------------------------------------------------------------- connection lifecycle
 
+    /**
+     * Switches the telemetry source. Turning demo on starts the simulation and the poll loop;
+     * turning it off stops both and returns to the (disconnected) BLE adapter.
+     */
     fun setDemoMode(enabled: Boolean) {
         if (_isDemoMode.value == enabled) return
         stopPolling()
         connection.disconnect()
         _isDemoMode.value = enabled
-        settings.setDemoMode(enabled)
         connection = if (enabled) mockAdapter else bleConnection
+        if (enabled) mockAdapter.startSimulation()
         observeConnectionState()
-        reducer.resetValidity()
+        // The previous source's readings are gone; start from an empty snapshot so no stale
+        // demo number survives the switch.
+        reducer.reset()
         publish()
-        if (enabled) {
-            mockAdapter.startSimulation()
-            startPolling()
-        }
+        if (enabled) startPolling()
     }
 
     fun startScan() {

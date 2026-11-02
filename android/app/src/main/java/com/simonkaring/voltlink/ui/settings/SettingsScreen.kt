@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +62,12 @@ import com.simonkaring.voltlink.services.VehicleDataManager
 import com.simonkaring.voltlink.ui.theme.Theme
 import kotlinx.coroutines.launch
 import java.util.Locale
+
+/**
+ * Test tag of the demo-mode switch. Demo mode never starts on its own, so the UI suites have
+ * to flip this switch before they can capture simulated telemetry.
+ */
+const val DEMO_MODE_TOGGLE_TAG = "demoModeToggle"
 
 /** Settings: simulation, adapter pairing, vehicle profile, units and charging target. */
 @Composable
@@ -105,6 +112,7 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_demo_subtitle),
                     checked = isDemoMode,
                     onCheckedChange = { manager.setDemoMode(it) },
+                    switchModifier = Modifier.testTag(DEMO_MODE_TOGGLE_TAG),
                 )
                 SettingDivider()
                 Text(
@@ -572,13 +580,19 @@ private fun SettingsCard(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun ToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    switchModifier: Modifier = Modifier,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, color = Theme.textPrimary, fontSize = 14.sp)
             Text(subtitle, color = Theme.textSecondary, fontSize = 11.sp)
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, modifier = switchModifier)
     }
 }
 

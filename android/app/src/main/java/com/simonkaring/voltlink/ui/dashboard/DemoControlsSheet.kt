@@ -145,10 +145,7 @@ fun DemoControlsSheet(manager: VehicleDataManager, onDismiss: () -> Unit) {
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(
-                    onClick = {
-                        manager.setDemoMode(true)
-                        simulation.start()
-                    },
+                    onClick = { manager.setDemoMode(true) },
                     colors = ButtonDefaults.buttonColors(containerColor = Theme.electricCyan),
                 ) {
                     Text(

@@ -16,9 +16,18 @@ sources:
 # What demo mode is
 
 Demo mode streams simulated telemetry so the dashboard, trips, charging and diagnostics work
-without an adapter. It is the first thing a new install shows, and every UI smoke test runs in
-it. `VehicleDataManager.setDemoMode(true)` drops the BLE connection and drives the flows from
-`MockDrivingSimulation` instead.
+without an adapter. It never starts on its own: the choice is not persisted, the app opens
+disconnected, and the Settings switch (or the sheet's **Demo Mode** button) starts it. Every UI
+suite flips that switch before it captures a screen. `VehicleDataManager.setDemoMode(true)`
+drops the BLE connection, starts `MockDrivingSimulation` and polls it; `setDemoMode(false)` stops
+the simulation and returns to the disconnected BLE adapter.
+
+# What is not recorded
+
+Simulated driving and charging drive the live cards but are never written to the history
+database: both trackers learn about the source change before they see its first snapshot.
+Switching sources closes an in-flight recording under the mode it was started in, so a measured
+trip or session still saves when demo mode is switched on.
 
 # Simulation
 

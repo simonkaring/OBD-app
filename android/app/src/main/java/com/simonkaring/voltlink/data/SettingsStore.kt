@@ -47,9 +47,6 @@ class SettingsStore(context: Context) {
     )
     val powerUnit: StateFlow<PowerUnit> = _powerUnit.asStateFlow()
 
-    private val _demoMode = MutableStateFlow(prefs.getBoolean(KEY_DEMO, true))
-    val demoMode: StateFlow<Boolean> = _demoMode.asStateFlow()
-
     private val _chargeTargetPercent = MutableStateFlow(prefs.getInt(KEY_CHARGE_TARGET, 80))
     val chargeTargetPercent: StateFlow<Int> = _chargeTargetPercent.asStateFlow()
 
@@ -100,11 +97,6 @@ class SettingsStore(context: Context) {
         prefs.edit().putString(KEY_POWER, unit.name).apply()
     }
 
-    fun setDemoMode(enabled: Boolean) {
-        _demoMode.value = enabled
-        prefs.edit().putBoolean(KEY_DEMO, enabled).apply()
-    }
-
     fun setChargeTargetPercent(percent: Int) {
         _chargeTargetPercent.value = percent.coerceIn(50, 100)
         prefs.edit().putInt(KEY_CHARGE_TARGET, _chargeTargetPercent.value).apply()
@@ -137,7 +129,6 @@ class SettingsStore(context: Context) {
         private const val KEY_DISTANCE = "distance_unit"
         private const val KEY_TEMPERATURE = "temperature_unit"
         private const val KEY_POWER = "power_unit"
-        private const val KEY_DEMO = "demo_mode"
         private const val KEY_CHARGE_TARGET = "charge_target"
         private const val KEY_TRIP_COST = "trip_cost_per_kwh"
         private const val KEY_NOTIFICATIONS = "notifications_enabled"

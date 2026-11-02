@@ -44,7 +44,8 @@ OKF source files. Instrumentation tests need a device; `recordScreenshots` write
 | `app/src/test/.../okf` | OKF conformance and drift for `android/knowledge` |
 | `app/src/androidTest/.../ScreenshotTest` | Captures every screen (dashboard, trips, charging, diagnostics, DTC detail, demo sheet, settings, HUD) |
 | `app/src/androidTest/.../ui` | Sheet and picker flows driven through the real activity |
-| `app/src/androidTest/.../DemoDashboardSmokeTest` | Demo-mode shell smoke test |
+| `app/src/androidTest/.../DemoDashboardSmokeTest` | Boots disconnected, switches demo on, checks the tab shell |
+| `app/src/androidTest/.../DemoModeLifecycleTest` | Demo off/on resumes polling; simulated trips and charging sessions stay out of history |
 
 # Font-scale resilience
 

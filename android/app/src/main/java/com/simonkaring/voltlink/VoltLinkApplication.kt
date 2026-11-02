@@ -1,7 +1,6 @@
 package com.simonkaring.voltlink
 
 import android.app.Application
-import com.simonkaring.voltlink.core.demo.DemoScenario
 import com.simonkaring.voltlink.core.shortcuts.AppShortcuts
 import com.simonkaring.voltlink.core.vehicles.ServiceReminderMonitor
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
@@ -40,6 +39,8 @@ class VoltLinkApplication : Application() {
     lateinit var serviceReminder: ServiceReminderMonitor
         private set
 
+    /** Demo state the trackers were last told about; they never persist simulated rows. */
+    private var trackersDemoMode = false
     private var chargingStatusShown = false
     private var targetNotified = false
     private var lastSessionId: String? = null
@@ -56,9 +57,6 @@ class VoltLinkApplication : Application() {
         historyStore = HistoryStore(this, appScope)
         tripTracker = TripTracker(appScope, historyStore)
         chargingTracker = ChargingTracker(appScope, historyStore)
-        if (vehicleData.isDemoMode.value) {
-            vehicleData.simulation.scenario = DemoScenario.CITY_DRIVING
-        }
         observeTelemetry()
         observeChargingState()
         observeDiagnostics()
@@ -199,9 +197,18 @@ class VoltLinkApplication : Application() {
                     isCharging = chargingTracker.state.value.isCharging,
                     isDemoMode = feed.isDemoMode,
                 )
-                val hasPower = feed.isDemoMode || TelemetryMetric.POWER in feed.liveMetrics
-                tripTracker.process(feed.snapshot, vehicleData.vehicleDisplayName, hasPowerData = hasPower)
-                chargingTracker.onTelemetry(feed.snapshot, feed.targetPercent.toDouble(), feed.isDemoMode)
+                // Demo recordings never reach the history database; tell the trackers about the
+                // source change before they see its first snapshot. That snapshot still belongs
+                // to the previous source, so it is not fed to them at all.
+                if (feed.isDemoMode != trackersDemoMode) {
+                    trackersDemoMode = feed.isDemoMode
+                    tripTracker.setDemoMode(feed.isDemoMode)
+                    chargingTracker.setDemoMode(feed.isDemoMode)
+                } else {
+                    val hasPower = feed.isDemoMode || TelemetryMetric.POWER in feed.liveMetrics
+                    tripTracker.process(feed.snapshot, vehicleData.vehicleDisplayName, hasPowerData = hasPower)
+                    chargingTracker.onTelemetry(feed.snapshot, feed.targetPercent.toDouble())
+                }
                 // Battery health is a measured SOH reading, never a simulated one.
                 if (!feed.isDemoMode && TelemetryMetric.SOH in feed.liveMetrics) {
                     historyStore.recordBatteryHealth(

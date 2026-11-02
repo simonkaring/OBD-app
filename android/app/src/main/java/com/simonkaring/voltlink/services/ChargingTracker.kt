@@ -36,6 +36,21 @@ class ChargingTracker(
 
     val history: StateFlow<List<ChargingSessionRecord>> get() = store.chargingSessions
 
+    /**
+     * A simulated session drives the live card but never reaches the history database.
+     * Switching sources closes an in-flight session under the mode it was started in.
+     */
+    var isDemoMode: Boolean = false
+        private set
+
+    fun setDemoMode(enabled: Boolean) {
+        if (enabled == isDemoMode) return
+        _state.value.current?.let { session ->
+            if (enabled) closeSession(session, Instant.now()) else discardSession()
+        }
+        isDemoMode = enabled
+    }
+
     private var capacityKWh = 66.5
     private var lastUpdate: Instant? = null
     private var lastSampleAt: Instant? = null
@@ -50,7 +65,7 @@ class ChargingTracker(
     }
 
     /** Feeds a telemetry snapshot; starts, updates and closes sessions as charging changes. */
-    fun onTelemetry(snapshot: TelemetrySnapshot, targetPercent: Double, isDemoMode: Boolean) {
+    fun onTelemetry(snapshot: TelemetrySnapshot, targetPercent: Double) {
         val now = snapshot.timestamp
         val charging = snapshot.isCharging && snapshot.speedKmH < 1.0
         val session = _state.value.current
@@ -150,7 +165,11 @@ class ChargingTracker(
             endTime = lastChargingAt ?: now,
             averagePowerKW = if (powerSamples > 0) powerAccumulator / powerSamples else session.averagePowerKW,
         )
-        scope.launch { store.saveChargingSession(finished) }
+        if (!isDemoMode) scope.launch { store.saveChargingSession(finished) }
+        discardSession()
+    }
+
+    private fun discardSession() {
         _state.value = _state.value.copy(current = null, isCharging = false, secondsToTarget = null)
         lastUpdate = null
         lastChargingAt = null

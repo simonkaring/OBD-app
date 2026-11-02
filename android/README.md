@@ -122,6 +122,9 @@ Deliberate differences:
 - Demo mode polls its own simulated PID set (generic J1979 + EQA BMS DIDs) so the dashboard
   shows power, SoC and speed even when the selected profile (e.g. EQA 250) publishes only
   pack voltage.
+- Demo mode is switched on per session and never persisted; iOS keeps demo trips and charging
+  sessions in memory, Android drops them when the recording ends so the history database only
+  ever holds measured data.
 - Trip distance is still integrated from telemetry speed rather than from GPS deltas; the
   location service only fills the route coordinates. Recording starts from the app (manual or
   auto trip), never from a background geofence.

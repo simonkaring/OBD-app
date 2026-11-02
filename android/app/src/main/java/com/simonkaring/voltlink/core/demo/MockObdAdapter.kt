@@ -15,20 +15,27 @@ import java.util.Locale
  * Demo-mode adapter: answers ELM327 commands from [MockDrivingSimulation] instead of a
  * Bluetooth link, so the whole polling pipeline runs exactly as it does against real
  * hardware. Port of the iOS `MockOBDAdapter`.
+ *
+ * The simulation starts with [startSimulation], never in the constructor: a demo drive must
+ * not run while the app is talking to a real adapter.
  */
 class MockObdAdapter(private val scope: CoroutineScope, val simulation: MockDrivingSimulation = MockDrivingSimulation(scope)) : ObdConnection {
-    private val _state = MutableStateFlow<BleConnectionState>(BleConnectionState.DemoMode)
+    private val _state = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
     override val state: StateFlow<BleConnectionState> = _state.asStateFlow()
 
     private val _log = MutableStateFlow<List<ObdLogEntry>>(emptyList())
     override val log: StateFlow<List<ObdLogEntry>> = _log.asStateFlow()
 
-    init {
+    /** Starts the demo drive and reports the adapter as connected, so polling resumes. */
+    fun startSimulation() {
         simulation.start()
+        _state.value = BleConnectionState.DemoMode
     }
 
-    fun startSimulation() = simulation.start()
-    fun stopSimulation() = simulation.stop()
+    fun stopSimulation() {
+        simulation.stop()
+        _state.value = BleConnectionState.Disconnected
+    }
 
     private fun telemetry(): TelemetrySnapshot = simulation.telemetry.value
 
@@ -38,15 +45,9 @@ class MockObdAdapter(private val scope: CoroutineScope, val simulation: MockDriv
 
     override fun stopScan() = Unit
 
-    override suspend fun connect(deviceAddress: String?) {
-        simulation.start()
-        _state.value = BleConnectionState.DemoMode
-    }
+    override suspend fun connect(deviceAddress: String?) = startSimulation()
 
-    override fun disconnect() {
-        simulation.stop()
-        _state.value = BleConnectionState.Disconnected
-    }
+    override fun disconnect() = stopSimulation()
 
     override fun clearLog() {
         _log.value = emptyList()

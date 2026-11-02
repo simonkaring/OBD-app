@@ -55,6 +55,7 @@ off the main thread on first use.
 # Demo mode
 
 Demo mode swaps step 1–3 for `core/demo/MockDrivingSimulation`, which publishes synthetic
-snapshots through the same flows. See [Demo mode](/architecture/demo-mode.md).
+snapshots through the same flows. The trip and charging trackers still update their live state,
+but simulated rows never reach the history database. See [Demo mode](/architecture/demo-mode.md).
 
 Related: [Vehicle profiles](/architecture/vehicle-profiles.md), [Testing](/architecture/testing.md).
