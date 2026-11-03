@@ -79,6 +79,7 @@ build/
 
 # Local AI, Agents, and Vector DBs
 .agents/
+.claude/
 .claude-flow/
 .swarm/
 ruvector.db
