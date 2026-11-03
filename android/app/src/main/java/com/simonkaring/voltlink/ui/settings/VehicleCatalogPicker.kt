@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -58,6 +59,12 @@ import com.simonkaring.voltlink.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
+
+/**
+ * Test tag of the catalog search field. The dialog sits on top of a settings screen that has
+ * text fields of its own, so the UI suites have to address this one by tag.
+ */
+const val CATALOG_SEARCH_TAG = "catalogSearch"
 
 /**
  * Searchable catalog picker (the iOS `VehicleProfilePickerSheet` equivalent). The 599-row dataset
@@ -412,7 +419,7 @@ private fun SearchField(query: String, placeholder: String, onQueryChange: (Stri
                 onValueChange = onQueryChange,
                 singleLine = true,
                 textStyle = TextStyle(color = Theme.textPrimary, fontSize = 14.sp),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag(CATALOG_SEARCH_TAG),
             )
         }
         if (query.isNotEmpty()) {

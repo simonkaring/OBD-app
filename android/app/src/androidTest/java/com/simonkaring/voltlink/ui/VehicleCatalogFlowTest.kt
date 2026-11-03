@@ -3,10 +3,10 @@ package com.simonkaring.voltlink.ui
 import android.Manifest
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -15,6 +15,7 @@ import androidx.test.rule.GrantPermissionRule
 import com.simonkaring.voltlink.MainActivity
 import com.simonkaring.voltlink.VoltLinkApplication
 import com.simonkaring.voltlink.core.vehicles.VehicleProfileId
+import com.simonkaring.voltlink.ui.settings.CATALOG_SEARCH_TAG
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -108,7 +109,7 @@ class VehicleCatalogFlowTest {
     fun searchFlattensTheTreeToMatchingVehicles() {
         openCatalog()
 
-        rule.onNode(hasSetTextAction()).performTextInput("aiways")
+        rule.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("aiways")
         awaitText("U5")
         // The result row carries the brand, since the tree below it is skipped.
         rule.onNodeWithText("Aiways").assertIsDisplayed()
