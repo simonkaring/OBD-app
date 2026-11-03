@@ -98,7 +98,6 @@
 		8799EF932A8B41769192CD42 /* bmw_i3.json in Resources */ = {isa = PBXBuildFile; fileRef = F7672CA3C3F297EED98811D6 /* bmw_i3.json */; };
 		8FF53BCCC5F7D7FA495A9452 /* byd_atto3.json in Resources */ = {isa = PBXBuildFile; fileRef = 4F2966D653762C547131EC24 /* byd_atto3.json */; };
 		94C842953135CA438A4A2E14 /* deepal_s05.json in Resources */ = {isa = PBXBuildFile; fileRef = 09ECF2282DFD8AA1304EBF10 /* deepal_s05.json */; };
-		B48D750669704C88C684EE38 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json in Resources */ = {isa = PBXBuildFile; fileRef = 514ACFBC5ED0DA67705DA82D /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json */; };
 		3B5C9DC80B72A08E25CE928C /* ford_MachE.json in Resources */ = {isa = PBXBuildFile; fileRef = 8CEE3A30ECB6A5911198E817 /* ford_MachE.json */; };
 		3775BFA0F6332F794F727B24 /* gmc_bolt17.json in Resources */ = {isa = PBXBuildFile; fileRef = 45C7B937B82D5CFCA1977314 /* gmc_bolt17.json */; };
 		12170D7F6555C7A195BE5326 /* gmc_bolt19.json in Resources */ = {isa = PBXBuildFile; fileRef = 274639B6D21230429E9BCD16 /* gmc_bolt19.json */; };
@@ -238,7 +237,6 @@
 		F7672CA3C3F297EED98811D6 /* bmw_i3.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bmw_i3.json"; sourceTree = "<group>"; };
 		4F2966D653762C547131EC24 /* byd_atto3.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "byd_atto3.json"; sourceTree = "<group>"; };
 		09ECF2282DFD8AA1304EBF10 /* deepal_s05.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "deepal_s05.json"; sourceTree = "<group>"; };
-		514ACFBC5ED0DA67705DA82D /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json"; sourceTree = "<group>"; };
 		8CEE3A30ECB6A5911198E817 /* ford_MachE.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ford_MachE.json"; sourceTree = "<group>"; };
 		45C7B937B82D5CFCA1977314 /* gmc_bolt17.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "gmc_bolt17.json"; sourceTree = "<group>"; };
 		274639B6D21230429E9BCD16 /* gmc_bolt19.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "gmc_bolt19.json"; sourceTree = "<group>"; };
@@ -539,7 +537,6 @@
 				F7672CA3C3F297EED98811D6,
 				4F2966D653762C547131EC24,
 				09ECF2282DFD8AA1304EBF10,
-				514ACFBC5ED0DA67705DA82D,
 				8CEE3A30ECB6A5911198E817,
 				45C7B937B82D5CFCA1977314,
 				274639B6D21230429E9BCD16,
@@ -806,7 +803,6 @@
 				8799EF932A8B41769192CD42 /* bmw_i3.json in Resources */,
 				8FF53BCCC5F7D7FA495A9452 /* byd_atto3.json in Resources */,
 				94C842953135CA438A4A2E14 /* deepal_s05.json in Resources */,
-				B48D750669704C88C684EE38 /* deepal_s05_deepal_s05_abrp_submit_candidate___Clean.json in Resources */,
 				3B5C9DC80B72A08E25CE928C /* ford_MachE.json in Resources */,
 				3775BFA0F6332F794F727B24 /* gmc_bolt17.json in Resources */,
 				12170D7F6555C7A195BE5326 /* gmc_bolt19.json in Resources */,

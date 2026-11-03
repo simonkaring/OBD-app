@@ -1,8 +1,8 @@
 # VoltLink iOS — Swift iOS & CarPlay OBD-II App
 
 > This is the iOS project of the two-project VoltLink repo. See the
-> [repository README](../README.md) for the overall layout; the Android app is
-> planned under [`android/`](../android/README.md).
+> [repository README](../README.md) for the overall layout; the Kotlin/Compose
+> Android app lives in [`android/`](../android/README.md).
 
 [![Platform: iOS 17+](https://img.shields.io/badge/Platform-iOS%2017%2B-blue.svg?style=flat-square)](https://apple.com)
 [![CarPlay](https://img.shields.io/badge/CarPlay-Ready-black.svg?style=flat-square)](https://apple.com)

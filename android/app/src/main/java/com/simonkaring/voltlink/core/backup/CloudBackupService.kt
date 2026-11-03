@@ -28,6 +28,9 @@ class CloudBackupService(private val context: Context) {
         const val FILE_PREFIX = "voltlink-backup-"
         const val MIME_TYPE = "application/json"
         private val FILE_SUFFIX = ".json"
+
+        /** Refuse absurd files rather than loading one whole into a String. */
+        private const val MAX_TEXT_BYTES = 32L * 1024 * 1024
         private val TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
         private val DISPLAYED = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm")
     }
@@ -86,9 +89,16 @@ class CloudBackupService(private val context: Context) {
             val name = FILE_PREFIX + TIMESTAMP.format(at.atZone(ZoneId.systemDefault())) + FILE_SUFFIX
             val fileUri = DocumentsContract.createDocument(resolver, baseDocumentUri(tree), MIME_TYPE, name)
                 ?: error("the folder rejected the new file")
-            resolver.openOutputStream(fileUri)?.use { stream ->
-                stream.write(snapshot.toJson().toByteArray(Charsets.UTF_8))
-            } ?: error("the folder could not be written")
+            try {
+                resolver.openOutputStream(fileUri)?.use { stream ->
+                    stream.write(snapshot.toJson().toByteArray(Charsets.UTF_8))
+                } ?: error("the folder could not be written")
+            } catch (e: Exception) {
+                // A half-written document is the newest backup, so restore would keep
+                // picking it and failing. Drop it instead of leaving it behind.
+                runCatching { DocumentsContract.deleteDocument(resolver, fileUri) }
+                throw e
+            }
             prefs.edit().putLong(KEY_LAST_BACKUP, at.toEpochMilli()).apply()
             name
         }
@@ -98,20 +108,29 @@ class CloudBackupService(private val context: Context) {
     suspend fun restore(store: HistoryStore): Result<BackupPlan> = withContext(Dispatchers.IO) {
         runCatching {
             val tree = requireFolder()
-            val newest = backups(tree).maxByOrNull { it.modifiedMs } ?: error("no VoltLink backup in this folder")
-            val text = resolver.openInputStream(newest.uri)?.bufferedReader()?.use { it.readText() }
-                ?: error("the backup file could not be read")
-            val snapshot = HistoryBackup.fromJson(text)
-            val plan = BackupPlan.of(
-                backup = snapshot,
-                existingTripIds = store.trips.value.map { it.id }.toSet(),
-                existingSessionIds = store.chargingSessions.value.map { it.id }.toSet(),
-                existingHealthDayKeys = store.batteryHealth.value
-                    .map { BackupBatteryHealth(it.timestamp.toEpochMilli(), it.sohPct, it.vehicleName).dayKey }
-                    .toSet(),
-            )
-            store.restore(plan)
-            plan
+            val files = backups(tree).sortedByDescending { it.modifiedMs }
+            if (files.isEmpty()) error("no VoltLink backup in this folder")
+            var lastError: Exception? = null
+            for (file in files) {
+                val snapshot = try {
+                    HistoryBackup.fromJson(readText(file.uri))
+                } catch (e: Exception) {
+                    // One unreadable file must not make every older backup unreachable.
+                    lastError = e
+                    continue
+                }
+                val plan = BackupPlan.of(
+                    backup = snapshot,
+                    existingTripIds = store.trips.value.map { it.id }.toSet(),
+                    existingSessionIds = store.chargingSessions.value.map { it.id }.toSet(),
+                    existingHealthDayKeys = store.batteryHealth.value
+                        .map { BackupBatteryHealth(it.timestamp.toEpochMilli(), it.sohPct, it.vehicleName).dayKey }
+                        .toSet(),
+                )
+                store.restore(plan)
+                return@runCatching plan
+            }
+            error("no readable VoltLink backup in this folder (${lastError?.message ?: "unknown error"})")
         }
     }
 
@@ -140,6 +159,24 @@ class CloudBackupService(private val context: Context) {
             }
         }
         return files
+    }
+
+    /** Reads at most [MAX_TEXT_BYTES], so a wrong file pick cannot exhaust memory. */
+    private fun readText(uri: Uri): String {
+        val stream = resolver.openInputStream(uri) ?: error("the backup file could not be read")
+        stream.use {
+            val out = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(8 * 1024)
+            var total = 0
+            while (true) {
+                val read = it.read(buffer)
+                if (read < 0) break
+                total += read
+                if (total > MAX_TEXT_BYTES) error("the backup file is too large to restore")
+                out.write(buffer, 0, read)
+            }
+            return out.toString("UTF-8")
+        }
     }
 
     private fun requireFolder(): Uri = folder ?: error("choose a backup folder first")

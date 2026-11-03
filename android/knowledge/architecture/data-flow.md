@@ -58,4 +58,26 @@ Demo mode swaps step 1–3 for `core/demo/MockDrivingSimulation`, which publishe
 snapshots through the same flows. The trip and charging trackers still update their live state,
 but simulated rows never reach the history database. See [Demo mode](/architecture/demo-mode.md).
 
+# Recording and privacy
+
+- Charging sessions report `averagePowerKW` as delivered energy over elapsed time
+  (`ChargingSessionMath`), not the mean of telemetry samples, so a DC taper cannot pull
+  the figure below what the charger itself displays. The helper returns `null` until
+  enough time has passed, and the last stored value stands.
+- `HistoryStore` keeps one battery-health reading per vehicle per **local** calendar
+  day. The query window and the backup `dayKey` both come from `ZoneId.systemDefault()`;
+  a UTC bucket merged two local days west of UTC and split one east of it.
+- `TripLocationService` records only between an explicit start and stop action. The
+  intent is mapped by `TripLocationCommand`, which answers `IGNORE` for anything else —
+  including the null intent a sticky restart would deliver — and the service returns
+  `START_NOT_STICKY`, because the trip lives in `TripTracker` and does not survive the
+  process. A phantom restart would otherwise keep the GPS and the foreground
+  notification running for a trip that no longer exists.
+- Recorded history stays on the device: the manifest sets
+  `android:allowBackup="false"`, so Android Auto Backup cannot copy the SQLite database
+  and its GPS samples off-device. The only way history leaves is the opt-in folder
+  mirror, which writes a timestamped `HistoryBackup` JSON, deletes a half-written
+  document before reporting the failure, restores from the newest file that parses, and
+  refuses a file above 32 MB.
+
 Related: [Vehicle profiles](/architecture/vehicle-profiles.md), [Testing](/architecture/testing.md).

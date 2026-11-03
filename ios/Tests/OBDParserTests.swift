@@ -237,6 +237,14 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(parser.assembleISOTPPayloads(raw).count, 0)
     }
 
+    /// A marker must match on a byte boundary: `A6 2F 19 0B` contains "62F190" at
+    /// character offset 1, which would otherwise decode one-byte-shifted values.
+    func testHexBytesAfterMarkerRequiresByteAlignment() {
+        XCTAssertEqual("62F190AABB".hexBytes(after: "62F190"), [0xAA, 0xBB])
+        XCTAssertNil("A62F190B".hexBytes(after: "62F190"))
+        XCTAssertNil("A62F190BAA".hexBytes(after: "62F190"))
+    }
+
     /// Two ECUs interleaving First Frame + Consecutive Frame sequences must not clobber
     /// each other's multi-frame reassembly context.
     func testISO15765ParserKeepsSeparateMultiFrameContextsPerECU() {

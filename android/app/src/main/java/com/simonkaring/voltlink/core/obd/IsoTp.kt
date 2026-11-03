@@ -159,12 +159,19 @@ object IsoTp {
 
 /** Whole hex bytes following [marker] in an already assembled payload. */
 fun String.hexBytesAfter(marker: String): ByteArray? {
-    val index = indexOf(marker)
-    if (index < 0) return null
-    val suffix = substring(index + marker.length).filterNot { it.isWhitespace() }
-    val evenCount = suffix.length - suffix.length % 2
-    if (evenCount == 0) return ByteArray(0)
-    return IsoTp.hexBytes(suffix.substring(0, evenCount))
+    // The marker must start on a byte boundary: a plain substring search would match
+    // "62F190" inside "A62F190B" at half a byte and shift every value by one byte.
+    var index = 0
+    while (index + marker.length <= length) {
+        if (regionMatches(index, marker, 0, marker.length)) {
+            val suffix = substring(index + marker.length).filterNot { it.isWhitespace() }
+            val evenCount = suffix.length - suffix.length % 2
+            if (evenCount == 0) return ByteArray(0)
+            return IsoTp.hexBytes(suffix.substring(0, evenCount))
+        }
+        index += 2
+    }
+    return null
 }
 
 /** True when every character is an ASCII hex digit. */

@@ -26,8 +26,10 @@ object ExportShare {
     suspend fun share(context: Context, fileName: String, mimeType: String, content: String) {
         val uri = withContext(Dispatchers.IO) {
             val directory = File(context.cacheDir, "exports").apply { mkdirs() }
-            // Keep the cache from growing across repeated exports of the same session.
-            directory.listFiles()?.forEach { it.delete() }
+            // Drop day-old exports only: the share sheet or the receiving app may still be
+            // reading the file handed over a moment ago.
+            val staleBefore = System.currentTimeMillis() - 24 * 60 * 60 * 1000
+            directory.listFiles()?.forEach { if (it.lastModified() < staleBefore) it.delete() }
             val file = File(directory, fileName)
             file.writeText(content)
             FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)

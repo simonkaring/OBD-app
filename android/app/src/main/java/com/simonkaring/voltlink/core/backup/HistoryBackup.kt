@@ -8,6 +8,7 @@ import com.simonkaring.voltlink.data.TripSample
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.Instant
+import java.time.ZoneId
 
 /**
  * One portable JSON document holding everything the history screens can show: trips with their
@@ -176,8 +177,9 @@ data class BackupChargingSample(val timestampMs: Long, val socPct: Double, val p
 
 @Serializable
 data class BackupBatteryHealth(val timestampMs: Long, val sohPct: Double, val vehicleName: String) {
-    /** One reading per vehicle per day is all the trend chart draws. */
-    val dayKey: String get() = "$vehicleName|${Math.floorDiv(timestampMs, 86_400_000L)}"
+    /** One reading per vehicle per local day is all the trend chart draws. */
+    val dayKey: String
+        get() = "$vehicleName|${Instant.ofEpochMilli(timestampMs).atZone(ZoneId.systemDefault()).toLocalDate()}"
 }
 
 /** What a restore would actually add; unchanged rows are skipped rather than duplicated. */

@@ -29,7 +29,7 @@ Everything is in the single `:app` module under `com.simonkaring.voltlink`:
 | `core/obd` | ELM327 command framing, ISO-TP reassembly (`IsoTp`), DTC models and severity |
 | `core/bluetooth` | BLE scanning/connection state types |
 | `core/vehicles` | `VehicleProfile` contract, `VehicleProfileId` registry, compiled-in profiles, the ABRP profile loader, the 69-brand catalog, service reminder |
-| `core/telemetry` | `TelemetrySnapshot`, `TelemetryMetric`, charging time estimation |
+| `core/telemetry` | `TelemetrySnapshot`, `TelemetryMetric`, charging time estimation and session average power |
 | `core/demo` | `MockDrivingSimulation` and the demo scenarios |
 | `services` | `VehicleDataManager` (main-actor facade), the polling loop, the reducer, trip/charging trackers, DTC scanner, foreground location |
 | `data` | DataStore-backed settings, dashboard and car-tile layouts, history, local DTC database |

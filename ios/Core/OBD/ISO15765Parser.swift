@@ -189,13 +189,21 @@ extension String {
     /// rather than treated as an error. Shared by every `VehicleProfile`'s decoder so byte
     /// extraction isn't reimplemented per profile.
     func hexBytes(after marker: String) -> [UInt8]? {
-        guard let range = range(of: marker) else { return nil }
-        let suffix = self[range.upperBound...]
-        let evenCount = suffix.count - suffix.count % 2
-        guard evenCount > 0 else { return [] }
-        return stride(from: 0, to: evenCount, by: 2).compactMap {
-            UInt8(suffix.dropFirst($0).prefix(2), radix: 16)
+        // The marker must start on a byte boundary: a plain substring search would match
+        // "62F190" inside "A62F190B" at half a byte and shift every value by one byte.
+        var index = startIndex
+        while distance(from: index, to: endIndex) >= marker.count {
+            if self[index...].hasPrefix(marker) {
+                let suffix = self[self.index(index, offsetBy: marker.count)...]
+                let evenCount = suffix.count - suffix.count % 2
+                guard evenCount > 0 else { return [] }
+                return stride(from: 0, to: evenCount, by: 2).compactMap {
+                    UInt8(suffix.dropFirst($0).prefix(2), radix: 16)
+                }
+            }
+            index = self.index(index, offsetBy: 2)
         }
+        return nil
     }
 
     /// Same as `hexBytes(after:)`, but requires (and returns) at least `count` bytes.

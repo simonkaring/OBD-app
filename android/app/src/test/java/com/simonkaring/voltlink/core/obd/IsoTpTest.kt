@@ -2,6 +2,7 @@ package com.simonkaring.voltlink.core.obd
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -10,6 +11,15 @@ class IsoTpTest {
     fun `cleans prompt and adapter chatter`() {
         val raw = "SEARCHING...\r41 0D 32\r\r>"
         assertEquals("41 0D 32", IsoTp.cleanElmResponse(raw))
+    }
+
+    @Test
+    fun `hex bytes after marker requires byte alignment`() {
+        // `A6 2F 19 0B` contains "62F190" at character offset 1; matching there would
+        // shift every decoded value by one byte.
+        assertArrayEquals(byteArrayOf(0xAA.toByte(), 0xBB.toByte()), "62F190AABB".hexBytesAfter("62F190"))
+        assertNull("A62F190B".hexBytesAfter("62F190"))
+        assertNull("A62F190BAA".hexBytesAfter("62F190"))
     }
 
     @Test

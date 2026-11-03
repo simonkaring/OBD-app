@@ -39,7 +39,8 @@ OKF source files. Instrumentation tests need a device; `recordScreenshots` write
 | --- | --- |
 | `app/src/test/.../core/obd` | ISO-TP reassembly and ELM framing |
 | `app/src/test/.../core/vehicles` | Profile decoders, ABRP parsing, catalog search matching |
-| `app/src/test/.../core/telemetry` | Metric semantics, charging estimates |
+| `app/src/test/.../core/telemetry` | Metric semantics, charging estimates, session average power |
+| `app/src/test/.../services` | Trip location start-command policy, fix filtering, reducer state machine |
 | `app/src/test/.../core/{ai,backup,export,history}` | Log analysis, backup merge, GPX/CSV export, monthly insights |
 | `app/src/test/.../okf` | OKF conformance and drift for `android/knowledge` |
 | `app/src/androidTest/.../ScreenshotTest` | Captures every screen (dashboard, trips, charging, diagnostics, DTC detail, demo sheet, settings, HUD) |

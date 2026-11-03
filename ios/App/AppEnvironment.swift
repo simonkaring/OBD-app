@@ -73,11 +73,17 @@ public final class AppEnvironment: ObservableObject {
                 .error("Persistent store unavailable, using in-memory history: \(String(describing: error), privacy: .public)")
             let warning =
                 "Persistent history is unavailable: \(error.localizedDescription). New recordings are temporary and will be lost when VoltLink closes."
-            return (
-                try! ModelContainer(
-                    for: schema,
-                    configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning, syncWarning
-            )
+            do {
+                return (
+                    try ModelContainer(
+                        for: schema,
+                        configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning, syncWarning
+                )
+            } catch {
+                // Neither store opened. Name the cause in the crash report instead of
+                // trapping blind, so a device failure is diagnosable.
+                fatalError("VoltLink cannot start: \(error)")
+            }
         }
     }
 

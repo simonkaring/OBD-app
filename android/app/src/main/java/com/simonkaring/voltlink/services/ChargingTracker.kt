@@ -1,6 +1,7 @@
 package com.simonkaring.voltlink.services
 
 import com.simonkaring.voltlink.core.telemetry.ChargingCurveSample
+import com.simonkaring.voltlink.core.telemetry.ChargingSessionMath
 import com.simonkaring.voltlink.core.telemetry.ChargingTimeEstimator
 import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
 import com.simonkaring.voltlink.data.ChargingSample
@@ -56,8 +57,6 @@ class ChargingTracker(
     private var lastSampleAt: Instant? = null
     private var lastChargingAt: Instant? = null
     private var chargedKWh = 0.0
-    private var powerAccumulator = 0.0
-    private var powerSamples = 0
     private var targetReachedNotified = false
 
     fun updateCapacity(kWh: Double) {
@@ -115,8 +114,6 @@ class ChargingTracker(
 
     private fun startSession(snapshot: TelemetrySnapshot, now: Instant) {
         chargedKWh = 0.0
-        powerAccumulator = 0.0
-        powerSamples = 0
         targetReachedNotified = false
         lastSampleAt = null
         val session = ChargingSessionRecord(
@@ -136,10 +133,6 @@ class ChargingTracker(
             if (seconds in 0.0..300.0) chargedKWh += power * seconds / 3600.0
         }
         lastUpdate = now
-        if (power > 0) {
-            powerAccumulator += power
-            powerSamples += 1
-        }
 
         val newSamples = session.samples.toMutableList()
         val shouldSample = lastSampleAt == null ||
@@ -154,16 +147,19 @@ class ChargingTracker(
             endSocPct = snapshot.stateOfChargePct,
             totalKWhDelivered = chargedKWh,
             peakPowerKW = maxOf(session.peakPowerKW, power),
-            averagePowerKW = if (powerSamples > 0) powerAccumulator / powerSamples else session.averagePowerKW,
+            averagePowerKW = ChargingSessionMath.averagePowerKW(chargedKWh, session.startTime, now)
+                ?: session.averagePowerKW,
             samples = newSamples,
         )
         _state.value = _state.value.copy(current = updated)
     }
 
     private fun closeSession(session: ChargingSessionRecord, now: Instant) {
+        val end = lastChargingAt ?: now
         val finished = session.copy(
-            endTime = lastChargingAt ?: now,
-            averagePowerKW = if (powerSamples > 0) powerAccumulator / powerSamples else session.averagePowerKW,
+            endTime = end,
+            averagePowerKW = ChargingSessionMath.averagePowerKW(chargedKWh, session.startTime, end)
+                ?: session.averagePowerKW,
         )
         if (!isDemoMode) scope.launch { store.saveChargingSession(finished) }
         discardSession()

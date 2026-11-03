@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 data class TripSample(
@@ -304,10 +305,15 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
     suspend fun recordBatteryHealth(sohPct: Double, vehicleName: String, at: Instant = Instant.now()) =
         withContext(Dispatchers.IO) {
             if (!sohPct.isFinite() || sohPct !in 50.0..100.0) return@withContext
-            val dayStart = at.toEpochMilli() / 86_400_000L * 86_400_000L
+            // "One reading per day" means the driver's day. A UTC bucket would merge two
+            // local evenings west of UTC and split a local day east of it.
+            val zone = ZoneId.systemDefault()
+            val day = at.atZone(zone).toLocalDate()
+            val dayStart = day.atStartOfDay(zone).toInstant().toEpochMilli()
+            val dayEnd = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
             val existing = db.readableDatabase.rawQuery(
                 "SELECT id FROM battery_health WHERE timestamp >= ? AND timestamp < ? AND vehicle_name = ?",
-                arrayOf(dayStart.toString(), (dayStart + 86_400_000L).toString(), vehicleName),
+                arrayOf(dayStart.toString(), dayEnd.toString(), vehicleName),
             ).use { if (it.moveToFirst()) it.getLong(0) else null }
             val values = ContentValues().apply {
                 put("timestamp", at.toEpochMilli())

@@ -7,12 +7,22 @@ import com.simonkaring.voltlink.data.TripRecord
 import com.simonkaring.voltlink.data.TripSample
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
 class HistoryBackupTest {
     private val start = Instant.parse("2026-10-24T07:30:00Z")
+
+    @Test
+    fun `battery health day key follows the local day`() {
+        val morning = BackupBatteryHealth(start.toEpochMilli(), 95.0, "EQA")
+        val later = BackupBatteryHealth(start.toEpochMilli() + 3_600_000, 95.4, "EQA")
+        val nextDay = BackupBatteryHealth(start.toEpochMilli() + 30 * 3_600_000, 95.4, "EQA")
+        assertEquals(morning.dayKey, later.dayKey)
+        assertNotEquals(morning.dayKey, nextDay.dayKey)
+    }
 
     private fun trip(id: String = "t1") = TripRecord(
         id = id,

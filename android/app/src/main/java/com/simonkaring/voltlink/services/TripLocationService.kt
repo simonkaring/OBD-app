@@ -120,10 +120,19 @@ class TripLocationService : Service(), LocationListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopRecording()
-            stopSelf()
-            return START_NOT_STICKY
+        when (TripLocationCommand.of(intent?.action)) {
+            TripLocationCommand.STOP -> {
+                stopRecording()
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            TripLocationCommand.IGNORE -> {
+                // A sticky restart arrives with a null intent and the trip died with the
+                // process: leave a live recording alone, stop a phantom one.
+                if (!TripLocation.isRecording.value) stopSelf()
+                return START_NOT_STICKY
+            }
+            TripLocationCommand.START -> Unit
         }
         if (!hasLocationPermission(this)) {
             stopSelf()
@@ -133,7 +142,7 @@ class TripLocationService : Service(), LocationListener {
         startForeground(NOTIFICATION_ID, ongoingNotification())
         requestUpdates()
         TripLocation.markRecording(true)
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onLocationChanged(location: Location) {
@@ -217,5 +226,25 @@ class TripLocationService : Service(), LocationListener {
             .setSilent(true)
             .setContentIntent(pending)
             .build()
+    }
+}
+
+/**
+ * What the recorder should do for the intent it was started with. A sticky restart
+ * delivers a null intent, which must never begin recording: the trip lives in
+ * `TripTracker` and did not survive the process death that caused the restart.
+ */
+internal enum class TripLocationCommand {
+    START,
+    STOP,
+    IGNORE,
+    ;
+
+    companion object {
+        fun of(action: String?): TripLocationCommand = when (action) {
+            TripLocationService.ACTION_START -> START
+            TripLocationService.ACTION_STOP -> STOP
+            else -> IGNORE
+        }
     }
 }

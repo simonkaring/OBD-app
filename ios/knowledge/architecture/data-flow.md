@@ -27,7 +27,9 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
    `@MainActor` class whose work runs in a cancellable `Task`; `stopPolling()`
    cancels it rather than relying on a generation counter.
 3. `Core/OBD/ISO15765Parser` reassembles multi-frame UDS/OBD responses. Never parse
-   raw multi-line adapter text directly.
+   raw multi-line adapter text directly. Payload extraction (`hexBytes(after:)`)
+   matches a DID echo only on byte boundaries, so a marker that happens to appear
+   half a byte into the payload cannot shift a decoder by one byte.
 4. `Core/Vehicles/<Profile>` decodes a reassembled payload into `TelemetryUpdate`
    values (`soc`, `packVoltage`, `chargingStats`, `genericPid`, ...).
 5. `VehicleDataManager.applyUpdates` merges updates into `TelemetrySnapshot` and
