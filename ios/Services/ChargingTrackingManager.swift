@@ -268,14 +268,14 @@ public final class ChargingTrackingManager: ObservableObject {
     /// long session stores a readable curve without one row per poll cycle.
     private func appendCurveSample(socPct: Double, powerKW: Double, at date: Date) {
         guard let session = currentSession, session.endTime == nil, socPct.isFinite, socPct > 0 else { return }
-        guard session.samples.count < Self.maxCurveSamples else { return }
+        guard session.curveSamples.count < Self.maxCurveSamples else { return }
         if let last = lastCurveSample {
             let socChanged = abs(socPct - last.socPct) >= 1
             let timeElapsed = date.timeIntervalSince(last.timestamp) >= 60
             guard socChanged || timeElapsed else { return }
         }
         let sample = ChargingSampleModel(timestamp: date, socPct: socPct, powerKW: max(0, powerKW))
-        session.samples.append(sample)
+        session.samples?.append(sample)
         lastCurveSample = (date, socPct)
     }
 }

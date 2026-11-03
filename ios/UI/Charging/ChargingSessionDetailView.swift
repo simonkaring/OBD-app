@@ -36,7 +36,7 @@ public struct ChargingSessionDetailView: View {
 
     /// Session readings ordered by time, used for the scrubbable charge-speed chart.
     private var speedCurve: [ChargingSpeedPoint] {
-        ChargingSpeedCurve.session(session.samples)
+        ChargingSpeedCurve.session(session.curveSamples)
     }
 
     private var coordinate: CLLocationCoordinate2D? {

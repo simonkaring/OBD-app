@@ -17,6 +17,9 @@ public final class AppEnvironment: ObservableObject {
     /// trips and charging sessions.
     public let modelContainer: ModelContainer
     @Published public private(set) var storageWarning: String?
+    /// Non-fatal iCloud problem (for example a build without the iCloud entitlement), shown
+    /// in Settings while history keeps saving locally.
+    @Published public private(set) var syncWarning: String?
 
     private var cancellables = Set<AnyCancellable>()
     /// Widget/Live Activity writes are throttled separately from telemetry; the poll
@@ -26,19 +29,38 @@ public final class AppEnvironment: ObservableObject {
     /// no telemetry flowing still reaches the widget.
     private var lastPublishedUnits: SharedDisplayUnits?
 
-    private static func makeModelContainer() -> (ModelContainer, String?) {
+    private static func makeModelContainer() -> (ModelContainer, String?, String?) {
         let schema = Schema(versionedSchema: VoltLinkCurrentSchema.versioned)
         // Pin the store to the app's own container. SwiftData's default URL resolves to the
         // first app group once the widget shares one, which would open an empty store and
         // orphan trips recorded before the widget was added.
-        let configuration = ModelConfiguration(
-            schema: schema,
-            url: URL.applicationSupportDirectory.appending(path: "default.store"))
+        let storeURL = URL.applicationSupportDirectory.appending(path: "default.store")
+        let configuration = ModelConfiguration(schema: schema, url: storeURL)
+
+        // CloudKit needs the iCloud capability and the identifiers in VoltLink.entitlements.
+        // A free/personal signing profile has neither, so a failure here must fall back to
+        // the same on-disk store instead of the in-memory one — losing persistent history
+        // because sync could not start would be strictly worse than staying local.
+        var syncWarning: String?
+        if CloudSyncPreference.isEnabled() {
+            let synced = ModelConfiguration(
+                schema: schema, url: storeURL,
+                cloudKitDatabase: .private(CloudSyncPreference.containerIdentifier))
+            do {
+                return (try ModelContainer(for: schema, configurations: synced), nil, nil)
+            } catch {
+                Logger(subsystem: "com.simonkaring.voltlink", category: "persistence")
+                    .error("iCloud sync unavailable, staying on the local store: \(String(describing: error), privacy: .public)")
+                syncWarning =
+                    "iCloud sync could not start: \(error.localizedDescription). History keeps saving on this device; check that the build is signed with the iCloud capability."
+            }
+        }
+
         do {
-            // Schema V2 only adds an entity plus an empty-default relationship, so SwiftData's
-            // inferred lightweight migration handles stores created by V1. Supplying a plan
-            // whose two versions share model classes made Core Data abort instead of migrate.
-            return (try ModelContainer(for: schema, configurations: configuration), nil)
+            // Additive schema changes (V2's curve entity, V3's battery health entity) are
+            // handled by SwiftData's inferred lightweight migration. Supplying a plan whose
+            // versions share model classes made Core Data abort instead of migrate.
+            return (try ModelContainer(for: schema, configurations: configuration), nil, syncWarning)
         } catch {
             // Surfaced in Console so a migration failure on a real device is diagnosable
             // rather than only visible as the in-app banner.
@@ -49,13 +71,19 @@ public final class AppEnvironment: ObservableObject {
             return (
                 try! ModelContainer(
                     for: schema,
-                    configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning
+                    configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)), warning, syncWarning
             )
         }
     }
 
     public init(modelContainer: ModelContainer? = nil, connection: OBDConnectionProtocol? = nil) {
-        (self.modelContainer, self.storageWarning) = modelContainer.map { ($0, nil) } ?? Self.makeModelContainer()
+        if let modelContainer {
+            self.modelContainer = modelContainer
+            self.storageWarning = nil
+            self.syncWarning = nil
+        } else {
+            (self.modelContainer, self.storageWarning, self.syncWarning) = Self.makeModelContainer()
+        }
         let vData = VehicleDataManager(connection: connection)
         let locationManager = TripLocationManager()
         let tTracker = TripTrackingManager(locationManager: locationManager)

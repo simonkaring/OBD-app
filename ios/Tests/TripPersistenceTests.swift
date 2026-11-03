@@ -22,7 +22,7 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertEqual(sampleTrip.distanceKm, 158.9)
         XCTAssertEqual(sampleTrip.routeSamples.first?.latitude, 55.676328)
         XCTAssertEqual(sampleTrip.routeSamples.last?.longitude, 10.421264)
-        XCTAssertGreaterThan(sampleTrip.samples.count, 20)
+        XCTAssertGreaterThan(sampleTrip.samplePoints.count, 20)
         XCTAssertEqual(sampleCharge.locationName, "Drejebænken 10, 5260 Odense")
         XCTAssertEqual(sampleCharge.latitude, 55.352522)
         XCTAssertGreaterThan(sampleCharge.startTime, try XCTUnwrap(sampleTrip.endTime))
@@ -165,9 +165,9 @@ final class TripPersistenceTests: XCTestCase {
         }
         try context.save()
         let tripID = older.id
-        let olderIDs = Set(older.samples.map(\.persistentModelID))
-        let newerIDs = Set(newer.samples.map(\.persistentModelID))
-        let expectedValues = sampleValues(older.samples + newer.samples)
+        let olderIDs = Set(older.samplePoints.map(\.persistentModelID))
+        let newerIDs = Set(newer.samplePoints.map(\.persistentModelID))
+        let expectedValues = sampleValues(older.samplePoints + newer.samplePoints)
         XCTAssertEqual(expectedValues.count, 4)
         var saveCount = 0
         let saveObserver = NotificationCenter.default.publisher(for: ModelContext.didSave, object: context)
@@ -177,11 +177,11 @@ final class TripPersistenceTests: XCTestCase {
         tracker.merge(newer, into: older)
 
         XCTAssertEqual(saveCount, 1)
-        let mergedIDs = Set(older.samples.map(\.persistentModelID))
+        let mergedIDs = Set(older.samplePoints.map(\.persistentModelID))
         XCTAssertEqual(mergedIDs.count, 4)
         XCTAssertTrue(olderIDs.isSubset(of: mergedIDs))
         XCTAssertTrue(newerIDs.isDisjoint(with: mergedIDs))
-        XCTAssertEqual(sampleValues(older.samples), expectedValues)
+        XCTAssertEqual(sampleValues(older.samplePoints), expectedValues)
 
         // Read the saved store, not the merging context's cached relationship objects.
         let verificationContext = ModelContext(container)
@@ -198,8 +198,8 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertEqual(merged.maxRegenKW, -10)
         XCTAssertEqual(merged.endTime, end)
         XCTAssertEqual(merged.endSocPct, 82)
-        XCTAssertEqual(Set(merged.samples.map(\.persistentModelID)), mergedIDs)
-        XCTAssertEqual(sampleValues(merged.samples), expectedValues)
+        XCTAssertEqual(Set(merged.samplePoints.map(\.persistentModelID)), mergedIDs)
+        XCTAssertEqual(sampleValues(merged.samplePoints), expectedValues)
         let savedSamples = try verificationContext.fetch(FetchDescriptor<TelemetryPointModel>())
         XCTAssertEqual(savedSamples.count, 4)
         XCTAssertEqual(Set(savedSamples.map(\.persistentModelID)), mergedIDs)
@@ -270,8 +270,8 @@ final class TripPersistenceTests: XCTestCase {
         let source = trips[1]
         let destination = trips[0]
         let tripIDs = Set(trips.map(\.persistentModelID))
-        let originalIDs = Set(trips.flatMap(\.samples).map(\.persistentModelID))
-        let originalValues = sampleValues(trips.flatMap(\.samples))
+        let originalIDs = Set(trips.flatMap(\.samplePoints).map(\.persistentModelID))
+        let originalValues = sampleValues(trips.flatMap(\.samplePoints))
         let pendingSession = try XCTUnwrap(readOnlyContext.fetch(FetchDescriptor<ChargingSessionModel>()).first)
         undoManager?.beginUndoGrouping()
         pendingSession.locationName = "Pending edit"
@@ -290,11 +290,11 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertEqual(destination.maxRegenKW, -5)
         XCTAssertEqual(destination.endTime, start.addingTimeInterval(600))
         XCTAssertEqual(destination.endSocPct, 85)
-        XCTAssertEqual(destination.samples.count, 1)
-        XCTAssertEqual(source.samples.count, 1)
-        XCTAssertEqual(Set(trips.flatMap(\.samples).map(\.persistentModelID)), originalIDs)
-        XCTAssertEqual(sampleValues(trips.flatMap(\.samples)), originalValues)
-        XCTAssertTrue(trips.flatMap(\.samples).allSatisfy { !$0.isDeleted })
+        XCTAssertEqual(destination.samplePoints.count, 1)
+        XCTAssertEqual(source.samplePoints.count, 1)
+        XCTAssertEqual(Set(trips.flatMap(\.samplePoints).map(\.persistentModelID)), originalIDs)
+        XCTAssertEqual(sampleValues(trips.flatMap(\.samplePoints)), originalValues)
+        XCTAssertTrue(trips.flatMap(\.samplePoints).allSatisfy { !$0.isDeleted })
         XCTAssertEqual(pendingSession.locationName, "Pending edit")
         XCTAssertEqual(try readOnlyContext.fetch(FetchDescriptor<TripModel>()).count, 2)
         XCTAssertTrue(readOnlyContext.deletedModelsArray.isEmpty)
@@ -346,7 +346,7 @@ final class TripPersistenceTests: XCTestCase {
         tracker.modelContext = context
         tracker.startSession(startSoc: 40)
         let session = try XCTUnwrap(tracker.currentSession)
-        XCTAssertEqual(session.samples.count, 1, "The session starts with a curve point at its starting SOC")
+        XCTAssertEqual(session.curveSamples.count, 1, "The session starts with a curve point at its starting SOC")
 
         var snapshot = TelemetrySnapshot()
         snapshot.stateOfChargePct = 41
@@ -355,16 +355,16 @@ final class TripPersistenceTests: XCTestCase {
         snapshot.timestamp = Date()
 
         tracker.recordSnapshot(snapshot, chargingPower: 50)
-        XCTAssertEqual(session.samples.count, 2, "A full percent of SOC adds a curve point")
+        XCTAssertEqual(session.curveSamples.count, 2, "A full percent of SOC adds a curve point")
 
         tracker.recordSnapshot(snapshot, chargingPower: 50)
-        XCTAssertEqual(session.samples.count, 2, "Repeated identical readings are not stored")
+        XCTAssertEqual(session.curveSamples.count, 2, "Repeated identical readings are not stored")
 
         XCTAssertTrue(tracker.stopSession(endSoc: 42))
         let saved = try ModelContext(container).fetch(FetchDescriptor<ChargingSessionModel>())
         XCTAssertEqual(saved.count, 1)
-        XCTAssertEqual(saved.first?.samples.count, 2)
-        XCTAssertEqual(saved.first?.samples.map(\.powerKW).max(), 50)
+        XCTAssertEqual(saved.first?.curveSamples.count, 2)
+        XCTAssertEqual(saved.first?.curveSamples.map(\.powerKW).max(), 50)
     }
 
     @MainActor
@@ -392,7 +392,7 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<TripModel>()), 1)
         let sessions = try context.fetch(FetchDescriptor<ChargingSessionModel>())
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.samples.count, 1)
-        XCTAssertEqual(sessions.first?.samples.first?.powerKW, 60)
+        XCTAssertEqual(sessions.first?.curveSamples.count, 1)
+        XCTAssertEqual(sessions.first?.curveSamples.first?.powerKW, 60)
     }
 }

@@ -37,7 +37,7 @@ final class SchemaMigrationTests: XCTestCase {
         let context = ModelContext(container)
         let trips = try context.fetch(FetchDescriptor<TripModel>())
         XCTAssertEqual(trips.map(\.id), [tripID], "Existing trips survive the schema upgrade")
-        XCTAssertEqual(trips.first?.samples.count, 1)
+        XCTAssertEqual(trips.first?.samplePoints.count, 1)
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<ChargingSessionModel>()), 0)
     }
 }

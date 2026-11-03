@@ -29,8 +29,21 @@ public enum VoltLinkSchemaV2: VersionedSchema {
     }
 }
 
+/// V3 adds `BatteryHealthSampleModel` for state-of-health history. A new entity is additive,
+/// so V2 stores still open through inferred lightweight migration.
+public enum VoltLinkSchemaV3: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        [
+            TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, ChargingSampleModel.self, SavedDTCModel.self,
+            BatteryHealthSampleModel.self,
+        ]
+    }
+}
+
 /// The schema the app container opens. Bumping this is the single switch that opts the
 /// store into a new version.
 public enum VoltLinkCurrentSchema {
-    public static let versioned = VoltLinkSchemaV2.self
+    public static let versioned = VoltLinkSchemaV3.self
 }

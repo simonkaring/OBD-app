@@ -71,7 +71,7 @@ final class TripAndTelemetryTests: XCTestCase {
         for tick in 0...100 {
             tracker.recordSnapshot(snapshot, at: start.addingTimeInterval(Double(tick) / 10))
         }
-        XCTAssertEqual(tracker.currentTrip?.samples.count, 11)
+        XCTAssertEqual(tracker.currentTrip?.samplePoints.count, 11)
         XCTAssertEqual(tracker.currentTrip!.totalKWhUsed, 0.1, accuracy: 0.000001)
         tracker.stopTrip()
     }
@@ -122,10 +122,10 @@ final class TripAndTelemetryTests: XCTestCase {
         let sample1 = TelemetryPointModel(timestamp: Date(), speedKmH: 60.0, powerKW: 15.0, socPct: 89.0, batteryTempC: 25.0)
         let sample2 = TelemetryPointModel(timestamp: Date().addingTimeInterval(10), speedKmH: 80.0, powerKW: 22.0, socPct: 88.5, batteryTempC: 26.0)
 
-        trip.samples.append(contentsOf: [sample1, sample2])
-        XCTAssertEqual(trip.samples.count, 2)
-        XCTAssertEqual(trip.samples[0].speedKmH, 60.0)
-        XCTAssertEqual(trip.samples[1].powerKW, 22.0)
+        trip.samples?.append(contentsOf: [sample1, sample2])
+        XCTAssertEqual(trip.samplePoints.count, 2)
+        XCTAssertEqual(trip.samplePoints[0].speedKmH, 60.0)
+        XCTAssertEqual(trip.samplePoints[1].powerKW, 22.0)
     }
 
     func testRouteSamplesIgnoreInvalidCoordinatesAndRepeatedLocations() {

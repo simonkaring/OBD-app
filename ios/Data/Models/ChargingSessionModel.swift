@@ -3,22 +3,23 @@ import SwiftData
 
 @Model
 public final class ChargingSessionModel {
-    public var id: UUID
-    public var startTime: Date
+    public var id: UUID = UUID()
+    public var startTime: Date = Date()
     public var endTime: Date?
-    public var startSocPct: Double
-    public var endSocPct: Double
-    public var totalKWhDelivered: Double
-    public var peakPowerKW: Double
-    public var averagePowerKW: Double
-    public var locationName: String
+    public var startSocPct: Double = 0
+    public var endSocPct: Double = 0
+    public var totalKWhDelivered: Double = 0
+    public var peakPowerKW: Double = 0
+    public var averagePowerKW: Double = 0
+    public var locationName: String = "Fast Charger"
     public var latitude: Double?
     public var longitude: Double?
 
     /// Power/SOC points captured while charging, used to draw the session curve.
-    /// Empty for sessions recorded before schema V2.
-    @Relationship(deleteRule: .cascade)
-    public var samples: [ChargingSampleModel]
+    /// Empty for sessions recorded before schema V2. Optional for CloudKit sync; read it
+    /// through `curveSamples`.
+    @Relationship(deleteRule: .cascade, inverse: \ChargingSampleModel.session)
+    public var samples: [ChargingSampleModel]? = []
 
     public init(
         id: UUID = UUID(),
@@ -40,14 +41,20 @@ public final class ChargingSessionModel {
         self.longitude = longitude
         self.samples = []
     }
+
+    /// Non-optional curve for read-only callers.
+    public var curveSamples: [ChargingSampleModel] {
+        samples ?? []
+    }
 }
 
 /// One point on a charging session's power-vs-SOC curve.
 @Model
 public final class ChargingSampleModel {
-    public var timestamp: Date
-    public var socPct: Double
-    public var powerKW: Double
+    public var timestamp: Date = Date()
+    public var socPct: Double = 0
+    public var powerKW: Double = 0
+    public var session: ChargingSessionModel?
 
     public init(timestamp: Date = Date(), socPct: Double = 0, powerKW: Double = 0) {
         self.timestamp = timestamp
@@ -58,13 +65,13 @@ public final class ChargingSampleModel {
 
 @Model
 public final class SavedDTCModel {
-    public var id: UUID
-    public var scanDate: Date
-    public var code: String
-    public var title: String
-    public var category: String
-    public var severityRaw: String
-    public var freezeFrameSummary: String
+    public var id: UUID = UUID()
+    public var scanDate: Date = Date()
+    public var code: String = ""
+    public var title: String = ""
+    public var category: String = ""
+    public var severityRaw: String = ""
+    public var freezeFrameSummary: String = ""
 
     public init(
         id: UUID = UUID(),

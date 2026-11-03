@@ -1,15 +1,21 @@
 import Foundation
 import SwiftData
 
+/// One GPS/telemetry point on a recorded trip.
+///
+/// Every stored property carries its default at the declaration, and `trip` is the optional
+/// inverse of `TripModel.samples`: CloudKit rejects attributes without defaults and
+/// relationships that are not optional, so these are the shapes the synced store requires.
 @Model
 public final class TelemetryPointModel {
-    public var timestamp: Date
-    public var latitude: Double
-    public var longitude: Double
-    public var speedKmH: Double
-    public var powerKW: Double
-    public var socPct: Double
-    public var batteryTempC: Double
+    public var timestamp: Date = Date()
+    public var latitude: Double = 0
+    public var longitude: Double = 0
+    public var speedKmH: Double = 0
+    public var powerKW: Double = 0
+    public var socPct: Double = 0
+    public var batteryTempC: Double = 25
+    public var trip: TripModel?
 
     public init(
         timestamp: Date = Date(), latitude: Double = 0.0, longitude: Double = 0.0, speedKmH: Double = 0.0, powerKW: Double = 0.0, socPct: Double = 0.0,
@@ -31,22 +37,24 @@ public final class TelemetryPointModel {
 
 @Model
 public final class TripModel {
-    public var id: UUID
-    public var startTime: Date
+    public var id: UUID = UUID()
+    public var startTime: Date = Date()
     public var endTime: Date?
-    public var distanceKm: Double
-    public var startSocPct: Double
-    public var endSocPct: Double
-    public var totalKWhUsed: Double
+    public var distanceKm: Double = 0
+    public var startSocPct: Double = 0
+    public var endSocPct: Double = 0
+    public var totalKWhUsed: Double = 0
     /// Nil for older recordings which did not track recovered energy.
     public var totalKWhRecovered: Double?
-    public var averageSpeedKmH: Double
-    public var maxPowerKW: Double
-    public var maxRegenKW: Double
-    public var vehicleName: String
+    public var averageSpeedKmH: Double = 0
+    public var maxPowerKW: Double = 0
+    public var maxRegenKW: Double = 0
+    public var vehicleName: String = "Vehicle"
 
-    @Relationship(deleteRule: .cascade)
-    public var samples: [TelemetryPointModel]
+    /// Optional so the store can sync with CloudKit; read it through `samplePoints` unless
+    /// you need to distinguish "no samples" from "relationship not loaded".
+    @Relationship(deleteRule: .cascade, inverse: \TelemetryPointModel.trip)
+    public var samples: [TelemetryPointModel]? = []
 
     public init(
         id: UUID = UUID(),
@@ -69,13 +77,18 @@ public final class TripModel {
         self.samples = []
     }
 
+    /// Non-optional route for read-only callers.
+    public var samplePoints: [TelemetryPointModel] {
+        samples ?? []
+    }
+
     public var efficiencyKWhPer100Km: Double {
         guard distanceKm > 0.1 else { return 0.0 }
         return ((totalKWhUsed - (totalKWhRecovered ?? 0)) / distanceKm) * 100.0
     }
 
     public var computedAverageSpeedKmH: Double {
-        let speedSamples = samples.lazy.map(\.speedKmH).filter { $0.isFinite }
+        let speedSamples = samplePoints.lazy.map(\.speedKmH).filter { $0.isFinite }
         var count = 0
         var sum = 0.0
         for s in speedSamples {
@@ -94,7 +107,7 @@ public final class TripModel {
     }
 
     public var averagePowerKW: Double {
-        let powerSamples = samples.lazy.map(\.powerKW).filter { $0.isFinite }
+        let powerSamples = samplePoints.lazy.map(\.powerKW).filter { $0.isFinite }
         var count = 0
         var sum = 0.0
         for p in powerSamples {
@@ -111,7 +124,7 @@ public final class TripModel {
 
     public var routeSamples: [TelemetryPointModel] {
         let sortedSamples =
-            samples
+            samplePoints
             .filter(\.hasValidCoordinate)
             .sorted { $0.timestamp < $1.timestamp }
 

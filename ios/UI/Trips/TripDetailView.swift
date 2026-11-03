@@ -66,7 +66,7 @@ public struct TripDetailView: View {
     }
 
     private var detailContent: some View {
-        let samples = trip.samples.filter { $0.timestamp.timeIntervalSince1970.isFinite }
+        let samples = trip.samplePoints.filter { $0.timestamp.timeIntervalSince1970.isFinite }
             .sorted { $0.timestamp < $1.timestamp }
         let chartSamples = Self.displaySamples(samples.filter { $0.speedKmH.isFinite && $0.powerKW.isFinite }, limit: 500)
         let routeSamples = Self.displaySamples(trip.routeSamples, limit: 2_000)

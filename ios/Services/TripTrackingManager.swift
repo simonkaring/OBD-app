@@ -246,7 +246,7 @@ public final class TripTrackingManager {
 
         // Copy values instead of reparenting: SwiftData can lose a moved sample's
         // relationship or cascade-delete it. Copies and deletion commit in one save.
-        let copies = newer.samples.map { sample in
+        let copies = newer.samplePoints.map { sample in
             TelemetryPointModel(
                 timestamp: sample.timestamp,
                 latitude: sample.latitude, longitude: sample.longitude,
@@ -255,7 +255,7 @@ public final class TripTrackingManager {
         }
 
         let applyMerge = {
-            older.samples.append(contentsOf: copies)
+            older.samples?.append(contentsOf: copies)
             older.distanceKm += newer.distanceKm
             older.totalKWhUsed += newer.totalKWhUsed
             if let olderRecovered = older.totalKWhRecovered, let newerRecovered = newer.totalKWhRecovered {
@@ -409,7 +409,7 @@ public final class TripTrackingManager {
             socPct: telemetry.stateOfChargePct,
             batteryTempC: telemetry.batteryTempC
         )
-        trip.samples.append(sample)
+        trip.samples?.append(sample)
     }
 
     public func telemetryForDisplay(_ snapshot: TelemetrySnapshot) -> TelemetrySnapshot {

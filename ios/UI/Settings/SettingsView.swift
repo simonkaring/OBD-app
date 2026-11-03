@@ -17,6 +17,7 @@ public struct SettingsView: View {
     @AppStorage(NotificationService.PreferenceKey.chargingFinished) private var notifyChargingFinished = true
     @AppStorage(NotificationService.PreferenceKey.adapterDisconnected) private var notifyAdapterDisconnected = true
     @AppStorage(NotificationService.PreferenceKey.faultCodes) private var notifyFaultCodes = true
+    @AppStorage(CloudSyncPreference.enabledKey) private var iCloudSyncEnabled = false
 
     private var units: UnitPreferences { .shared }
     @ObservedObject private var keyStore = AIAPIKeyStore.shared
@@ -388,6 +389,21 @@ public struct SettingsView: View {
                     NavigationLink("CarPlay Tiles") {
                         CarPlayTileEditorView(vehicleData: vehicleData)
                     }
+                }
+
+                Section {
+                    Toggle("Sync History with iCloud", isOn: $iCloudSyncEnabled)
+                    if let syncWarning = AppEnvironment.shared.syncWarning {
+                        Text(syncWarning)
+                            .font(.caption)
+                            .foregroundStyle(Theme.highPowerAmber)
+                    }
+                } header: {
+                    Text("iCloud Sync")
+                } footer: {
+                    Text(
+                        "Trips, charging sessions, and battery health are mirrored to your private iCloud database so they survive a device change. Off by default. Takes effect the next time VoltLink starts, and needs a build signed with the iCloud capability."
+                    )
                 }
 
                 Section("App Information") {

@@ -12,8 +12,8 @@ public enum TripExport {
 
     public static func csv(for trip: TripModel) -> String {
         var lines = ["timestamp,latitude,longitude,speed_kmh,power_kw,soc_pct,battery_temp_c"]
-        lines.reserveCapacity(trip.samples.count + 1)
-        for sample in trip.samples.sorted(by: { $0.timestamp < $1.timestamp }) {
+        lines.reserveCapacity(trip.samplePoints.count + 1)
+        for sample in trip.samplePoints.sorted(by: { $0.timestamp < $1.timestamp }) {
             let coordinate: (lat: String, lon: String) =
                 sample.hasValidCoordinate
                 ? (String(format: "%.6f", sample.latitude), String(format: "%.6f", sample.longitude))
@@ -55,7 +55,7 @@ public enum TripExport {
 
     public static func gpx(for trip: TripModel) -> String {
         let name = "\(trip.vehicleName) \(trip.startTime.formatted(date: .abbreviated, time: .shortened))"
-        let route = trip.samples
+        let route = trip.samplePoints
             .filter { $0.hasValidCoordinate }
             .sorted { $0.timestamp < $1.timestamp }
         var points: [String] = []
