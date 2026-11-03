@@ -55,9 +55,13 @@ cd android
 # Emulator used during development
 $ANDROID_HOME/emulator/emulator -avd VoltLinkPixel -gpu host -memory 4096 -cores 4
 
-# The car app can be exercised on a desktop head unit:
-#   $ANDROID_HOME/extras/google/auto/desktop-head-unit
-#   adb forward tcp:5277 tcp:5277   (from a phone/emulator with the Desktop Head Unit enabled)
+# The car app runs against the Android Auto desktop head unit:
+./scripts/car-emulator.sh              # boots VoltLinkAuto34, starts the head unit server, opens the DHU
+./scripts/car-emulator.sh -a MyAvd     # any AVD with Android Auto sideloaded
+./scripts/car-emulator.sh -c default_720p.ini
+# The DHU runs in the foreground and takes console commands from that terminal: "help", and
+# "screenshot /tmp/car.png" to save the head unit frame. Never pass --usb for an emulator —
+# that switches the DHU to libusb, where it finds no device.
 ```
 
 `ScreenshotTest` records the dashboard, trip log, charging, diagnostics (including an expanded
@@ -92,7 +96,7 @@ Implemented in this pass:
 | --- | --- |
 | Live telemetry dashboard | Widget layout is user configurable (metric, dial/bar/number style, half/full width, order) and persisted; default is speed + power dials, SoC bar, 12 V and average consumption tiles, rolling chart |
 | Profile metric status | Settings sheet listing every metric the active profile supports as Live, No data or Not connected, with the OBDb provenance notice |
-| Car pane layout | Android Auto rows chosen and ordered in Settings, capped at eight, health row backed by the last DTC scan |
+| Car pane layout | Android Auto rows chosen and ordered in Settings, capped at eight and served as a scrollable list so every row reaches the host (a pane template stops at four), health row backed by the last DTC scan |
 | Scrubbable charge chart | Charge power against elapsed time with a drag readout of time, speed and SoC, for live and recorded sessions |
 | BLE ELM327 transport | Scan/connect/discover, command queue, 4 s timeout, stale-response drain, routing-failure recovery, OBD terminal log |
 | ISO-TP / UDS decoding | Same multi-ECU bucket parser, 11- and 29-bit headers, plausibility bounds |
@@ -111,7 +115,7 @@ Implemented in this pass:
 | Launcher shortcuts | Start/stop trip, scan fault codes, open charging — the App Intents equivalent; the trip label tracks the recorder |
 | Service reminder | Last vehicle-reported distance to service with 500/1000/2000/5000 km thresholds and a weekly alert |
 | Vehicle catalog | `assets/vehicle_catalog.json` (69 brands, 599 models) browsed brand → model family → model year → variant, with an EV/All filter and one search field that matches brand, model, family or model year. The picked row selects its profile and remembers the model name for trips, the widget and reminders |
-| Android Auto / AAOS | `CarAppService` + `PaneTemplate` pane with SoC, power, speed and range, refreshed from the same live snapshot as the phone UI; discovered through the `com.google.android.gms.car.application` meta-data and `res/xml/automotive_app_desc.xml` (template capability) |
+| Android Auto / AAOS | `CarAppService` + `ListTemplate` list with the configured rows, refreshed from the same live snapshot as the phone UI; discovered through the `com.google.android.gms.car.application` meta-data and `res/xml/automotive_app_desc.xml` (template capability) |
 | AI log analyzer | Gemini (`AIza…`) or OpenAI (`sk-…`) decoding of the captured OBD trace; the key is AES-GCM encrypted under an Android Keystore key |
 | Cloud backup | Opt-in mirror of trips, charging sessions and battery health to a folder picked with the system picker; restore merges the newest file by id and never deletes local rows |
 | Live Update | Charging notification promoted (`setRequestPromotedOngoing`) with a `ProgressStyle` bar, target point and short critical SoC text on Android 16+ |
@@ -136,8 +140,9 @@ Deliberate differences:
   nothing until the grammar grows.
 - Cloud sync mirrors to a document-provider folder instead of iCloud: there is one file per
   backup, restore is newest-file-wins and merges by row id.
-- The car pane renders the persisted row layout in order, up to eight rows; the host decides
-  how many fit on screen, so coolant/12 V tiles usually stay on the phone.
+- The car pane renders the persisted row layout in order as a scrollable list, because a pane
+  template silently stops at four rows and dropped the rest of the selection. The host still
+  decides how many rows are visible at once, so later tiles need a scroll.
 - The service reminder reads the `226504` service-distance metric, which only the EQA OBDb
   profile publishes; other profiles show the empty state.
 

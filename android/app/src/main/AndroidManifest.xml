@@ -43,6 +43,11 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+        <!-- Application-level on purpose: the Car App library reads this key from the
+             application info (AppInfo.retrieveMinCarAppApiLevel), not from the service. -->
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
 
         <activity
             android:name=".MainActivity"
@@ -70,9 +75,6 @@
                 <action android:name="androidx.car.app.CarAppService" />
                 <category android:name="androidx.car.app.category.CHARGING" />
             </intent-filter>
-            <meta-data
-                android:name="androidx.car.app.minCarApiLevel"
-                android:value="1" />
         </service>
 
         <!-- Home-screen telemetry widget. -->

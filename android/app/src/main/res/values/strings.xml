@@ -65,7 +65,7 @@
     <string name="car_layout_title">Android Auto layout</string>
     <string name="car_layout_usage">%1$d of %2$d rows used</string>
     <string name="car_layout_add_row">Add a row</string>
-    <string name="car_layout_full">The pane is full. Remove a row to add another.</string>
+    <string name="car_layout_full">The car list is full. Remove a row to add another.</string>
     <string name="car_layout_remove_row">Remove row</string>
     <string name="car_row_health">Diagnostics</string>
     <string name="car_row_not_scanned">Not scanned</string>
