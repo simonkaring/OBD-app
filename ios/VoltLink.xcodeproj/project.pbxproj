@@ -16,12 +16,15 @@
 		3C1928761615BF337A2CF64C /* MockDrivingSimulation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE657210D872E65641B4A022 /* MockDrivingSimulation.swift */; };
 		975CF437C71FC0B661C048F5 /* MockOBDAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F3B63371F282DE90FE9BD5 /* MockOBDAdapter.swift */; };
 		5D8998D91FF6739A05CBACE1 /* TripExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4C85E29660144464CFB5C2 /* TripExport.swift */; };
+		C4E583E863C617FFC32D3FFF /* BatteryHealthTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F85F4012F87FB27C720876 /* BatteryHealthTrend.swift */; };
+		280F355BF867867B3796C5E8 /* CloudSyncPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFA47FE92BF45FBEC30E21C /* CloudSyncPreference.swift */; };
 		1A1B210A03BCE7B337B42642 /* TripHistoryInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48F0E9CCB7200D5DD310EDE4 /* TripHistoryInsights.swift */; };
 		E8C24FA26BC81AC48BAA979D /* KnowledgeBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D607C757AF08044B8F1C813F /* KnowledgeBundle.swift */; };
 		BE28E003F2DC1B242AC344C0 /* OKFDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE27FCB0AB412011524530BE /* OKFDocument.swift */; };
 		957617C2BC4E931047E5903E /* TripLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B102133ACBEA165E70DD9800 /* TripLocationManager.swift */; };
 		21D15E48590C9ABEF79FBEDF /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E2980F26EA8FFA188CF116 /* NotificationService.swift */; };
 		0DAE288380AA0BC8129A300B /* DTCCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = D572D2D769EAD5E4820E7A4E /* DTCCode.swift */; };
+		60D1361C6AD6F802964657BA /* FreezeFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE894CA2D9684E3FA4A9DE1E /* FreezeFrame.swift */; };
 		86909977A627669841C8A52A /* ISO15765Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D4DD320586960CE1B4F0DD /* ISO15765Parser.swift */; };
 		15AD974D6D5358CABB24BD3A /* OBDConnectionProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA85207B1158C8060B33F08 /* OBDConnectionProtocol.swift */; };
 		8A7736C16FB069A49949F5B6 /* SharedTelemetryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0765617C8DF40413722A6D /* SharedTelemetryStore.swift */; };
@@ -29,34 +32,41 @@
 		217EB137B537F6CA79DE8EDC /* VoltLinkActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A801A80E1DA56AC9168B353E /* VoltLinkActivityAttributes.swift */; };
 		75D0908CAFE35420FB182A95 /* ChargingPowerEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7FD8E0A2BB4635D2775094C /* ChargingPowerEstimator.swift */; };
 		D588F6623693ABACB0959019 /* ChargingSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156889D92AF2BBE4810A56D2 /* ChargingSessionTracker.swift */; };
+		08087A0EF85FA2BE6A1B2874 /* ChargingTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A1484163A3FF30452A6ADD /* ChargingTarget.swift */; };
+		FE50741A15D7468A21F80134 /* ChargingTimeEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00F7C8EAAB381D6F0D595740 /* ChargingTimeEstimator.swift */; };
 		0610E5B77FF13868AA22B903 /* SOCReferenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D7F66EBA6161618ACB4FFA /* SOCReferenceStore.swift */; };
 		D05E9262A1F9526B0B07B2B8 /* TelemetryMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C81613BD9E310CB69C7AB64 /* TelemetryMetric.swift */; };
 		E3A5F09F5DBB8E176A09AE19 /* TelemetryPlausibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D9A0EF8954A10E49D599842 /* TelemetryPlausibility.swift */; };
 		289F895E70E41EFF9C02C0D9 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EBBE069D3CE2851A4296E17 /* Haptics.swift */; };
 		3D6E59CB213972CCAD5383B1 /* UnitPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F5B076389475DDF0422477 /* UnitPreferences.swift */; };
 		C33012F4AACBC04184720251 /* ABRPProfileLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B4378FB6D57EE077C9450A /* ABRPProfileLoader.swift */; };
+		82ADE5514F9AFDF3D8743518 /* CommunityContribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51158480E66CD8BBBCE0C18E /* CommunityContribution.swift */; };
 		5B73237AD365AFF2818DD026 /* GenericEVProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A42079470B75C8811EBE6FE3 /* GenericEVProfile.swift */; };
 		C6C3CB1745EF1D7C90C9BBC7 /* GenericOBD2Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 812D181FB829B91E90539380 /* GenericOBD2Profile.swift */; };
 		737320C5C118867EB3443F43 /* HyundaiKiaEGMPProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9697C87EE2AB29390FBA8613 /* HyundaiKiaEGMPProfile.swift */; };
 		E2498FC2601CF2CD63B51931 /* MercedesEQA250Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB7F7E727E478E78D6E7E08 /* MercedesEQA250Profile.swift */; };
 		0F47FF80771E4B835224DEAA /* MercedesEQAOBDbProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C21EEC7CFFE67C757EFE899C /* MercedesEQAOBDbProfile.swift */; };
 		C80BCF1746F1D46CE366D0F8 /* NissanLeafZE1Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F086422DF023190AC32FD4 /* NissanLeafZE1Profile.swift */; };
+		6437BCA1516D3D93AA00E0C2 /* ServiceReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80B4EFA96A545106B21CD75A /* ServiceReminder.swift */; };
 		401C31152FBC5297B5876C3F /* VehicleCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060137BE0BF5383E2BD4D7FB /* VehicleCatalog.swift */; };
 		69DF6A475FDE18097FB6F035 /* VehicleProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C46F1108BFC67B5939AFC1C5 /* VehicleProfile.swift */; };
 		95C2A03550617380BC46BAF2 /* VehicleProfileRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32DF173D7AE5156FC0B69EE8 /* VehicleProfileRegistry.swift */; };
 		F23943CA9C9DD6651F30D84F /* VolkswagenMEBProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C0F2BC5442D1C16DD6DFF92 /* VolkswagenMEBProfile.swift */; };
+		1F7F33C89156990156B0685C /* BatteryHealthSampleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAFDEC29340040984446DC1A /* BatteryHealthSampleModel.swift */; };
 		723CAB914C05222185CF1AB4 /* ChargingSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2CDD5BBB309721C841567AB /* ChargingSessionModel.swift */; };
 		7E68CA1155FBA4DE5D28B4D6 /* TripModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BE5798B924F7E3F39D26E2 /* TripModel.swift */; };
 		F8AF7A24B93E1D4A93C9BBF6 /* VoltLinkSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AF67076EE2FA4391B81BC60 /* VoltLinkSchema.swift */; };
 		4B09AAF9AB8FD11539B75171 /* DTCLocalDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4646CD18FBEC7765E4AAF338 /* DTCLocalDatabase.swift */; };
 		B79E3CBBF4E931DD77E1CF4A /* AILogAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DA4FCDE466E48ABAA3EA2F /* AILogAnalyzer.swift */; };
 		D83D2F7E6A9008A9123344D4 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C28BA4DEC955953248EA413 /* AppIntents.swift */; };
+		7712EBE728F3D36510C7723C /* BatteryHealthRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E5195B08C60512B7069AB8 /* BatteryHealthRecorder.swift */; };
 		CAD7E23DEFBBBC88B1C0736E /* ChargingTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621241359FA03325A2EB4794 /* ChargingTrackingManager.swift */; };
 		350944F1C61713E1399A91A6 /* DTCScannerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EA7D59AED48C94286F2977B /* DTCScannerService.swift */; };
 		F9064B6A4685174EA1EA745E /* LiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B060A7CF2869DDF95096A8 /* LiveActivityCoordinator.swift */; };
 		86927312F7E1B2EDE0C2FB79 /* TelemetryPollingLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BC7F51D4B1653301B7E2DF0 /* TelemetryPollingLoop.swift */; };
 		3F4C1D555209F912AFE20CCF /* TripTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DD96D932CA3904DB8F59A78 /* TripTrackingManager.swift */; };
 		A704B79FFBA6BF8CE067AFFA /* VehicleDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D62ABA0589F89C112081016 /* VehicleDataManager.swift */; };
+		8DD07DD01D8A96303296EC1D /* BatteryHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA08D61F4498F0F8E4926291 /* BatteryHealthView.swift */; };
 		871020AA892CA05DD904FC47 /* ChargingLiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD3692C108CBB44E95504B /* ChargingLiveView.swift */; };
 		B47CEF6A31A7A8AFC19317FF /* ChargingSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E104F9AB704ADE22321279D /* ChargingSessionDetailView.swift */; };
 		4B72269FCB42DF3E1AE8713F /* ChargingSessionSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1027041DF6892E6AE42E588 /* ChargingSessionSummary.swift */; };
@@ -146,12 +156,15 @@
 		DE657210D872E65641B4A022 /* MockDrivingSimulation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MockDrivingSimulation.swift"; sourceTree = "<group>"; };
 		72F3B63371F282DE90FE9BD5 /* MockOBDAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MockOBDAdapter.swift"; sourceTree = "<group>"; };
 		6F4C85E29660144464CFB5C2 /* TripExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripExport.swift"; sourceTree = "<group>"; };
+		07F85F4012F87FB27C720876 /* BatteryHealthTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatteryHealthTrend.swift"; sourceTree = "<group>"; };
+		2DFA47FE92BF45FBEC30E21C /* CloudSyncPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudSyncPreference.swift"; sourceTree = "<group>"; };
 		48F0E9CCB7200D5DD310EDE4 /* TripHistoryInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripHistoryInsights.swift"; sourceTree = "<group>"; };
 		D607C757AF08044B8F1C813F /* KnowledgeBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KnowledgeBundle.swift"; sourceTree = "<group>"; };
 		FE27FCB0AB412011524530BE /* OKFDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OKFDocument.swift"; sourceTree = "<group>"; };
 		B102133ACBEA165E70DD9800 /* TripLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripLocationManager.swift"; sourceTree = "<group>"; };
 		A1E2980F26EA8FFA188CF116 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationService.swift"; sourceTree = "<group>"; };
 		D572D2D769EAD5E4820E7A4E /* DTCCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCCode.swift"; sourceTree = "<group>"; };
+		FE894CA2D9684E3FA4A9DE1E /* FreezeFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FreezeFrame.swift"; sourceTree = "<group>"; };
 		68D4DD320586960CE1B4F0DD /* ISO15765Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ISO15765Parser.swift"; sourceTree = "<group>"; };
 		AAA85207B1158C8060B33F08 /* OBDConnectionProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OBDConnectionProtocol.swift"; sourceTree = "<group>"; };
 		FB0765617C8DF40413722A6D /* SharedTelemetryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SharedTelemetryStore.swift"; sourceTree = "<group>"; };
@@ -159,34 +172,41 @@
 		A801A80E1DA56AC9168B353E /* VoltLinkActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkActivityAttributes.swift"; sourceTree = "<group>"; };
 		A7FD8E0A2BB4635D2775094C /* ChargingPowerEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingPowerEstimator.swift"; sourceTree = "<group>"; };
 		156889D92AF2BBE4810A56D2 /* ChargingSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionTracker.swift"; sourceTree = "<group>"; };
+		63A1484163A3FF30452A6ADD /* ChargingTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingTarget.swift"; sourceTree = "<group>"; };
+		00F7C8EAAB381D6F0D595740 /* ChargingTimeEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingTimeEstimator.swift"; sourceTree = "<group>"; };
 		83D7F66EBA6161618ACB4FFA /* SOCReferenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SOCReferenceStore.swift"; sourceTree = "<group>"; };
 		8C81613BD9E310CB69C7AB64 /* TelemetryMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetryMetric.swift"; sourceTree = "<group>"; };
 		6D9A0EF8954A10E49D599842 /* TelemetryPlausibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetryPlausibility.swift"; sourceTree = "<group>"; };
 		7EBBE069D3CE2851A4296E17 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Haptics.swift"; sourceTree = "<group>"; };
 		D8F5B076389475DDF0422477 /* UnitPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UnitPreferences.swift"; sourceTree = "<group>"; };
 		C1B4378FB6D57EE077C9450A /* ABRPProfileLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ABRPProfileLoader.swift"; sourceTree = "<group>"; };
+		51158480E66CD8BBBCE0C18E /* CommunityContribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CommunityContribution.swift"; sourceTree = "<group>"; };
 		A42079470B75C8811EBE6FE3 /* GenericEVProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GenericEVProfile.swift"; sourceTree = "<group>"; };
 		812D181FB829B91E90539380 /* GenericOBD2Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GenericOBD2Profile.swift"; sourceTree = "<group>"; };
 		9697C87EE2AB29390FBA8613 /* HyundaiKiaEGMPProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HyundaiKiaEGMPProfile.swift"; sourceTree = "<group>"; };
 		8CB7F7E727E478E78D6E7E08 /* MercedesEQA250Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MercedesEQA250Profile.swift"; sourceTree = "<group>"; };
 		C21EEC7CFFE67C757EFE899C /* MercedesEQAOBDbProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MercedesEQAOBDbProfile.swift"; sourceTree = "<group>"; };
 		A9F086422DF023190AC32FD4 /* NissanLeafZE1Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NissanLeafZE1Profile.swift"; sourceTree = "<group>"; };
+		80B4EFA96A545106B21CD75A /* ServiceReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ServiceReminder.swift"; sourceTree = "<group>"; };
 		060137BE0BF5383E2BD4D7FB /* VehicleCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleCatalog.swift"; sourceTree = "<group>"; };
 		C46F1108BFC67B5939AFC1C5 /* VehicleProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfile.swift"; sourceTree = "<group>"; };
 		32DF173D7AE5156FC0B69EE8 /* VehicleProfileRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleProfileRegistry.swift"; sourceTree = "<group>"; };
 		1C0F2BC5442D1C16DD6DFF92 /* VolkswagenMEBProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VolkswagenMEBProfile.swift"; sourceTree = "<group>"; };
+		EAFDEC29340040984446DC1A /* BatteryHealthSampleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatteryHealthSampleModel.swift"; sourceTree = "<group>"; };
 		B2CDD5BBB309721C841567AB /* ChargingSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionModel.swift"; sourceTree = "<group>"; };
 		79BE5798B924F7E3F39D26E2 /* TripModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripModel.swift"; sourceTree = "<group>"; };
 		3AF67076EE2FA4391B81BC60 /* VoltLinkSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkSchema.swift"; sourceTree = "<group>"; };
 		4646CD18FBEC7765E4AAF338 /* DTCLocalDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCLocalDatabase.swift"; sourceTree = "<group>"; };
 		27DA4FCDE466E48ABAA3EA2F /* AILogAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AILogAnalyzer.swift"; sourceTree = "<group>"; };
 		5C28BA4DEC955953248EA413 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppIntents.swift"; sourceTree = "<group>"; };
+		13E5195B08C60512B7069AB8 /* BatteryHealthRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatteryHealthRecorder.swift"; sourceTree = "<group>"; };
 		621241359FA03325A2EB4794 /* ChargingTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingTrackingManager.swift"; sourceTree = "<group>"; };
 		9EA7D59AED48C94286F2977B /* DTCScannerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCScannerService.swift"; sourceTree = "<group>"; };
 		A9B060A7CF2869DDF95096A8 /* LiveActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LiveActivityCoordinator.swift"; sourceTree = "<group>"; };
 		8BC7F51D4B1653301B7E2DF0 /* TelemetryPollingLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TelemetryPollingLoop.swift"; sourceTree = "<group>"; };
 		2DD96D932CA3904DB8F59A78 /* TripTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripTrackingManager.swift"; sourceTree = "<group>"; };
 		8D62ABA0589F89C112081016 /* VehicleDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VehicleDataManager.swift"; sourceTree = "<group>"; };
+		FA08D61F4498F0F8E4926291 /* BatteryHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatteryHealthView.swift"; sourceTree = "<group>"; };
 		6FCD3692C108CBB44E95504B /* ChargingLiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingLiveView.swift"; sourceTree = "<group>"; };
 		2E104F9AB704ADE22321279D /* ChargingSessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionDetailView.swift"; sourceTree = "<group>"; };
 		E1027041DF6892E6AE42E588 /* ChargingSessionSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionSummary.swift"; sourceTree = "<group>"; };
@@ -368,6 +388,8 @@
 		340ED93C0D77CD0655B0A9E3 /* History */ = {
 			isa = PBXGroup;
 			children = (
+				07F85F4012F87FB27C720876,
+				2DFA47FE92BF45FBEC30E21C,
 				48F0E9CCB7200D5DD310EDE4
 			);
 			path = "History";
@@ -402,6 +424,7 @@
 			isa = PBXGroup;
 			children = (
 				D572D2D769EAD5E4820E7A4E,
+				FE894CA2D9684E3FA4A9DE1E,
 				68D4DD320586960CE1B4F0DD,
 				AAA85207B1158C8060B33F08
 			);
@@ -423,6 +446,8 @@
 			children = (
 				A7FD8E0A2BB4635D2775094C,
 				156889D92AF2BBE4810A56D2,
+				63A1484163A3FF30452A6ADD,
+				00F7C8EAAB381D6F0D595740,
 				83D7F66EBA6161618ACB4FFA,
 				8C81613BD9E310CB69C7AB64,
 				6D9A0EF8954A10E49D599842
@@ -450,12 +475,14 @@
 			isa = PBXGroup;
 			children = (
 				C1B4378FB6D57EE077C9450A,
+				51158480E66CD8BBBCE0C18E,
 				A42079470B75C8811EBE6FE3,
 				812D181FB829B91E90539380,
 				9697C87EE2AB29390FBA8613,
 				8CB7F7E727E478E78D6E7E08,
 				C21EEC7CFFE67C757EFE899C,
 				A9F086422DF023190AC32FD4,
+				80B4EFA96A545106B21CD75A,
 				060137BE0BF5383E2BD4D7FB,
 				C46F1108BFC67B5939AFC1C5,
 				32DF173D7AE5156FC0B69EE8,
@@ -477,6 +504,7 @@
 		A84A4482FBC42A8F40C92C97 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				EAFDEC29340040984446DC1A,
 				B2CDD5BBB309721C841567AB,
 				79BE5798B924F7E3F39D26E2,
 				3AF67076EE2FA4391B81BC60
@@ -537,6 +565,7 @@
 			children = (
 				27DA4FCDE466E48ABAA3EA2F,
 				5C28BA4DEC955953248EA413,
+				13E5195B08C60512B7069AB8,
 				621241359FA03325A2EB4794,
 				9EA7D59AED48C94286F2977B,
 				A9B060A7CF2869DDF95096A8,
@@ -563,6 +592,7 @@
 		FDEA329814597BAD38123248 /* Charging */ = {
 			isa = PBXGroup;
 			children = (
+				FA08D61F4498F0F8E4926291,
 				6FCD3692C108CBB44E95504B,
 				2E104F9AB704ADE22321279D,
 				E1027041DF6892E6AE42E588,
@@ -830,12 +860,15 @@
 				3C1928761615BF337A2CF64C /* MockDrivingSimulation.swift in Sources */,
 				975CF437C71FC0B661C048F5 /* MockOBDAdapter.swift in Sources */,
 				5D8998D91FF6739A05CBACE1 /* TripExport.swift in Sources */,
+				C4E583E863C617FFC32D3FFF /* BatteryHealthTrend.swift in Sources */,
+				280F355BF867867B3796C5E8 /* CloudSyncPreference.swift in Sources */,
 				1A1B210A03BCE7B337B42642 /* TripHistoryInsights.swift in Sources */,
 				E8C24FA26BC81AC48BAA979D /* KnowledgeBundle.swift in Sources */,
 				BE28E003F2DC1B242AC344C0 /* OKFDocument.swift in Sources */,
 				957617C2BC4E931047E5903E /* TripLocationManager.swift in Sources */,
 				21D15E48590C9ABEF79FBEDF /* NotificationService.swift in Sources */,
 				0DAE288380AA0BC8129A300B /* DTCCode.swift in Sources */,
+				60D1361C6AD6F802964657BA /* FreezeFrame.swift in Sources */,
 				86909977A627669841C8A52A /* ISO15765Parser.swift in Sources */,
 				15AD974D6D5358CABB24BD3A /* OBDConnectionProtocol.swift in Sources */,
 				8A7736C16FB069A49949F5B6 /* SharedTelemetryStore.swift in Sources */,
@@ -843,34 +876,41 @@
 				217EB137B537F6CA79DE8EDC /* VoltLinkActivityAttributes.swift in Sources */,
 				75D0908CAFE35420FB182A95 /* ChargingPowerEstimator.swift in Sources */,
 				D588F6623693ABACB0959019 /* ChargingSessionTracker.swift in Sources */,
+				08087A0EF85FA2BE6A1B2874 /* ChargingTarget.swift in Sources */,
+				FE50741A15D7468A21F80134 /* ChargingTimeEstimator.swift in Sources */,
 				0610E5B77FF13868AA22B903 /* SOCReferenceStore.swift in Sources */,
 				D05E9262A1F9526B0B07B2B8 /* TelemetryMetric.swift in Sources */,
 				E3A5F09F5DBB8E176A09AE19 /* TelemetryPlausibility.swift in Sources */,
 				289F895E70E41EFF9C02C0D9 /* Haptics.swift in Sources */,
 				3D6E59CB213972CCAD5383B1 /* UnitPreferences.swift in Sources */,
 				C33012F4AACBC04184720251 /* ABRPProfileLoader.swift in Sources */,
+				82ADE5514F9AFDF3D8743518 /* CommunityContribution.swift in Sources */,
 				5B73237AD365AFF2818DD026 /* GenericEVProfile.swift in Sources */,
 				C6C3CB1745EF1D7C90C9BBC7 /* GenericOBD2Profile.swift in Sources */,
 				737320C5C118867EB3443F43 /* HyundaiKiaEGMPProfile.swift in Sources */,
 				E2498FC2601CF2CD63B51931 /* MercedesEQA250Profile.swift in Sources */,
 				0F47FF80771E4B835224DEAA /* MercedesEQAOBDbProfile.swift in Sources */,
 				C80BCF1746F1D46CE366D0F8 /* NissanLeafZE1Profile.swift in Sources */,
+				6437BCA1516D3D93AA00E0C2 /* ServiceReminder.swift in Sources */,
 				401C31152FBC5297B5876C3F /* VehicleCatalog.swift in Sources */,
 				69DF6A475FDE18097FB6F035 /* VehicleProfile.swift in Sources */,
 				95C2A03550617380BC46BAF2 /* VehicleProfileRegistry.swift in Sources */,
 				F23943CA9C9DD6651F30D84F /* VolkswagenMEBProfile.swift in Sources */,
+				1F7F33C89156990156B0685C /* BatteryHealthSampleModel.swift in Sources */,
 				723CAB914C05222185CF1AB4 /* ChargingSessionModel.swift in Sources */,
 				7E68CA1155FBA4DE5D28B4D6 /* TripModel.swift in Sources */,
 				F8AF7A24B93E1D4A93C9BBF6 /* VoltLinkSchema.swift in Sources */,
 				4B09AAF9AB8FD11539B75171 /* DTCLocalDatabase.swift in Sources */,
 				B79E3CBBF4E931DD77E1CF4A /* AILogAnalyzer.swift in Sources */,
 				D83D2F7E6A9008A9123344D4 /* AppIntents.swift in Sources */,
+				7712EBE728F3D36510C7723C /* BatteryHealthRecorder.swift in Sources */,
 				CAD7E23DEFBBBC88B1C0736E /* ChargingTrackingManager.swift in Sources */,
 				350944F1C61713E1399A91A6 /* DTCScannerService.swift in Sources */,
 				F9064B6A4685174EA1EA745E /* LiveActivityCoordinator.swift in Sources */,
 				86927312F7E1B2EDE0C2FB79 /* TelemetryPollingLoop.swift in Sources */,
 				3F4C1D555209F912AFE20CCF /* TripTrackingManager.swift in Sources */,
 				A704B79FFBA6BF8CE067AFFA /* VehicleDataManager.swift in Sources */,
+				8DD07DD01D8A96303296EC1D /* BatteryHealthView.swift in Sources */,
 				871020AA892CA05DD904FC47 /* ChargingLiveView.swift in Sources */,
 				B47CEF6A31A7A8AFC19317FF /* ChargingSessionDetailView.swift in Sources */,
 				4B72269FCB42DF3E1AE8713F /* ChargingSessionSummary.swift in Sources */,
