@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: "Charging and sessions"
-description: "Live charging state, persisted charge sessions, power estimation, and the start-SOC indicator."
+description: "Live charging state, persisted charge sessions, power estimation, time-to-target estimates, battery health history, and the start-SOC indicator."
 tags: [architecture, charging, telemetry]
 status: stable
 sources:
@@ -14,6 +14,12 @@ sources:
 - id: model
   resource: ../Data/Models/ChargingSessionModel.swift
   title: ChargingSessionModel
+- id: estimator
+  resource: ../Core/Telemetry/ChargingTimeEstimator.swift
+  title: ChargingTimeEstimator
+- id: health
+  resource: ../Services/BatteryHealthRecorder.swift
+  title: BatteryHealthRecorder
 ---
 
 # Two layers
@@ -65,6 +71,47 @@ speed:
   known, so the UI shows `—` rather than a misleading 0 kW.
 - `ChargingLiveView` and the active session card tick once a second through
   `TimelineView`; completed log rows use the stored end time and need no timer.
+
+# Time to target
+
+`ChargingTimeEstimator` answers "how long until 80% / 100%?" by integrating
+1% SOC bands instead of dividing the remaining energy once by the current rate.
+A single division is badly wrong on DC chargers, where the pack tapers as it
+fills.
+
+- `ChargingTarget` owns the shared preference (`charging.targetSOC`, default
+  80%) and the offered values 50…100%. Settings and the Charging tab both read
+  it.
+- AC sessions (at or below `dcPowerThresholdKW`, 22 kW) keep their current rate.
+  DC sessions either continue the negative kW-per-percent slope measured from
+  the session's own curve (`observedTaperSlope`), or, when the curve is too
+  short, follow an exponential taper from 80% down to `taperFloorRatio` (20% of
+  the current rate) near 100%.
+- Targets already reached return `0`, unusable inputs return `nil`, and an
+  estimate beyond `maximumEstimate` (24 h) is rejected rather than displayed.
+- `ChargingLiveView` shows the estimate to the stored target and to 100%, with
+  a menu to change the target in place.
+  `ChargingSessionTracker.estimatedSecondsToTarget` delegates to the same
+  estimator.
+- `ChargingTrackingManager.checkChargeTarget` raises the opt-in
+  "Charge Target Reached" notification once per session, only when the session
+  started below the target and the pack crosses it while recording.
+
+# Battery health history
+
+State of health was previously live-only, so degradation could never be seen.
+`AppEnvironment` now samples it through `BatteryHealthRecorder`:
+
+- One `BatteryHealthSampleModel` row per vehicle per calendar day, written at
+  most every ten minutes from the telemetry stream; later readings replace that
+  day's row.
+- Readings outside `plausibleSOH` (50…100%) are rejected so a decode glitch
+  cannot plant a fake point. Demo mode is excluded.
+- `recordedDistanceKm` sums completed trips at the time of the reading. It is
+  VoltLink-recorded distance, not the vehicle odometer.
+- `BatteryHealthTrend.summarize` returns the change since the first reading and,
+  once at least 14 days are observed, a straight-line annualized change. The
+  Battery Health screen charts the samples and the Charging tab links to it.
 
 # Detection and estimation
 

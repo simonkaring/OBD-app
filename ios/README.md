@@ -105,10 +105,12 @@ hand-editing the project file.
 
 #### Signing with a Free (Personal) Apple ID
 
-`App/VoltLink.entitlements` requests `com.apple.developer.carplay-driving-task`
-and the `group.com.simonkaring.voltlink` App Group, and the widget extension
-requests that group too. A free Personal Team can provision neither capability,
-so device builds stop at "Cannot create a development provisioning profile".
+`App/VoltLink.entitlements` requests `com.apple.developer.carplay-driving-task`,
+the `group.com.simonkaring.voltlink` App Group, and the
+`iCloud.com.simonkaring.voltlink` container for the optional CloudKit sync, and
+the widget extension requests the App Group too. A free Personal Team can
+provision none of these capabilities, so device builds stop at "Cannot create a
+development provisioning profile".
 For local device testing on a free account, generate the project without the
 restricted entitlements:
 
@@ -116,11 +118,13 @@ restricted entitlements:
 python3 scratch/make_xcodeproj.py --local-signing
 ```
 
-The app then installs and runs normally, but CarPlay stays inert and the widget
+The app then installs and runs normally, but CarPlay stays inert, the widget
 shows placeholder data (`SharedTelemetryStore` falls back to standard
-`UserDefaults` when the app group is missing). Regenerate without the flag once
-the project is on a paid Apple Developer Program team and Apple has granted the
-CarPlay Driving Task entitlement. Xcode's team selection lives in the generated
+`UserDefaults` when the app group is missing), and iCloud Sync reports that the
+container could not start while history keeps saving locally. Regenerate without
+the flag once the project is on a paid Apple Developer Program team and Apple
+has granted the CarPlay Driving Task entitlement; enable the iCloud capability
+and container in the Apple Developer portal for sync. Xcode's team selection lives in the generated
 project, so export it to survive regeneration:
 
 ```bash
@@ -159,7 +163,7 @@ Don't have an OBD-II adapter nearby? No problem!
 
 1. Navigate to the **Diagnostics** tab.
 2. Tap **Scan DTCs** to read active and pending fault codes from vehicle ECUs.
-3. Tap any code to inspect detailed severity ratings, symptoms, and repair recommendations.
+3. Tap any code to inspect detailed severity ratings, symptoms, repair recommendations, and the **conditions at fault** — the Mode 02 freeze-frame snapshot (speed, load, temperatures, module voltage) the ECU stored when it raised the code.
 4. Tap **Clear Diagnostic Trouble Codes** to send Mode 04 code clearance commands.
 
 ---
@@ -203,8 +207,28 @@ Don't have an OBD-II adapter nearby? No problem!
 - Charging session details chart the recorded charge speed over elapsed time
   (schema V2); drag across the curve to read the speed, time, and SOC at any
   moment.
-- Notifications for charging finished, adapter loss during a trip, and fault
-  codes are opt-in and requested on first enable.
+- The Charging tab estimates time to your charge target (Settings → Charging,
+  default 80%) and to 100% by integrating the session's own curve, including
+  the DC taper above 80%. Changing the target from the Charging tab or Settings
+  updates both estimates, and the opt-in *Charge Target Reached* alert fires
+  once per session.
+- **Battery Health** (Charging tab) charts one state-of-health reading per day
+  per vehicle, with change since the first reading, a yearly projection after
+  two weeks, and the distance VoltLink has recorded. Readings are rejected
+  outside 50–100% and never recorded in demo mode.
+- Settings → Maintenance shows the vehicle-reported distance to the next
+  service (Mercedes-Benz EQA 250 OBDb profile) with a threshold picker and a
+  weekly "service due" reminder.
+- **iCloud Sync** (Settings, off by default) mirrors trips, charging sessions,
+  and battery health to your private iCloud database. It needs a build signed
+  with the iCloud capability and takes effect after a restart; if the container
+  cannot start, history keeps saving locally.
+- The OBD Terminal can export a **PID Contribution**: a JSON document of every
+  recent command that decoded to a known metric, its raw response, observation
+  count, and decoded values, ready to share with a community profile catalog.
+- Notifications for charging finished, charge target reached, adapter loss
+  during a trip, fault codes, and service due are opt-in and requested on first
+  enable.
 
 ## 🛠️ Architecture & Tech Stack
 
@@ -215,7 +239,7 @@ Don't have an OBD-II adapter nearby? No problem!
 - **CarPlay**: `CPTemplateApplicationSceneDelegate` + `CPGridTemplate`
 - **Widgets & Live Activities**: WidgetKit extension (`Widgets/`) with a Home Screen status widget and ActivityKit Lock Screen/Dynamic Island presentations, fed by an app-group snapshot
 - **Siri & Shortcuts**: App Intents for charge status, start trip, and stop trip
-- **Persistence**: Versioned SwiftData schema V2 (`TripModel`, `ChargingSessionModel` with curve samples, `SavedDTCModel`) using inferred lightweight migration
+- **Persistence**: Versioned SwiftData schema V3 (`TripModel`, `ChargingSessionModel` with curve samples, `SavedDTCModel`, `BatteryHealthSampleModel`) using inferred lightweight migration; optional CloudKit mirroring (`cloudKitDatabase: .automatic`) with a local-store fallback
 - **Units**: User-selectable metric/imperial distance, °C/°F, and kW/hp through `Core/Units/UnitPreferences`
 - **Notifications**: Optional local alerts for charging finished, adapter disconnects during a trip, and newly found fault codes
 - **Export**: Trip GPX/CSV and charging-session CSV via `Transferable` share sheets

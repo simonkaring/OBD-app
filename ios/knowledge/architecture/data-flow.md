@@ -68,11 +68,37 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
    SwiftData history store to the app's own Application Support directory so
    adding (or changing) an app group cannot make SwiftData open a new, empty
    store and orphan trips recorded by an earlier version.
-8. Local notifications are edge-triggered from their owners:
-   `ChargingTrackingManager` (session finished), `VehicleDataManager` via
-   `onUnexpectedDisconnect` (adapter lost while a trip is recording), and
-   `DTCScannerService` (fault codes found). `NotificationService` gates each on
+
+   iCloud sync is opt-in (`CloudSyncPreference`, off by default). When enabled,
+   the same store is opened with `cloudKitDatabase: .automatic`; if the container
+   cannot start — a build without the iCloud entitlement, for example — the app
+   falls back to the identical local store and reports `syncWarning` in Settings
+   instead of dropping to in-memory history. Models must stay CloudKit-shaped:
+   every attribute needs a declaration default or optionality, and every
+   relationship must be optional with an inverse (`CloudSyncSchemaTests`).
+8. Side effects that persist across launches also hang off the telemetry stream:
+   - `BatteryHealthRecorder` stores at most one state-of-health sample per
+     vehicle per day (see [Charging and sessions](/architecture/charging.md)).
+   - `ServiceReminderMonitor` remembers the last `serviceDistance` per vehicle
+     and raises a weekly reminder when it drops below the Settings threshold.
+   Both are throttled so they never fetch or save on every 1 Hz snapshot.
+9. Local notifications are edge-triggered from their owners:
+   `ChargingTrackingManager` (session finished, charge target reached),
+   `VehicleDataManager` via `onUnexpectedDisconnect` (adapter lost while a trip
+   is recording), `DTCScannerService` (fault codes found), and
+   `ServiceReminderMonitor` (service due). `NotificationService` gates each on
    its Settings preference.
+
+# Fault scans
+
+Diagnostics follow the same parser path but not the polling loop.
+`DTCScannerService` takes exclusive ownership of the adapter for the duration of
+a scan (stored codes via Mode 03, pending via Mode 07), then reads Mode 02
+freeze frames through `FreezeFrameSignal` before restoring the profile's
+addressing. Each signal is requested individually and skipped when the ECU
+answers `NO DATA` or a negative response, so an unsupported PID never turns a
+successful scan into an error. The decoded values are attached to every code as
+`DTCCode.freezeFrameData` and rendered under "Conditions at fault".
 
 # Freshness and availability
 

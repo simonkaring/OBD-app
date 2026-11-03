@@ -39,7 +39,13 @@ iOS-only code (`UI`, `CarPlay`, `App`).
 | `MercedesEQAOBDbProfileTests`, `VolkswagenMEBProfileTests` | Profile decoders and plausible ranges |
 | `GenericOBD2ProfileTests` | SAE J1979 fallback |
 | `TripAndTelemetryTests` | Snapshot state machine, charging estimates, sessions |
-| `TripPersistenceTests` | SwiftData trip/charge persistence, schema V2 curve samples, save failures |
+| `TripPersistenceTests` | SwiftData trip/charge persistence, curve samples, save failures |
+| `FreezeFrameTests` | Mode 02 PID scaling, frame-number and negative-response rejection |
+| `ChargingTimeEstimatorTests` | AC constant rate, DC taper, observed-slope projection, input guards |
+| `BatteryHealthTests` | Daily SOH dedupe/update, recorded distance, trend and annualization |
+| `ServiceReminderTests` | Per-vehicle snapshots, threshold, weekly cooldown, bad readings |
+| `CommunityContributionTests` | Profile decoding, aggregation, JSON round trip, filename safety |
+| `CloudSyncSchemaTests` | CloudKit attribute defaults, optional relationships with inverses, V3 entities |
 | `VehicleProfileCalibrationTests` | Initialization, calibration, SOC reference |
 | `ConsumptionTelemetryTests` | Efficiency and demo simulation |
 | `TripExportTests` | Trip GPX/CSV and charging CSV export formats |
@@ -73,6 +79,16 @@ The widget/Live Activity target is built by the Xcode scheme, not by
 sharing therefore need a manual simulator run (or the UI test scheme build) to
 verify. App-group data sharing requires the group to be provisioned for signed
 builds.
+
+# iCloud sync
+
+`CloudSyncSchemaTests` validates the two CloudKit model rules without an iCloud
+account: every attribute has a declaration default (or is optional), and every
+relationship is optional and has an inverse. Actual mirroring cannot be tested
+from `swift test` — the container needs the iCloud entitlement and a signed-in
+account — so enabling Settings → iCloud Sync and checking a second device is a
+manual, device-build step. `AppEnvironment` treats a failed CloudKit container
+as a warning and keeps the local store running.
 
 # Verification gates
 
