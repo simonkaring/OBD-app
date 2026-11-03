@@ -141,6 +141,29 @@ public final class MockOBDAdapter: ObservableObject, OBDConnectionProtocol {
                 case "0133", "01 33":  // Barometric Pressure
                     let raw = Int(self.simulationEngine.telemetry.barometricPressureKPa)
                     mockHex = String(format: "41 33 %02X\r\n>", raw)
+                case "020400":  // Freeze-frame engine load
+                    let raw = Int(self.simulationEngine.telemetry.engineLoadPct * 255.0 / 100.0)
+                    mockHex = String(format: "42 04 00 %02X\r\n>", raw)
+                case "020500":  // Freeze-frame coolant temp
+                    let raw = Int(self.simulationEngine.telemetry.coolantTempC + 40.0)
+                    mockHex = String(format: "42 05 00 %02X\r\n>", raw)
+                case "020C00":  // Freeze-frame engine speed
+                    let raw = Int(self.simulationEngine.telemetry.motorRpm * 4.0)
+                    mockHex = String(format: "42 0C 00 %02X %02X\r\n>", (raw >> 8) & 0xFF, raw & 0xFF)
+                case "020D00":  // Freeze-frame vehicle speed
+                    mockHex = String(format: "42 0D 00 %02X\r\n>", Int(self.simulationEngine.telemetry.speedKmH))
+                case "020F00":  // Freeze-frame intake air temp
+                    let raw = Int(self.simulationEngine.telemetry.intakeAirTempC + 40.0)
+                    mockHex = String(format: "42 0F 00 %02X\r\n>", raw)
+                case "021100":  // Freeze-frame throttle position
+                    let raw = Int(self.simulationEngine.telemetry.throttlePositionPct * 255.0 / 100.0)
+                    mockHex = String(format: "42 11 00 %02X\r\n>", raw)
+                case "022F00":  // Freeze-frame fuel / charge level
+                    let raw = Int(self.simulationEngine.telemetry.fuelLevelPct * 255.0 / 100.0)
+                    mockHex = String(format: "42 2F 00 %02X\r\n>", raw)
+                case "024200":  // Freeze-frame control module voltage
+                    let raw = Int(self.simulationEngine.telemetry.aux12VVolts * 1000.0)
+                    mockHex = String(format: "42 42 00 %02X %02X\r\n>", (raw >> 8) & 0xFF, raw & 0xFF)
                 case "03", "03\r":  // Scan DTCs
                     if self.simulationEngine.scenario == .faultInjection || self.simulationEngine.injectedFaultCode != nil {
                         mockHex = "43 01 0A 80 00 00\r\n>"  // P0A80

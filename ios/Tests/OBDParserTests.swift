@@ -493,6 +493,21 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(scanner.scannedCodes.first?.title, "Diagnostic Code P1105")
     }
 
+    func testScanAttachesMode02ConditionsToEveryCode() {
+        let scanner = DTCScannerService()
+        let connection = ScriptedConnection(response: .success("43 01 0A 80 00 00\r>"))
+        connection.responses["020D00"] = .success("42 0D 00 3C\r>")
+        connection.responses["020500"] = .success("42 05 00 64\r>")
+
+        scanner.scanDTCs(connection: connection)
+
+        XCTAssertEqual(scanner.scannedCodes.first?.freezeFrameData?["Vehicle speed"], "60 km/h")
+        XCTAssertEqual(scanner.scannedCodes.first?.freezeFrameData?["Coolant"], "60 °C")
+        XCTAssertTrue(connection.sentCommands.contains("020D00"), "Speed freeze frame is requested after the codes")
+        XCTAssertTrue(connection.sentCommands.contains("024200"), "Unsupported frames are attempted and skipped")
+        XCTAssertTrue(scanner.scanSucceeded, "An unsupported freeze-frame PID must not fail the scan")
+    }
+
     func testDTCScannerSingleFrameDecodesCorrectCode() {
         let scanner = DTCScannerService()
         // 43 (Mode 03 response) 01 (count = 1) 0A 80 (DTC bytes) 00 00 (padding)

@@ -27,6 +27,25 @@ public final class ISO15765Parser: Sendable {
     /// CAN identifier bucket for lines carrying no header at all (e.g. `AT H0`).
     public static let headerlessECU = ""
 
+    /// Parses a compact hex string (whitespace is ignored) into bytes. Odd-length or
+    /// non-hex input yields an empty array instead of a partially decoded payload.
+    public static func hexBytes(_ hex: String) -> [UInt8] {
+        let clean = hex.replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+        guard clean.count % 2 == 0 else { return [] }
+
+        var bytes: [UInt8] = []
+        var index = clean.startIndex
+        while index < clean.endIndex {
+            let nextIndex = clean.index(index, offsetBy: 2)
+            guard let byte = UInt8(clean[index..<nextIndex], radix: 16) else { return [] }
+            bytes.append(byte)
+            index = nextIndex
+        }
+        return bytes
+    }
+
     private struct Bucket {
         var payloadHex = ""
         var multiFrameStart: Int?

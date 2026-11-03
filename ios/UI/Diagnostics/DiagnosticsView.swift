@@ -201,6 +201,27 @@ public struct DTCDetailSheet: View {
                             .font(.subheadline)
                     }
 
+                    if let frames = dtc.freezeFrameData, !frames.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("CONDITIONS AT FAULT")
+                                .font(.caption).fontWeight(.bold).foregroundStyle(Theme.textSecondary)
+                            ForEach(FreezeFrameSignal.orderedValues(from: frames), id: \.label) { row in
+                                HStack {
+                                    Text(row.label)
+                                        .font(.subheadline)
+                                        .foregroundStyle(Theme.textSecondary)
+                                    Spacer()
+                                    Text(row.value)
+                                        .font(.subheadline.weight(.semibold))
+                                        .monospacedDigit()
+                                }
+                            }
+                            Text("Recorded by the ECU when this code was stored (SAE J1979 Mode 02).")
+                                .font(.caption2)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                    }
+
                     if !dtc.symptoms.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("POSSIBLE SYMPTOMS")

@@ -102,15 +102,56 @@ public final class DTCScannerService: ObservableObject {
                 combined.append(code)
             }
             self.scannedCodes = combined
+            self.attachFreezeFrames(connection: connection, restoreCommands: restoreCommands, completion: completion)
+        }
+    }
+
+    /// Reads the stored Mode 02 frame for each supported signal and attaches the values to
+    /// every code before publishing. A fault is only useful with the conditions it was
+    /// recorded under, and an unsupported PID is skipped without failing the scan.
+    private func attachFreezeFrames(
+        connection: OBDConnectionProtocol,
+        restoreCommands: [String],
+        remaining: [FreezeFrameSignal] = FreezeFrameSignal.allCases,
+        collected: [String: String] = [:],
+        completion: @escaping @MainActor @Sendable () -> Void
+    ) {
+        guard let signal = remaining.first else {
+            if !collected.isEmpty {
+                scannedCodes = scannedCodes.map { code in
+                    var code = code
+                    code.freezeFrameData = collected
+                    return code
+                }
+            }
             #if os(iOS)
-            NotificationService.shared.notifyFaultCodes(count: combined.count)
+            NotificationService.shared.notifyFaultCodes(count: scannedCodes.count)
             #endif
-            if combined.isEmpty {
+            if scannedCodes.isEmpty {
                 Haptics.success()
             } else {
                 Haptics.warning()
             }
-            self.restoreProfileAddressing(connection: connection, commands: restoreCommands, completion: completion)
+            restoreProfileAddressing(connection: connection, commands: restoreCommands, completion: completion)
+            return
+        }
+
+        // No codes means no stored frame; skip the extra round trips entirely.
+        guard !scannedCodes.isEmpty else {
+            attachFreezeFrames(
+                connection: connection, restoreCommands: restoreCommands, remaining: [], collected: [:], completion: completion)
+            return
+        }
+
+        connection.sendCommand(signal.command) { [weak self] result in
+            guard let self else { return }
+            var frames = collected
+            if case .success(let raw) = result, let value = signal.parse(rawResponse: raw) {
+                frames[signal.label] = signal.display(value)
+            }
+            self.attachFreezeFrames(
+                connection: connection, restoreCommands: restoreCommands, remaining: Array(remaining.dropFirst()),
+                collected: frames, completion: completion)
         }
     }
 
