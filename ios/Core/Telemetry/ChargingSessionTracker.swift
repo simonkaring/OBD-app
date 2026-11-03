@@ -150,28 +150,15 @@ public final class ChargingSessionTracker: @unchecked Sendable {
         return state
     }
 
-    /// Estimates time (in seconds) to reach target SoC based on battery capacity and current charging power
+    /// Estimates time (in seconds) to reach target SoC, integrating the session's own curve
+    /// so the taper above 80% is accounted for. See `ChargingTimeEstimator`.
     public func estimatedSecondsToTarget(targetSOC: Double, batteryCapacityKWh: Double) -> TimeInterval? {
-        guard state.isCharging,
-            let currentSOC = state.currentSOC,
-            currentSOC < targetSOC,
-            state.currentPowerKW > 0.5,
-            batteryCapacityKWh > 0
-        else {
-            return nil
-        }
-
-        let neededPercentage = (targetSOC - currentSOC) / 100.0
-        let neededKWh = batteryCapacityKWh * neededPercentage
-
-        let effectivePowerKW: Double
-        if targetSOC > 80.0 && currentSOC >= 80.0 {
-            effectivePowerKW = max(1.0, state.currentPowerKW * 0.5)
-        } else {
-            effectivePowerKW = state.currentPowerKW
-        }
-
-        let hours = neededKWh / effectivePowerKW
-        return hours * 3600.0
+        guard state.isCharging, let currentSOC = state.currentSOC else { return nil }
+        return ChargingTimeEstimator.secondsToTarget(
+            currentSOC: currentSOC,
+            targetSOC: targetSOC,
+            currentPowerKW: state.currentPowerKW,
+            capacityKWh: batteryCapacityKWh,
+            observedCurve: state.history.map { ChargingCurveSample(socPct: $0.soc, powerKW: $0.powerKW) })
     }
 }

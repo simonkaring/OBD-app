@@ -5,6 +5,7 @@ public struct ChargingLiveView: View {
 
     /// Scales the headline kW readout with the user's Dynamic Type setting.
     @ScaledMetric(relativeTo: .largeTitle) private var powerFontSize: CGFloat = 48
+    @AppStorage(ChargingTarget.socKey) private var storedChargeTarget = ChargingTarget.defaultSOC
 
     public init(vehicleData: VehicleDataManager) {
         self.vehicleData = vehicleData
@@ -69,21 +70,32 @@ public struct ChargingLiveView: View {
         usableCapacityKWh * ((100.0 - vehicleData.displayedTelemetry.stateOfChargePct) / 100.0)
     }
 
-    private func minutesToTarget(_ targetPct: Double) -> Int {
-        guard isConnected && hasSOC && isCharging && hasCapacity else { return 0 }
-        let remainingPct = max(0, targetPct - vehicleData.displayedTelemetry.stateOfChargePct)
-        // `isCharging` can be true from a status bit while the reported rate is still 0 kW
-        // (profile reports charging without a power reading, or the charger is handshaking).
-        // Dividing by it traps on `Int(inf)`, so require a real rate first.
-        let powerKW = vehicleData.latestTelemetry.chargePowerKW
-        guard remainingPct > 0, powerKW > 0 else { return 0 }
-        let neededKWh = (remainingPct / 100.0) * usableCapacityKWh
-        return Int((neededKWh / powerKW) * 60.0)
+    /// The stored target, ignoring a value written by an older build outside the options.
+    private var chargeTarget: Double {
+        ChargingTarget.options.contains(storedChargeTarget) ? storedChargeTarget : ChargingTarget.defaultSOC
     }
 
-    private var timeTo80Min: Int { minutesToTarget(80.0) }
+    /// Remaining charge time, integrated over 1% bands so the DC taper above 80% is included.
+    private func estimatedSeconds(to targetPct: Double) -> TimeInterval? {
+        guard isConnected && hasSOC && isCharging && hasCapacity else { return nil }
+        return ChargingTimeEstimator.secondsToTarget(
+            currentSOC: vehicleData.displayedTelemetry.stateOfChargePct,
+            targetSOC: targetPct,
+            currentPowerKW: vehicleData.latestTelemetry.chargePowerKW,
+            capacityKWh: usableCapacityKWh,
+            observedCurve: vehicleData.chargingSession.history.map {
+                ChargingCurveSample(socPct: $0.soc, powerKW: $0.powerKW)
+            })
+    }
 
-    private var timeTo100Min: Int { minutesToTarget(100.0) }
+    private func estimateLabel(_ targetPct: Double) -> String {
+        guard let seconds = estimatedSeconds(to: targetPct) else { return "—" }
+        return seconds <= 0 ? "Reached" : ChargingSessionSummary.duration(seconds)
+    }
+
+    private var targetEstimateLabel: String { estimateLabel(chargeTarget) }
+
+    private var fullChargeEstimateLabel: String { estimateLabel(100.0) }
 
     /// Start of the live charging session, which drives the elapsed and average readouts.
     private var chargingStartedAt: Date? {
@@ -248,12 +260,33 @@ public struct ChargingLiveView: View {
                             .padding(.horizontal)
                         }
 
-                        // Time to 80% / 100% Countdown & Health
+                        // Time to target / full & battery health
                         HStack(spacing: 16) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Estimated to 80%")
-                                    .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(hasSOC && isCharging && hasCapacity ? "\(timeTo80Min) min" : "—")
+                                HStack(spacing: 6) {
+                                    Text("Estimate to \(Int(chargeTarget))%")
+                                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                                    Spacer()
+                                    Menu {
+                                        ForEach(ChargingTarget.options, id: \.self) { option in
+                                            Button {
+                                                storedChargeTarget = option
+                                            } label: {
+                                                if option == chargeTarget {
+                                                    Label("\(Int(option))%", systemImage: "checkmark")
+                                                } else {
+                                                    Text("\(Int(option))%")
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        Image(systemName: "slider.horizontal.3")
+                                            .font(.caption)
+                                            .foregroundStyle(Theme.electricCyan)
+                                    }
+                                    .accessibilityLabel("Change charge target")
+                                }
+                                Text(targetEstimateLabel)
                                     .font(.title2.weight(.semibold))
                                     .foregroundStyle(Theme.textPrimary)
                             }
@@ -262,19 +295,42 @@ public struct ChargingLiveView: View {
                             .glassCard()
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Battery health")
+                                Text("Estimate to 100%")
                                     .font(.caption).foregroundStyle(Theme.textSecondary)
-                                Text(
-                                    isConnected && vehicleData.latestTelemetry.stateOfHealthPct > 0
-                                        ? String(format: "%.1f%%", vehicleData.latestTelemetry.stateOfHealthPct) : "--%"
-                                )
-                                .font(.title2.weight(.semibold))
-                                .foregroundStyle(Theme.regenGreen)
+                                Text(fullChargeEstimateLabel)
+                                    .font(.title2.weight(.semibold))
+                                    .foregroundStyle(Theme.textPrimary)
                             }
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .glassCard()
                         }
+                        .padding(.horizontal)
+
+                        NavigationLink {
+                            BatteryHealthView(vehicleData: vehicleData)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Battery health")
+                                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                                    Text(
+                                        isConnected && vehicleData.latestTelemetry.stateOfHealthPct > 0
+                                            ? String(format: "%.1f%%", vehicleData.latestTelemetry.stateOfHealthPct) : "--%"
+                                    )
+                                    .font(.title2.weight(.semibold))
+                                    .foregroundStyle(Theme.regenGreen)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .glassCard()
+                        }
+                        .buttonStyle(.plain)
                         .padding(.horizontal)
 
                         if vehicleData.isDemoMode {

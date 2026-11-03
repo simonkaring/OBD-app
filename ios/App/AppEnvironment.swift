@@ -11,6 +11,8 @@ public final class AppEnvironment: ObservableObject {
     public let tripTracker: TripTrackingManager
     public let chargingTracker: ChargingTrackingManager
     public let dtcService: DTCScannerService
+    public let batteryHealth: BatteryHealthRecorder
+    public let serviceReminder: ServiceReminderMonitor
 
     /// Owned here rather than created by the `WindowGroup` so that a CarPlay-only launch
     /// (no window scene, so `MainTabView.onAppear` never runs) still persists auto-recorded
@@ -28,6 +30,9 @@ public final class AppEnvironment: ObservableObject {
     /// Units the last app-group snapshot was written with, so a preference change with
     /// no telemetry flowing still reaches the widget.
     private var lastPublishedUnits: SharedDisplayUnits?
+    /// Battery health changes over months, so one daily sample is enough; this throttle keeps
+    /// the fetch-and-save off the 1 Hz telemetry path.
+    private var lastBatteryHealthCheck = Date.distantPast
 
     private static func makeModelContainer() -> (ModelContainer, String?, String?) {
         let schema = Schema(versionedSchema: VoltLinkCurrentSchema.versioned)
@@ -94,6 +99,8 @@ public final class AppEnvironment: ObservableObject {
         self.tripTracker = tTracker
         self.chargingTracker = cTracker
         self.dtcService = dtc
+        self.batteryHealth = BatteryHealthRecorder(context: self.modelContainer.mainContext)
+        self.serviceReminder = ServiceReminderMonitor()
 
         // `mainContext` is the same context SwiftUI's `@Query` reads from, so recorded
         // trips/sessions show up in the UI without a second context to reconcile.
@@ -128,6 +135,10 @@ public final class AppEnvironment: ObservableObject {
                 cTracker?.processTelemetrySnapshot(snapshot)
                 guard let self, let vData else { return }
                 self.publishSharedState(snapshot: snapshot, vehicleData: vData, tripTracker: tTracker)
+                self.recordBatteryHealthIfNeeded(snapshot: snapshot, vehicleData: vData)
+                if let serviceDistance = snapshot.communityValues?[.serviceDistance] {
+                    self.serviceReminder.observe(distanceKm: serviceDistance, vehicleName: vData.vehicleName)
+                }
             }
             .store(in: &cancellables)
 
@@ -177,6 +188,24 @@ public final class AppEnvironment: ObservableObject {
                 vData.applyExternalSpeed(location.speed * 3.6, timestamp: location.timestamp)
             }
             .store(in: &cancellables)
+    }
+
+    /// Stores at most one state-of-health reading per day for the connected vehicle. Demo
+    /// mode is excluded so simulated 98.2% readings never pollute a real degradation curve.
+    private func recordBatteryHealthIfNeeded(snapshot: TelemetrySnapshot, vehicleData: VehicleDataManager) {
+        guard !vehicleData.isDemoMode, vehicleData.connectionState.isConnected else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastBatteryHealthCheck) >= 600 else { return }
+        lastBatteryHealthCheck = now
+
+        let soh = snapshot.stateOfHealthPct
+        guard soh.isFinite, BatteryHealthRecorder.plausibleSOH.contains(soh) else { return }
+        batteryHealth.record(
+            sohPct: soh,
+            socPct: snapshot.stateOfChargePct,
+            batteryTempC: snapshot.batteryTempC,
+            vehicleName: vehicleData.vehicleName,
+            at: now)
     }
 
     /// The widget extension cannot read `UnitPreferences`, so mirror the user's choice.

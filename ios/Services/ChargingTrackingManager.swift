@@ -25,6 +25,8 @@ public final class ChargingTrackingManager: ObservableObject {
     private var geocoder = CLGeocoder()
     /// Most recent curve point, used to throttle sample capture to meaningful changes.
     private var lastCurveSample: (timestamp: Date, socPct: Double)?
+    /// Prevents the target-reached alert from repeating for every poll after the crossing.
+    private var hasNotifiedChargeTarget = false
     static let maxCurveSamples = 720
 
     public init(locationManager: TripLocationManager = TripLocationManager()) {
@@ -54,6 +56,7 @@ public final class ChargingTrackingManager: ObservableObject {
         self.isRecordingSession = true
         self.lastSnapshotTime = Date()
         self.lastSaveTime = Date()
+        self.hasNotifiedChargeTarget = false
 
         context?.insert(session)
         save()
@@ -116,6 +119,7 @@ public final class ChargingTrackingManager: ObservableObject {
         self.isRecordingSession = false
         self.lastSnapshotTime = nil
         self.lastCurveSample = nil
+        self.hasNotifiedChargeTarget = false
         self.nonChargingSnapshotCount = 0
         Haptics.success()
         return true
@@ -256,12 +260,25 @@ public final class ChargingTrackingManager: ObservableObject {
 
         if telemetry.stateOfChargePct > 0 {
             session.endSocPct = telemetry.stateOfChargePct
+            checkChargeTarget(soc: telemetry.stateOfChargePct, startSoc: session.startSocPct)
         }
         appendCurveSample(socPct: telemetry.stateOfChargePct, powerKW: chargingPower, at: now)
         if let lastSaveTime, now.timeIntervalSince(lastSaveTime) >= 30 {
             save()
             self.lastSaveTime = now
         }
+    }
+
+    /// Notifies once when the pack passes the driver's target, including when the session
+    /// started above a lower target (nothing to announce) or demo mode is running.
+    private func checkChargeTarget(soc: Double, startSoc: Double) {
+        guard !isDemoMode, !hasNotifiedChargeTarget, soc.isFinite else { return }
+        let target = ChargingTarget.value()
+        guard startSoc < target, soc >= target else { return }
+        hasNotifiedChargeTarget = true
+        #if os(iOS)
+        NotificationService.shared.notifyChargeTargetReached(targetSOC: target, socPct: soc)
+        #endif
     }
 
     /// Adds at most one point per percent of SOC or minute, whichever comes first, so a

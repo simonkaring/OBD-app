@@ -58,5 +58,19 @@ final class VoltLinkSmokeUITests: XCTestCase {
         app.buttons["Simulate DC Fast Charging (100 kW)"].tap()
         XCTAssertTrue(app.staticTexts["Elapsed"].waitForExistence(timeout: 15), "Charging tab should show elapsed time")
         XCTAssertTrue(app.staticTexts["Avg speed"].waitForExistence(timeout: 15), "Charging tab should show average speed")
+
+        // Charge-target and full-charge estimates share the curve-aware estimator.
+        XCTAssertTrue(app.staticTexts["Estimate to 80%"].waitForExistence(timeout: 10), "Charging tab should show the target estimate")
+        XCTAssertTrue(app.staticTexts["Estimate to 100%"].exists, "Charging tab should show the full-charge estimate")
+
+        // Battery health history is reachable from the Charging tab and shows its empty state
+        // in demo mode (simulated readings are never recorded).
+        let batteryHealth = app.staticTexts["Battery health"].firstMatch
+        XCTAssertTrue(batteryHealth.waitForExistence(timeout: 10), "Charging tab should link to battery health")
+        batteryHealth.tap()
+        XCTAssertTrue(
+            app.navigationBars["Battery Health"].waitForExistence(timeout: 10),
+            "Tapping the health card should open the history screen")
+        XCTAssertTrue(app.staticTexts["No history yet"].exists, "Demo readings must not be recorded")
     }
 }

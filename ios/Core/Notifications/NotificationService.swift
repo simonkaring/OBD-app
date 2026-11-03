@@ -12,6 +12,8 @@ public final class NotificationService {
         public static let chargingFinished = "notifications.chargingFinished"
         public static let adapterDisconnected = "notifications.adapterDisconnected"
         public static let faultCodes = "notifications.faultCodes"
+        public static let chargeTargetReached = "notifications.chargeTargetReached"
+        public static let serviceDue = "notifications.serviceDue"
     }
 
     private let defaults: UserDefaults
@@ -42,6 +44,16 @@ public final class NotificationService {
         )
     }
 
+    /// Fires once per session, when the pack passes the driver's chosen charge target.
+    public func notifyChargeTargetReached(targetSOC: Double, socPct: Double) {
+        guard isEnabled(PreferenceKey.chargeTargetReached) else { return }
+        post(
+            title: "Charge Target Reached",
+            body: "The battery is at \(Int(socPct.rounded()))%, past your \(Int(targetSOC.rounded()))% target.",
+            identifier: "charge-target"
+        )
+    }
+
     public func notifyAdapterDisconnected() {
         guard isEnabled(PreferenceKey.adapterDisconnected) else { return }
         // A flapping adapter must not produce a notification storm.
@@ -51,6 +63,17 @@ public final class NotificationService {
             title: "OBD Adapter Disconnected",
             body: "The trip is still being recorded, but live telemetry has stopped. Reconnect the adapter to resume.",
             identifier: "adapter-disconnected"
+        )
+    }
+
+    /// Raised by `ServiceReminderMonitor` at most once a week per vehicle.
+    public func notifyServiceDue(remainingKm: Double) {
+        guard isEnabled(PreferenceKey.serviceDue) else { return }
+        let distance = UnitPreferences.shared.distance(kilometers: max(0, remainingKm), decimals: 0)
+        post(
+            title: "Service Due Soon",
+            body: "Your vehicle reports \(distance) until the next service.",
+            identifier: "service-due"
         )
     }
 

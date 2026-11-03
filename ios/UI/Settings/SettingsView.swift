@@ -13,6 +13,8 @@ public struct SettingsView: View {
     @AppStorage("developerModeEnabled") private var developerModeEnabled: Bool = false
     @AppStorage("keepScreenAwake") private var keepScreenAwake = false
     @AppStorage("electricityPricePerKWh") private var electricityPricePerKWh: Double = 0
+    @AppStorage(ChargingTarget.socKey) private var chargeTargetSOC = ChargingTarget.defaultSOC
+    @AppStorage(NotificationService.PreferenceKey.chargeTargetReached) private var notifyChargeTarget = true
     @AppStorage(BluetoothManager.autoReconnectKey) private var autoReconnectToAdapter = true
     @AppStorage(NotificationService.PreferenceKey.chargingFinished) private var notifyChargingFinished = true
     @AppStorage(NotificationService.PreferenceKey.adapterDisconnected) private var notifyAdapterDisconnected = true
@@ -189,6 +191,29 @@ public struct SettingsView: View {
                 }
 
                 Section {
+                    Picker("Charge Target", selection: $chargeTargetSOC) {
+                        ForEach(ChargingTarget.options, id: \.self) { option in
+                            Text("\(Int(option))%").tag(option)
+                        }
+                    }
+
+                    Toggle(
+                        "Charge Target Reached",
+                        isOn: Binding(
+                            get: { notifyChargeTarget },
+                            set: { enabled in
+                                notifyChargeTarget = enabled
+                                if enabled { Task { await NotificationService.shared.requestAuthorizationIfNeeded() } }
+                            }))
+                } header: {
+                    Text("Charging")
+                } footer: {
+                    Text(
+                        "The Charging tab estimates the remaining time to this target and to 100% from the session's charging curve, including the taper above 80%. The notification fires once per session when the pack passes the target."
+                    )
+                }
+
+                Section {
                     Toggle(
                         "Charging Finished",
                         isOn: Binding(
@@ -340,6 +365,8 @@ public struct SettingsView: View {
                     }
                 }
 
+                MaintenanceSection(vehicleData: vehicleData)
+
                 SOCReferenceSection(vehicleData: vehicleData)
                     .id(
                         "\(vehicleData.selectedVehicle.id).\(vehicleData.selectedModelYear ?? 0).\(vehicleData.selectedProfileID.rawValue).\(vehicleData.isDemoMode)"
@@ -421,6 +448,67 @@ public struct SettingsView: View {
             .sheet(isPresented: $showVehiclePicker) {
                 VehicleProfilePickerSheet(vehicleData: vehicleData)
             }
+        }
+    }
+}
+
+private struct MaintenanceSection: View {
+    var vehicleData: VehicleDataManager
+    @AppStorage(ServiceReminderMonitor.Key.thresholdKm) private var thresholdKm = ServiceReminderMonitor.defaultThresholdKm
+    @AppStorage(NotificationService.PreferenceKey.serviceDue) private var notifyServiceDue = true
+
+    private var stored: ServiceIntervalSnapshot? {
+        ServiceReminderMonitor().snapshot(for: vehicleData.vehicleName)
+    }
+
+    /// Prefers the live reading so the section updates while connected, and falls back to the
+    /// last value the monitor stored.
+    private var displayedKm: Double? {
+        if let live = vehicleData.latestTelemetry.communityValues?[.serviceDistance], live.isFinite {
+            return live
+        }
+        return stored?.remainingKm
+    }
+
+    var body: some View {
+        Section {
+            if let km = displayedKm {
+                LabeledContent("Service due in") {
+                    Text(km <= 0 ? "Overdue" : UnitPreferences.shared.distance(kilometers: km, decimals: 0))
+                        .foregroundStyle(km <= thresholdKm ? Theme.highPowerAmber : Theme.textPrimary)
+                }
+
+                if let stored {
+                    Text("Last reported \(stored.observedAt.formatted(.relative(presentation: .named)))")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            } else {
+                Text("This vehicle profile does not report a service interval. The Mercedes-Benz EQA 250 (OBDb) profile provides one.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+
+            Picker("Remind at", selection: $thresholdKm) {
+                ForEach(ServiceReminderMonitor.options, id: \.self) { option in
+                    Text(UnitPreferences.shared.distance(kilometers: option, decimals: 0)).tag(option)
+                }
+            }
+
+            Toggle(
+                "Service Due Reminder",
+                isOn: Binding(
+                    get: { notifyServiceDue },
+                    set: { enabled in
+                        notifyServiceDue = enabled
+                        if enabled { Task { await NotificationService.shared.requestAuthorizationIfNeeded() } }
+                    }))
+        } header: {
+            Text("Maintenance")
+        } footer: {
+            Text(
+                "Distance to the next service is read from the vehicle while connected. The reminder fires at most once a week, per vehicle, when the reported distance drops below the threshold."
+            )
         }
     }
 }
