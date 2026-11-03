@@ -219,7 +219,13 @@ class VehicleDataManager(
 
     fun endCommandSession(restoreProfile: Boolean = true) {
         isCommandSessionActive = false
-        if (_isDemoMode.value || !connection.state.value.isConnected) return
+        if (!connection.state.value.isConnected) return
+        // The simulated adapter has no initialisation sequence to replay, but polling still has
+        // to come back: beginCommandSession() stopped it for the scan.
+        if (_isDemoMode.value) {
+            startPolling()
+            return
+        }
         if (restoreProfile) {
             scope.launch { initializeProfile() }
         } else {

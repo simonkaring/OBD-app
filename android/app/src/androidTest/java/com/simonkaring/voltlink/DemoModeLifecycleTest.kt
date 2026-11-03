@@ -14,6 +14,7 @@ import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.Instant
 
 /**
  * Demo mode lifecycle: switching it off and back on has to bring polling back, and simulated
@@ -60,6 +61,23 @@ class DemoModeLifecycleTest {
         data.setDemoMode(true)
         awaitUntil { data.liveMetrics.value.isNotEmpty() }
         assertEquals(BleConnectionState.DemoMode, data.connectionState.value)
+    }
+
+    @Test
+    fun demoScanHandsTheAdapterBackToPolling() {
+        val data = app.vehicleData
+        data.setDemoMode(false)
+        data.setDemoMode(true)
+        awaitUntil { data.liveMetrics.value.isNotEmpty() }
+
+        app.dtcScanner.scan()
+        awaitUntil(timeoutMillis = 20_000) { app.dtcScanner.state.value.lastScanDate != null }
+        awaitUntil { !app.dtcScanner.state.value.isScanning }
+
+        // The regression: the scan takes the adapter away from polling, and demo mode used to
+        // return without restarting it, freezing the dashboard on the pre-scan reading.
+        val scannedAt = Instant.now()
+        awaitUntil(timeoutMillis = 15_000) { data.telemetry.value.timestamp.isAfter(scannedAt) }
     }
 
     @Test
