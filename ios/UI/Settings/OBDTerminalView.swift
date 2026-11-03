@@ -46,6 +46,8 @@ private struct OBDTerminalContent: View {
 
     @State private var manualLogs: [OBDLogEntry] = []
     @State private var showAISheet = false
+    @State private var preparedContribution: CommunityPIDContribution?
+    @State private var contributionError: String?
 
     private var combinedLogs: [OBDLogEntry] {
         bluetoothManager == nil ? manualLogs : bluetoothLogs
@@ -101,6 +103,15 @@ private struct OBDTerminalContent: View {
                     vehicleContext: vehicleData.vehicleName,
                     apiKey: keyStore.value
                 )
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: { preparedContribution != nil },
+                    set: { if !$0 { preparedContribution = nil } })
+            ) {
+                if let contribution = preparedContribution {
+                    CommunityContributionSheet(contribution: contribution)
+                }
             }
     }
 
@@ -166,6 +177,27 @@ private struct OBDTerminalContent: View {
                 }
             }
 
+            Section {
+                Button {
+                    prepareContribution()
+                } label: {
+                    Label("Prepare PID Contribution", systemImage: "person.2.badge.gearshape")
+                }
+                .disabled(combinedLogs.isEmpty)
+
+                if let contributionError {
+                    Text(contributionError)
+                        .font(.caption)
+                        .foregroundStyle(Theme.highPowerAmber)
+                }
+            } header: {
+                Text("Community")
+            } footer: {
+                Text(
+                    "Packages the commands in the recent log that decoded to a known metric, with their raw responses, into a JSON file you can share with a vehicle-profile catalog."
+                )
+            }
+
             Section("Send Raw Command") {
                 HStack {
                     TextField("e.g. 220101 or AT SH 7E4", text: $commandText)
@@ -218,6 +250,21 @@ private struct OBDTerminalContent: View {
                 }
             }
         }
+    }
+
+    private func prepareContribution() {
+        let contribution = CommunityContributionBuilder.build(
+            logs: combinedLogs,
+            profile: vehicleData.selectedProfile,
+            vehicleName: vehicleData.vehicleName,
+            profileID: vehicleData.selectedProfileID.rawValue,
+            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+        guard !contribution.entries.isEmpty else {
+            contributionError = "None of the recent commands decoded to a known metric. Run a discovery tool or send a raw command first."
+            return
+        }
+        contributionError = nil
+        preparedContribution = contribution
     }
 
     private func sendManualCommand() {
@@ -624,6 +671,129 @@ public struct AIAnalysisSheet: View {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+}
+
+private struct CommunityContributionSheet: View {
+    let contribution: CommunityPIDContribution
+    @Environment(\.dismiss) private var dismiss
+    @State private var exportDocument: CommunityContributionDocument?
+    @State private var exportError: String?
+
+    private var json: String {
+        (try? contribution.json()) ?? "{}"
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        LabeledContent("Vehicle", value: contribution.vehicleName)
+                        LabeledContent("Profile", value: contribution.profileID)
+                        LabeledContent("Commands", value: "\(contribution.entries.count)")
+                        LabeledContent("Decoded metrics", value: "\(contribution.metricCount)")
+                    }
+                    .padding()
+                    .glassCard()
+
+                    ForEach(contribution.entries, id: \.command) { entry in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(entry.command)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(Theme.electricCyan)
+
+                            ForEach(entry.metrics, id: \.name) { metric in
+                                HStack {
+                                    Text(metric.name)
+                                    Spacer()
+                                    Text(
+                                        "\(metric.value.formatted(.number.precision(.fractionLength(1)))) \(metric.unit)"
+                                    )
+                                    .monospacedDigit()
+                                }
+                                .font(.caption)
+                                .foregroundStyle(Theme.textPrimary)
+                            }
+
+                            Text("Seen \(entry.observations)\u{00D7} in the recent log")
+                                .font(.caption2)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
+                    }
+
+                    Text("Full JSON")
+                        .font(.headline)
+                        .foregroundStyle(Theme.textSecondary)
+
+                    Text(json)
+                        .font(.system(.caption2, design: .monospaced))
+                        .textSelection(.enabled)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
+                }
+                .padding()
+            }
+            .background(Theme.backgroundDark.ignoresSafeArea())
+            .navigationTitle("PID Contribution")
+            .inlineTitleDisplayMode()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        exportDocument = CommunityContributionDocument(text: json)
+                    } label: {
+                        Label("Save JSON", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }
+        }
+        .fileExporter(
+            isPresented: Binding(
+                get: { exportDocument != nil },
+                set: { if !$0 { exportDocument = nil } }),
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: contribution.suggestedFilename.replacingOccurrences(of: ".json", with: "")
+        ) { result in
+            if case let .failure(error) = result {
+                exportError = "Could not export contribution: \(error.localizedDescription)"
+            }
+            exportDocument = nil
+        }
+        .alert(
+            "Export Failed",
+            isPresented: Binding(
+                get: { exportError != nil },
+                set: { if !$0 { exportError = nil } })
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportError ?? "Unknown error")
+        }
+    }
+}
+
+private struct CommunityContributionDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+    let text: String
+
+    init(text: String) {
+        self.text = text
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        text = String(decoding: configuration.file.regularFileContents ?? Data(), as: UTF8.self)
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data(text.utf8))
     }
 }
 
