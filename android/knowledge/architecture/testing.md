@@ -33,72 +33,30 @@ Run the unit tests after changing a PID decoder, the ISO-TP parser, metrics, or 
 OKF source files. Instrumentation tests need a device; `recordScreenshots` writes
 `app/build/screenshots/*.png`.
 
-# Emulator
+# Running it
 
 ```bash
-$ANDROID_HOME/emulator/emulator -avd VoltLinkPixel -gpu host -memory 4096 -cores 4
-./gradlew installDebug
-```
-
-The car pane only shows up on an image with Android Auto installed (`VoltLinkAuto34` here).
-
-# Phone
-
-```bash
-adb devices -l                           # serial; "unauthorized" means accept the prompt on the phone
-./gradlew installDebug                   # works when the phone is the only attached device
+./gradlew installDebug                        # build + install on the attached device
 adb -s R5CWA0093XN install -r app/build/outputs/apk/debug/app-debug.apk   # several devices attached
-export ANDROID_SERIAL=R5CWA0093XN        # or target every Gradle and adb call this way
+export ANDROID_SERIAL=R5CWA0093XN             # or target every Gradle and adb call this way
 
-# Grant the runtime permissions up front to skip the first-launch prompts:
-adb shell pm grant com.simonkaring.voltlink android.permission.BLUETOOTH_SCAN
-adb shell pm grant com.simonkaring.voltlink android.permission.BLUETOOTH_CONNECT
-adb shell pm grant com.simonkaring.voltlink android.permission.ACCESS_FINE_LOCATION
-adb shell pm grant com.simonkaring.voltlink android.permission.POST_NOTIFICATIONS
+./scripts/car-emulator.sh                     # phone over USB: head unit server + DHU
+./scripts/car-emulator.sh -s R5CWA0093XN      # choose among several attached devices
+./scripts/car-emulator.sh -a VoltLinkAuto34   # boot or reuse that AVD
+./scripts/car-emulator.sh -c default_720p.ini # another head unit display
 ```
 
-`connectedDebugAndroidTest` uninstalls both APKs when it finishes, so a device that was just
-verified loses the app: reinstall it, then re-enable **Settings → Demo / Simulation mode**, which
-is in-memory only and therefore off after every reinstall.
+`car-emulator.sh` resolves exactly one device — `-s`, the AVD named with `-a`, or the only one
+attached — and fails with a one-line hint instead of guessing when several are attached. It then
+refuses a device without `com.google.android.projection.gearhead`, because emulator images have no
+Android Auto and Play cannot install it there. The server start, `adb forward tcp:5277` and the
+Desktop Head Unit launch (`sdkmanager "extras;google;auto"`, configs in `config/`) are automatic;
+the DHU must run in a real terminal, since a piped stdin ends the session as soon as it connects.
+Its console takes `help`, `screenshot /tmp/car.png` and Ctrl-C.
 
-# Desktop Head Unit
-
-The Desktop Head Unit (DHU) is Google's head unit simulator. It reaches the phone or emulator
-through `adb forward tcp:5277`, renders the projected car screen on the Mac, and takes console
-commands from its own terminal: `help`, `screenshot /tmp/car.png` to save a frame, `Ctrl-C` to
-quit. Install it with `sdkmanager "extras;google;auto"`; the binary and its display configs
-(`default_1080p.ini`, `default_720p.ini`, `default_wide.ini`, `rotary.ini`, …) land in
-`$ANDROID_HOME/extras/google/auto/`.
-
-## Emulator, one command
-
-```bash
-./scripts/car-emulator.sh                     # VoltLinkAuto34 + 1080p head unit
-./scripts/car-emulator.sh -a MyAvd            # another AVD
-./scripts/car-emulator.sh -c default_720p.ini # another head unit config
-```
-
-The script boots the AVD when none is attached, enables Android Auto developer mode and the head
-unit server, forwards `tcp:5277`, and runs `desktop-head-unit` in the foreground.
-
-## Real phone
-
-The phone has to serve the connection itself:
-
-```bash
-# Developer mode: Android Auto → Settings → About → tap "Version" 7x (the row is inside About).
-# Start the server: Android Auto → Settings → ⋮ → "Start head unit server".
-adb -s R5CWA0093XN shell 'cat /proc/net/tcp /proc/net/tcp6' | grep -c 149D   # 5277 = 0x149D
-adb -s R5CWA0093XN forward tcp:5277 tcp:5277
-cd "$ANDROID_HOME/extras/google/auto" && ./desktop-head-unit -c config/default_1080p.ini -a 5277
-```
-
-- Run the DHU in a real terminal: it quits as soon as its stdin stream closes, so piping it
-  (`| tee`) or starting it as a background job ends the session right after it connects.
-- `-a 5277` goes through `adb forward`. `--usb` switches to libusb and needs a USB AOAP device,
-  where an emulator always comes up empty.
-- Keep the phone awake (`adb shell svc power stayon true`); a locked screen drops the session.
-- Open VoltLink from the head unit's app rail to see the car pane.
+`connectedDebugAndroidTest` uninstalls both APKs, and demo mode lives in memory, so a device that
+was just verified loses the app and the simulation: reinstall and toggle **Settings → Demo /
+Simulation mode** again.
 
 # Suites
 

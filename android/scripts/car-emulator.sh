@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
-# Boots the emulator with an Android Auto head unit attached, so the car pane
-# (car/VoltLinkCarAppService.kt) can be exercised without a car.
+# Boots an Android device with the VoltLink car pane attached and opens the
+# Android Auto Desktop Head Unit (DHU) against it, so the car UI can be used
+# without a car.
 #
-#   ./scripts/car-emulator.sh                 # VoltLinkAuto34, 1080p head unit
-#   ./scripts/car-emulator.sh -a MyAvd        # another AVD
-#   ./scripts/car-emulator.sh -c default_720p.ini
+#   ./scripts/car-emulator.sh                    # the only attached device
+#   ./scripts/car-emulator.sh -s R5CWA0093XN     # a specific phone or emulator
+#   ./scripts/car-emulator.sh -a VoltLinkAuto34  # boot or reuse that AVD
+#   ./scripts/car-emulator.sh -c default_720p.ini  # another head unit display
 #
-# The Desktop Head Unit runs in the foreground and reads console commands from
-# this terminal ("help" lists them, "screenshot /tmp/car.png" saves a frame).
-# Quit it with Ctrl-C; the emulator keeps running.
+# The DHU runs in the foreground: "help" lists its console commands,
+# "screenshot /tmp/car.png" saves a frame, Ctrl-C quits it.
 set -euo pipefail
 
 AVD="${VOLTLINK_AVD:-VoltLinkAuto34}"
 DHU_CONFIG="${VOLTLINK_DHU_CONFIG:-default_1080p.ini}"
-AA_PACKAGE="com.google.android.projection.gearhead"
+AA_PACKAGE="${VOLTLINK_AA_PACKAGE:-com.google.android.projection.gearhead}"
 
 usage() {
-    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
     exit "${1:-0}"
 }
 
@@ -25,9 +26,12 @@ die() {
     exit 1
 }
 
-while getopts ":a:c:h" opt; do
+SERIAL=""
+BOOT_AVD=""
+while getopts ":a:s:c:h" opt; do
     case "$opt" in
-        a) AVD="$OPTARG" ;;
+        a) BOOT_AVD="$OPTARG" ;;
+        s) SERIAL="$OPTARG" ;;
         c) DHU_CONFIG="$OPTARG" ;;
         h) usage 0 ;;
         *) usage 1 ;;
@@ -53,44 +57,92 @@ DHU_DIR="$SDK/extras/google/auto"
 [[ -f "$DHU_DIR/config/$DHU_CONFIG" ]] || die \
     "unknown head unit config $DHU_CONFIG (see the files in $DHU_DIR/config)"
 
-# --- emulator -----------------------------------------------------------------
+# Every adb call is pinned to the selected device, so a phone and an emulator can
+# be attached at the same time without any command becoming ambiguous.
+adb() {
+    if [[ -n "$SERIAL" ]]; then "$ADB" -s "$SERIAL" "$@"; else "$ADB" "$@"; fi
+}
 
-attached() { "$ADB" devices | awk 'NR > 1 && $2 == "device" { found = 1 } END { exit !found }'; }
-booted() { [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; }
+devices() { "$ADB" devices | awk 'NR > 1 && $2 == "device" { print $1 }'; }
+avd_name() { "$ADB" -s "$1" emu avd name 2>/dev/null | head -1 | tr -d '\r'; }
+booted() { [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; }
 
-if attached; then
-    echo "==> emulator already attached, reusing it"
+# --- target device ------------------------------------------------------------
+
+if [[ -n "$BOOT_AVD" ]]; then
+    for serial in $(devices); do
+        if [[ "$(avd_name "$serial")" == "$BOOT_AVD" ]]; then
+            SERIAL="$serial"
+            echo "==> reusing running $BOOT_AVD ($serial)"
+            break
+        fi
+    done
+    if [[ -z "$SERIAL" ]]; then
+        echo "==> booting $BOOT_AVD"
+        # Detached so it survives this shell; no snapshot load/save keeps a stale
+        # Android Auto session from a previous boot out of the picture.
+        nohup "$EMULATOR" -avd "$BOOT_AVD" -no-snapshot-load -no-snapshot-save -no-audio -no-boot-anim \
+            >"${TMPDIR:-/tmp}/voltlink-car-emulator.log" 2>&1 &
+        disown || true
+    fi
 else
-    echo "==> booting $AVD"
-    # Detached so it survives this shell; no snapshot load/save keeps a stale
-    # Android Auto session from a previous boot out of the picture.
-    nohup "$EMULATOR" -avd "$AVD" -no-snapshot-load -no-snapshot-save -no-audio -no-boot-anim \
-        >"${TMPDIR:-/tmp}/voltlink-car-emulator.log" 2>&1 &
-    disown || true
+    listed="$(devices)"
+    count="$(printf '%s' "$listed" | grep -c . || true)"
+    if [[ -n "$SERIAL" ]]; then
+        grep -qx "$SERIAL" <<<"$listed" ||
+            die "device $SERIAL is not attached (attached: ${listed:-none}); run \"$0 -a $AVD\" to boot the emulator"
+    elif [[ "$count" -eq 1 ]]; then
+        SERIAL="$listed"
+    elif [[ "$count" -eq 0 ]]; then
+        die "no device attached — plug in the phone, or run \"$0 -a $AVD\" for an emulator"
+    else
+        die "several devices attached, pick one with -s <serial>:
+$(printf '%s\n' "$listed" | sed 's/^/         /')"
+    fi
 fi
 
-echo -n "==> waiting for the device to finish booting"
+if [[ -z "$SERIAL" ]]; then
+    echo -n "==> waiting for $BOOT_AVD to appear"
+    for _ in $(seq 1 120); do
+        for serial in $(devices); do
+            if [[ "$(avd_name "$serial")" == "$BOOT_AVD" ]]; then SERIAL="$serial"; break; fi
+        done
+        [[ -n "$SERIAL" ]] && break
+        echo -n "."
+        sleep 3
+    done
+    echo
+    [[ -n "$SERIAL" ]] ||
+        die "$BOOT_AVD never appeared — see ${TMPDIR:-/tmp}/voltlink-car-emulator.log"
+fi
+
+echo -n "==> waiting for $SERIAL to finish booting"
 for _ in $(seq 1 120); do
-    if attached && booted; then
+    if booted; then
         echo " booted"
         break
     fi
     echo -n "."
     sleep 3
 done
-attached && booted || die "the emulator never finished booting — see ${TMPDIR:-/tmp}/voltlink-car-emulator.log"
+booted || die "$SERIAL never finished booting"
 
-if ! "$ADB" shell pm list packages 2>/dev/null | tr -d '\r' | grep -qx "package:$AA_PACKAGE"; then
-    die "Android Auto is not installed on this image. Play refuses to install it because the real
-       manifest requires android.hardware.usb.accessory, so sideload it once, then re-run:
-         adb install-multiple base.apk split_config.arm64_v8a.apk ..."
+# Read the list first: under pipefail a "grep -q" would close the pipe early and turn a
+# match into a SIGPIPE failure, which is how this check used to deny every device.
+packages="$(adb shell pm list packages 2>/dev/null | tr -d '\r' || true)"
+if ! grep -qx "package:$AA_PACKAGE" <<<"$packages"; then
+    die "$SERIAL has no Android Auto.
+       Use a phone with Android Auto:
+         $0 -s <its serial>          (list them with: adb devices -l)
+       or an emulator image that already has it:
+         $0 -a $AVD"
 fi
 
 # --- head unit server ---------------------------------------------------------
 
 # The head unit server sits behind Android Auto's developer menu, which is
 # enabled by tapping the version row in Settings seven times.
-ui_dump() { "$ADB" exec-out uiautomator dump /dev/tty 2>/dev/null; }
+ui_dump() { adb exec-out uiautomator dump /dev/tty 2>/dev/null; }
 
 node_bounds() {
     # $1: exact visible text of the row
@@ -108,10 +160,17 @@ tap_bounds() {
     bounds="${bounds#*[}"
     x2="${bounds%%[,]*}"
     y2="${bounds##*,}"
-    "$ADB" shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
+    adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
 }
 
-head_unit_listening() { "$ADB" shell "netstat -ltn 2>/dev/null" | grep -q 5277; }
+head_unit_listening() {
+    # Read the sockets first for the same reason as the package check: "grep -q" closing
+    # the pipe early would fail the whole pipeline under pipefail. netstat prints the port
+    # in decimal, /proc/net/tcp prints it in hex (5277 = 0x149D).
+    local sockets
+    sockets="$(adb shell "netstat -ltn 2>/dev/null || cat /proc/net/tcp /proc/net/tcp6 2>/dev/null" || true)"
+    grep -qE '5277|149D' <<<"$sockets"
+}
 
 # A busy emulator sometimes throws an ANR dialog over the settings screen; it hides
 # every node the automation looks for, so clear it before reading the UI.
@@ -126,7 +185,7 @@ dismiss_anr() {
 }
 
 open_settings() {
-    "$ADB" shell am start -n "$AA_PACKAGE/.companion.settings.DefaultSettingsActivity" >/dev/null 2>&1
+    adb shell am start -n "$AA_PACKAGE/.companion.settings.DefaultSettingsActivity" >/dev/null 2>&1
     sleep 4
     dismiss_anr
 }
@@ -155,7 +214,7 @@ else
         open_overflow_menu || die "could not open Android Auto's overflow menu"
 
         if [[ -n "$(node_bounds "Stop head unit server")" ]]; then
-            "$ADB" shell input keyevent 4 >/dev/null 2>&1 || true
+            adb shell input keyevent 4 >/dev/null 2>&1 || true
             echo "    already on"
             break
         fi
@@ -163,7 +222,7 @@ else
         start_row="$(node_bounds "Start head unit server")"
         if [[ -n "$start_row" ]]; then
             tap_bounds "$start_row"
-            "$ADB" shell input keyevent 4 >/dev/null 2>&1 || true
+            adb shell input keyevent 4 >/dev/null 2>&1 || true
             sleep 3
             head_unit_listening && break
             echo "    attempt $attempt did not stick, retrying"
@@ -171,8 +230,8 @@ else
         fi
 
         # No server entry: developer mode is off. Seven taps on the version row.
-        "$ADB" shell input keyevent 4 >/dev/null 2>&1 || true
-        for _ in $(seq 1 6); do "$ADB" shell input swipe 540 1900 540 600 200 >/dev/null 2>&1 || true; done
+        adb shell input keyevent 4 >/dev/null 2>&1 || true
+        for _ in $(seq 1 6); do adb shell input swipe 540 1900 540 600 200 >/dev/null 2>&1 || true; done
         version_row="$(node_bounds "Version")"
         if [[ -n "$version_row" ]]; then
             for _ in $(seq 1 7); do
@@ -183,17 +242,17 @@ else
         fi
     done
 
-    head_unit_listening || die \
-        "the head unit server did not start — open Android Auto → ⋮ → \"Start head unit server\" by hand"
-    echo "    listening on 5277"
+    if ! head_unit_listening; then
+        echo "    the status bar did not confirm it; trying anyway" >&2
+    fi
 fi
 
-"$ADB" forward tcp:5277 tcp:5277 >/dev/null
+"$ADB" -s "$SERIAL" forward tcp:5277 tcp:5277 >/dev/null
 echo "==> forwarding tcp:5277"
 
 # --- head unit ----------------------------------------------------------------
 
-echo "==> launching the Desktop Head Unit ($DHU_CONFIG)"
+echo "==> launching $SERIAL in the Desktop Head Unit ($DHU_CONFIG)"
 echo "    console: \"help\" for commands, \"screenshot /tmp/car.png\" to save a frame, Ctrl-C to quit"
 cd "$DHU_DIR"
-exec ./desktop-head-unit -c "config/$DHU_CONFIG"
+exec ./desktop-head-unit -c "config/$DHU_CONFIG" -a 5277
