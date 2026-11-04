@@ -92,12 +92,12 @@ class BleObdConnection(
                 BluetoothProfile.STATE_CONNECTED -> {
                     val name = safeName(gatt)
                     _state.value = BleConnectionState.Connecting(name)
-                    discoveryDeferred = CompletableDeferred()
                     gatt.discoverServices()
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     val name = safeName(gatt)
                     val wasReady = _state.value is BleConnectionState.Ready
+                    discoveryDeferred?.complete(false)
                     closeGatt()
                     _state.value = if (wasReady && status != BluetoothGatt.GATT_SUCCESS) {
                         BleConnectionState.Error("Adapter $name disconnected unexpectedly")
@@ -132,16 +132,22 @@ class BleObdConnection(
                 notifyCharacteristic = notifiable
                 gatt.setCharacteristicNotification(notifiable, true)
                 val cccd = notifiable.getDescriptor(UUID.fromString(BleConstants.CLIENT_CHARACTERISTIC_CONFIG))
-                if (cccd != null) {
-                    cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                    gatt.writeDescriptor(cccd)
-                }
-                gatt.requestMtu(185)
-                _state.value = BleConnectionState.Ready(safeName(gatt))
-                discoveryDeferred?.complete(true)
+                // Android runs one GATT operation at a time, so Ready waits for the CCCD write;
+                // otherwise the first AT command is rejected as busy.
+                cccd?.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                if (cccd == null || !gatt.writeDescriptor(cccd)) markReady(gatt)
                 return
             }
             discoveryDeferred?.complete(false)
+        }
+
+        override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+            markReady(gatt)
+        }
+
+        private fun markReady(gatt: BluetoothGatt) {
+            _state.value = BleConnectionState.Ready(safeName(gatt))
+            discoveryDeferred?.complete(true)
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
@@ -258,6 +264,9 @@ class BleObdConnection(
         } ?: "OBD Adapter"
 
         _state.value = BleConnectionState.Connecting(name)
+        // Must exist before connectGatt: the callbacks complete it, and await below reads it once.
+        val discovery = CompletableDeferred<Boolean>()
+        discoveryDeferred = discovery
         try {
             gatt?.close()
             gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -270,12 +279,10 @@ class BleObdConnection(
             return
         }
 
-        val discovered = withTimeoutOrNull(BleConstants.CONNECTION_TIMEOUT_MS) {
-            discoveryDeferred?.await() ?: false
-        }
+        val discovered = withTimeoutOrNull(BleConstants.CONNECTION_TIMEOUT_MS) { discovery.await() }
         if (discovered != true) {
             closeGatt()
-            _state.value = BleConnectionState.Error("Connection to $name timed out")
+            _state.value = BleConnectionState.Error("Could not connect to $name")
         }
     }
 
