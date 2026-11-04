@@ -80,6 +80,14 @@
     <string name="car_charging_power">Charge power</string>
     <string name="car_charging_time_to_target">Time to %1$d%%</string>
     <string name="car_charging_energy">Energy delivered</string>
+    <string name="car_charging_peak">Peak power</string>
+    <string name="car_charging_session">%1$d%% → %2$d%%</string>
+    <string name="car_charging_plug_in">Plug in to start a session</string>
+    <string name="car_label_trip_average">Trip average</string>
+    <string name="car_trip_recording">Recording trip</string>
+    <string name="car_trip_idle">Trip not recording</string>
+    <string name="car_trip_idle_auto">Starts when the car moves</string>
+    <string name="car_trip_idle_manual">Automatic trips are off</string>
 
     <!-- Charging. -->
     <string name="charging_status_charging">Charging</string>

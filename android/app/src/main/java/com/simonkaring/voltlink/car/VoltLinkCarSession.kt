@@ -25,32 +25,36 @@ class VoltLinkCarSession : Session() {
 }
 
 /**
- * The car dashboard: a tab template with live telemetry dials and a charging tab.
+ * The car dashboard: a tab template with a live telemetry tab and a charging tab, each drawing the
+ * phone's pack bar, dials and number cards.
  *
  * Both tabs are built from the same [com.simonkaring.voltlink.services.VehicleDataManager]
- * snapshot and [com.simonkaring.voltlink.services.ChargingTracker] state the phone UI reads, so
- * nothing extra is polled while driving, and the templates are invalidated from those flows.
+ * snapshot and [com.simonkaring.voltlink.services.ChargingTracker] and
+ * [com.simonkaring.voltlink.services.TripTracker] state the phone UI reads, so nothing extra is
+ * polled while driving, and the templates are invalidated from those flows.
  */
 class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
     private val app: VoltLinkApplication
         get() = carContext.applicationContext as VoltLinkApplication
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val dials = CarDialRenderer()
+    private val dashboards = CarDashboardRenderer()
     private var activeTabId = CAR_TAB_TELEMETRY
 
     init {
         lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
-                    // The scan state, the car layout and the charging session are included so the
-                    // screen still refreshes when telemetry is idle, a scan finishes in the
-                    // background, or a session starts while the adapter is quiet.
+                    // The scan state, the car layout, the charging session and the trip are
+                    // included so the screen still refreshes when telemetry is idle, a scan
+                    // finishes in the background, or a session or trip starts or stops while
+                    // the adapter is quiet.
                     val supporting = combine(
                         app.vehicleData.settings.carTileLayout,
                         app.dtcScanner.state,
                         app.chargingTracker.state,
-                    ) { _, _, _ -> Unit }
+                        app.tripTracker.state,
+                    ) { _, _, _, _ -> Unit }
                     scope.launch {
                         combine(
                             app.vehicleData.telemetry,
@@ -83,6 +87,7 @@ class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
         val liveMetrics = manager.liveMetrics.value
         val scan = app.dtcScanner.state.value
         val charging = app.chargingTracker.state.value
+        val trip = app.tripTracker.state.value
 
         val content = if (activeTabId == CAR_TAB_CHARGING) {
             carChargingTab(
@@ -97,9 +102,10 @@ class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
                     targetPercent = charging.targetPercent.toInt(),
                     secondsToTarget = charging.secondsToTarget,
                     deliveredKWh = charging.current?.totalKWhDelivered ?: 0.0,
+                    peakPowerKW = charging.current?.peakPowerKW ?: 0.0,
                     sessionStartSocPct = charging.current?.startSocPct,
                 ),
-                renderer = dials,
+                renderer = dashboards,
             )
         } else {
             carTelemetryTab(
@@ -111,7 +117,13 @@ class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
                 supportedMetrics = supportedMetrics,
                 tiles = manager.settings.carTileLayout.value.tiles,
                 storedCodes = scan.lastScanDate?.let { scan.codes.size },
-                renderer = dials,
+                trip = CarTripState(
+                    isRecording = trip.isRecording,
+                    distanceKm = trip.current?.distanceKm ?: 0.0,
+                    durationSeconds = trip.current?.duration?.seconds ?: 0,
+                    autoTrips = trip.isAutoTripEnabled,
+                ),
+                renderer = dashboards,
             )
         }
 

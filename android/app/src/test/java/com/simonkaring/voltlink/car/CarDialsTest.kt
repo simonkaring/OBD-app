@@ -114,6 +114,42 @@ class CarDialsTest {
     }
 
     @Test
+    fun `the pack bar follows the phone's colour rules`() {
+        assertEquals(CarDialColors.cyan, carBarColor(64.0, isCharging = false))
+        assertEquals(CarDialColors.amber, carBarColor(30.0, isCharging = false))
+        assertEquals(CarDialColors.red, carBarColor(12.0, isCharging = false))
+        assertEquals(CarDialColors.green, carBarColor(12.0, isCharging = true))
+        assertEquals(CarDialColors.textSecondary, carBarColor(null, isCharging = false))
+    }
+
+    @Test
+    fun `the pack bar shows a rounded percentage and clamps its fill`() {
+        val bar = carSocBar("HV", trailing = null, socPct = 77.6, isCharging = false, marks = listOf(0.8))
+
+        assertEquals("78%", bar.valueText)
+        assertEquals(0.776, bar.fraction, 0.0001)
+        assertTrue(bar.available)
+        assertEquals(listOf(0.8), bar.marks)
+        assertEquals(1.0, carSocBar("HV", null, 140.0, false).fraction, 0.0001)
+    }
+
+    @Test
+    fun `an unknown state of charge leaves the bar empty with a dash`() {
+        val bar = carSocBar("HV", trailing = null, socPct = null, isCharging = false)
+
+        assertEquals("—", bar.valueText)
+        assertEquals(0.0, bar.fraction, 0.0001)
+        assertFalse(bar.available)
+    }
+
+    @Test
+    fun `a dashboard is empty only without a bar and dials`() {
+        assertTrue(CarDashboard().isEmpty)
+        assertFalse(CarDashboard(bar = carSocBar("HV", null, 50.0, false)).isEmpty)
+        assertFalse(CarDashboard(dials = listOf(carDial(TelemetryMetric.SPEED, snapshot))).isEmpty)
+    }
+
+    @Test
     fun `durations keep the phone's hour and minute wording`() {
         assertEquals("30 min", carDurationText(1800.0))
         assertEquals("1 h 5 min", carDurationText(3900.0))

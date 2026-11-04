@@ -7,12 +7,14 @@ import org.junit.Test
 
 class CarTileLayoutTest {
     @Test
-    fun `default rows cover the four driving values`() {
+    fun `default tiles mirror the phone dashboard`() {
         assertEquals(
             listOf(
                 CarTileKind.Metric(TelemetryMetric.SOC),
-                CarTileKind.Metric(TelemetryMetric.POWER),
                 CarTileKind.Metric(TelemetryMetric.SPEED),
+                CarTileKind.Metric(TelemetryMetric.POWER),
+                CarTileKind.Metric(TelemetryMetric.TRIP_AVERAGE_CONSUMPTION),
+                CarTileKind.Metric(TelemetryMetric.AUX_12V),
                 CarTileKind.Health,
             ),
             CarTileLayout.default.tiles,

@@ -10,7 +10,7 @@ internal const val CAR_PLACEHOLDER = "--"
 
 /**
  * Colours of the phone's `MetricDial` (see `ui/theme/Theme`), as ARGB ints so this model stays
- * free of Android types: [CarDialRenderer] turns it into the bitmap a car template can show.
+ * free of Android types: [CarDashboardRenderer] turns it into the bitmap a car template can show.
  */
 internal object CarDialColors {
     val track = 0x1AFFFFFF
@@ -21,6 +21,8 @@ internal object CarDialColors {
     val green = 0xFF30D158.toInt()
     val textPrimary = 0xFFFFFFFF.toInt()
     val textSecondary = 0xB3FFFFFF.toInt()
+    val card = 0xFF1C1C1E.toInt()
+    val cardEdge = 0x14FFFFFF
 
     val power = listOf(cyan, amber, red)
     val regen = listOf(blue, green)
@@ -42,12 +44,66 @@ internal data class CarDial(
     val negative: Boolean = false,
     val bidirectional: Boolean = false,
     val colors: List<Int> = CarDialColors.soc,
+    /** The chip under the value: the metric name, or Regen/Draw/Idle for power. */
+    val status: String? = null,
+)
+
+/** The phone's high-voltage pack bar: a label row, a filled track, the percentage and optional tick marks. */
+internal data class CarBar(
+    val label: String,
+    val trailing: String?,
+    val valueText: String,
+    val fraction: Double,
+    val available: Boolean,
+    val color: Int,
+    /** Fractions 0..1 along the track, drawn as white ticks (the charge target). */
+    val marks: List<Double> = emptyList(),
+)
+
+/**
+ * Everything one car tab draws into its picture, in the phone dashboard's order: the pack bar,
+ * then the dials. Data-class equality is what lets [CarDashboardRenderer] reuse the bitmap of an
+ * unchanged value.
+ */
+internal data class CarDashboard(
+    val bar: CarBar? = null,
+    val dials: List<CarDial> = emptyList(),
 ) {
-    /** Identity of the rendered pixels, so an unchanged value reuses its bitmap. */
-    val key: String
-        get() = "$available|$valueText|$unitText|$fraction|$negative|$bidirectional|" +
-            colors.joinToString(",")
+    val isEmpty: Boolean get() = bar == null && dials.isEmpty()
 }
+
+/** The pack bar's colour rules, as the phone's `BatteryLevelBar` has them. */
+internal fun carBarColor(socPct: Double?, isCharging: Boolean): Int = when {
+    socPct == null -> CarDialColors.textSecondary
+    isCharging -> CarDialColors.green
+    socPct < 20.0 -> CarDialColors.red
+    socPct < 40.0 -> CarDialColors.amber
+    else -> CarDialColors.cyan
+}
+
+internal fun carSocBar(
+    label: String,
+    trailing: String?,
+    socPct: Double?,
+    isCharging: Boolean,
+    marks: List<Double> = emptyList(),
+) = CarBar(
+    label = label,
+    trailing = trailing,
+    valueText = socPct?.let { String.format(Locale.US, "%.0f%%", it) } ?: "—",
+    fraction = (socPct ?: 0.0).coerceIn(0.0, 100.0) / 100.0,
+    available = socPct != null,
+    color = carBarColor(socPct, isCharging),
+    marks = marks,
+)
+
+/** Trip facts copied off `TripTracker.State`, so the telemetry tab is built without a tracker. */
+internal data class CarTripState(
+    val isRecording: Boolean = false,
+    val distanceKm: Double = 0.0,
+    val durationSeconds: Long = 0,
+    val autoTrips: Boolean = true,
+)
 
 /** The dial for one telemetry metric, using the same range and gradient the phone dashboard uses. */
 internal fun carDial(
@@ -105,6 +161,7 @@ internal data class CarChargingState(
     val targetPercent: Int = 80,
     val secondsToTarget: Double? = null,
     val deliveredKWh: Double = 0.0,
+    val peakPowerKW: Double = 0.0,
     val sessionStartSocPct: Double? = null,
 )
 

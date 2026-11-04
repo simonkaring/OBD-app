@@ -104,7 +104,7 @@ Implemented in this pass:
 | --- | --- |
 | Live telemetry dashboard | Widget layout is user configurable (metric, dial/bar/number style, half/full width, order) and persisted; default is speed + power dials, SoC bar, 12 V and average consumption tiles, rolling chart |
 | Profile metric status | Settings sheet listing every metric the active profile supports as Live, No data or Not connected, with the OBDb provenance notice |
-| Car dashboard | Android Auto tabs for live telemetry and charging; each tab shows the first configured dial as a large hero gauge with the remaining metrics as rows beneath it. The dials (or the diagnostics badge) are chosen and ordered in Settings, capped at the six items every car host shows |
+| Car dashboard | Android Auto tabs for live telemetry and charging; each tab draws the phone's look into the pane picture (state-of-charge bar over speed and power dials) beside host rows that say whether a trip is recording or a charge session is running, then the number readouts such as trip average. The tiles are chosen and ordered in Settings, capped at six |
 | Scrubbable charge chart | Charge power against elapsed time with a drag readout of time, speed and SoC, for live and recorded sessions |
 | BLE ELM327 transport | Scan/connect/discover, command queue, 4 s timeout, stale-response drain, routing-failure recovery, OBD terminal log |
 | ISO-TP / UDS decoding | Same multi-ECU bucket parser, 11- and 29-bit headers, plausibility bounds |
@@ -123,7 +123,7 @@ Implemented in this pass:
 | Launcher shortcuts | Start/stop trip, scan fault codes, open charging — the App Intents equivalent; the trip label tracks the recorder |
 | Service reminder | Last vehicle-reported distance to service with 500/1000/2000/5000 km thresholds and a weekly alert |
 | Vehicle catalog | `assets/vehicle_catalog.json` (69 brands, 599 models) browsed brand → model family → model year → variant, with an EV/All filter and one search field that matches brand, model, family or model year. The picked row selects its profile and remembers the model name for trips, the widget and reminders |
-| Android Auto / AAOS | `CarAppService` + `TabTemplate` with telemetry and charging tabs; each tab is a `PaneTemplate` whose hero dial is the phone's `MetricDial` drawn into a bitmap, with rows for the other metrics refreshed from the same snapshot and charging session as the phone UI (paced to one push a second); discovered through the `com.google.android.gms.car.application` meta-data and `res/xml/automotive_app_desc.xml` (template capability) |
+| Android Auto / AAOS | `CarAppService` + `TabTemplate` with telemetry and charging tabs; each tab is a `PaneTemplate` whose square picture is the phone's pack bar and `MetricDial` dials drawn into a bitmap, with rows for trip and charging status and the number metrics, refreshed from the same snapshot, trip and charging session as the phone UI (paced to one push a second); discovered through the `com.google.android.gms.car.application` meta-data and `res/xml/automotive_app_desc.xml` (template capability) |
 | AI log analyzer | Gemini (`AIza…`) or OpenAI (`sk-…`) decoding of the captured OBD trace; the key is AES-GCM encrypted under an Android Keystore key |
 | Cloud backup | Opt-in mirror of trips, charging sessions and battery health to a folder picked with the system picker; restore merges the newest file by id and never deletes local rows |
 | Live Update | Charging notification promoted (`setRequestPromotedOngoing`) with a `ProgressStyle` bar, target point and short critical SoC text on Android 16+ |
@@ -148,9 +148,11 @@ Deliberate differences:
   nothing until the grammar grows.
 - Cloud sync mirrors to a document-provider folder instead of iCloud: there is one file per
   backup, restore is newest-file-wins and merges by row id.
-- The car pane renders the persisted row layout in order as a scrollable list, because a pane
-  template silently stops at four rows and dropped the rest of the selection. The host still
-  decides how many rows are visible at once, so later tiles need a scroll.
+- The car pane draws the state-of-charge bar and the speed and power dials into one square
+  picture and turns every other tile into a row. A host shows a pane's image in a small fixed
+  square slot, grid and row images are icon-sized and sectioned templates are not allowed in
+  tabs, so that picture is the only large canvas; the host also silently stops at four rows, so the
+  trip row plus three tiles is all the telemetry tab shows.
 - The service reminder reads the `226504` service-distance metric, which only the EQA OBDb
   profile publishes; other profiles show the empty state.
 

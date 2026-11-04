@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
-import androidx.car.app.model.Template
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.simonkaring.voltlink.core.obd.BleConnectionState
@@ -14,26 +13,29 @@ import com.simonkaring.voltlink.data.CarTileKind
 import com.simonkaring.voltlink.data.CarTileLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Covers the templates the car session serves: two tabs, the first configured tile as the hero
- * dial and the rest as rows, plus the charging tab's session readouts.
+ * Covers the templates the car session serves: two tabs, each a pane whose picture is the phone's
+ * bar and dials and whose rows report the trip or charging session and the number readouts.
  *
- * This runs on a device because the dials are rendered bitmaps and the copy comes from app
+ * This runs on a device because the dashboard is a rendered bitmap and the copy comes from app
  * resources. `VoltLinkCarScreen.onGetTemplate()` builds the same templates asserted here.
  */
 @RunWith(AndroidJUnit4::class)
 class CarTemplateTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val renderer = CarDialRenderer(sizePx = 96)
+    private val renderer = CarDashboardRenderer(sizePx = 96)
     private val supported = setOf(
         TelemetryMetric.SOC,
         TelemetryMetric.POWER,
         TelemetryMetric.SPEED,
         TelemetryMetric.BATTERY_TEMP,
+        TelemetryMetric.AUX_12V,
     )
     private val driving = TelemetrySnapshot(
         speedKmH = 56.0,
@@ -41,6 +43,8 @@ class CarTemplateTest {
         stateOfChargePct = 77.0,
         vehicleRangeKm = 312.0,
         batteryTempC = 24.0,
+        aux12VVolts = 13.8,
+        tripAverageConsumption = 14.2,
     )
 
     private fun telemetryTab(
@@ -48,6 +52,7 @@ class CarTemplateTest {
         snapshot: TelemetrySnapshot = driving,
         storedCodes: Int? = null,
         liveMetrics: Set<TelemetryMetric> = supported,
+        trip: CarTripState = CarTripState(),
     ): PaneTemplate = carTelemetryTab(
         context = context,
         snapshot = snapshot,
@@ -57,89 +62,110 @@ class CarTemplateTest {
         supportedMetrics = supported,
         tiles = tiles,
         storedCodes = storedCodes,
+        trip = trip,
         renderer = renderer,
     ) as PaneTemplate
 
+    private fun rowTexts(template: PaneTemplate): List<Pair<String, String>> =
+        template.pane.rows.map { it.title.toString() to it.texts.first().toString() }
+
     @Test
-    fun theFirstTileBecomesTheHeroDial() {
-        val tiles = supported.map { CarTileKind.Metric(it) }
+    fun theDashboardIsDrawnIntoThePanePicture() {
+        val template = telemetryTab(CarTileLayout.default.tiles)
 
-        val template = telemetryTab(tiles)
-        val pane = template.pane
-
-        assertEquals(TelemetryMetric.SOC.displayName, template.header!!.title.toString())
-        assertNotNull("the hero dial needs a picture", pane.image)
-        val bitmap = pane.image!!.icon!!.bitmap
-        assertNotNull("the hero dial needs a bitmap", bitmap)
-        assertEquals("the dial keeps its requested size", 96, bitmap!!.width)
-        // The disc behind the arc means the centre is drawn, not transparent.
-        assertTrue("the hero dial rendered blank", bitmap.getPixel(48, 48) ushr 24 != 0)
+        assertEquals("Telemetry", template.header!!.title.toString())
+        val bitmap = template.pane.image!!.icon!!.bitmap
+        assertNotNull("the dashboard needs a bitmap", bitmap)
+        assertEquals("the picture is square and keeps its requested size", 96, bitmap!!.width)
+        assertEquals(96, bitmap.height)
+        // Inside the left dial card, so a blank picture fails; the gap between cards is clear.
+        assertTrue("the dashboard rendered blank", bitmap.getPixel(24, 56) ushr 24 != 0)
     }
 
     @Test
-    fun everyRemainingTileIsARow() {
-        val tiles = TelemetryMetric.entries.take(CarTileLayout.MAX_TILES - 1)
-            .map { CarTileKind.Metric(it) } + CarTileKind.Health
+    fun anUnchangedDashboardReusesItsBitmap() {
+        val dashboard = CarDashboard(bar = carSocBar("HV", null, 50.0, false))
 
-        val rows = telemetryTab(tiles, storedCodes = 2).pane.rows
-
-        assertEquals(tiles.size - 1, rows.size)
-        rows.forEachIndexed { index, row ->
-            val tile = tiles[index + 1]
-            assertEquals(
-                "row $index title",
-                when (tile) {
-                    is CarTileKind.Metric -> tile.metric.displayName
-                    CarTileKind.Health -> "Diagnostics"
-                },
-                row.title.toString(),
-            )
-            assertTrue("row $index has no value", row.texts.first().toString().isNotBlank())
-        }
-        assertEquals("2 stored codes", rows.last().texts.first().toString())
+        assertSame(renderer.icon(dashboard), renderer.icon(dashboard.copy()))
     }
 
     @Test
-    fun rowsCarryTheDialReadingAndThePowerChip() {
-        val tiles = listOf(
-            CarTileKind.Metric(TelemetryMetric.SOC),
-            CarTileKind.Metric(TelemetryMetric.POWER),
+    fun theDefaultLayoutHasTheTripRowNumbersAndDiagnostics() {
+        val template = telemetryTab(CarTileLayout.default.tiles, storedCodes = 2)
+
+        assertEquals(
+            listOf(
+                "Trip not recording" to "Starts when the car moves",
+                "Trip average" to "14.2 kWh/100km",
+                "Auxiliary 12V" to "13.8 V",
+                "Diagnostics" to "2 stored codes",
+            ),
+            rowTexts(template),
+        )
+        template.pane.rows.forEach { assertNotNull("every row needs a glyph", it.image) }
+    }
+
+    @Test
+    fun aRecordingTripIsReportedOnTheTelemetryTab() {
+        val template = telemetryTab(
+            CarTileLayout.default.tiles,
+            trip = CarTripState(isRecording = true, distanceKm = 12.44, durationSeconds = 1110),
         )
 
-        // Above 100 the phone dial drops the decimal, so the row reads 137 kW.
-        assertEquals("137 kW · Draw", telemetryTab(tiles).pane.rows.single().texts.first().toString())
-        assertEquals(
-            "20 kW · Regen",
-            telemetryTab(tiles, snapshot = driving.copy(powerKW = -20.0)).pane.rows.single()
-                .texts.first().toString(),
-        )
-        assertEquals(
-            "0 kW · Idle",
-            telemetryTab(tiles, snapshot = driving.copy(powerKW = 0.0)).pane.rows.single()
-                .texts.first().toString(),
-        )
+        val trip = template.pane.rows.first()
+        assertEquals("Recording trip", trip.title.toString())
+        assertEquals("12.4 km · 18 min", trip.texts.first().toString())
+    }
+
+    @Test
+    fun anIdleTripSaysWhetherAutomaticTripsAreOn() {
+        val manual = telemetryTab(CarTileLayout.default.tiles, trip = CarTripState(autoTrips = false))
+
+        assertEquals("Automatic trips are off", manual.pane.rows.first().texts.first().toString())
     }
 
     @Test
     fun anUnavailableMetricStillGetsARow() {
-        val tiles = listOf(
-            CarTileKind.Metric(TelemetryMetric.SOC),
-            CarTileKind.Metric(TelemetryMetric.AUX_12V),
-        )
+        val tiles = listOf(CarTileKind.Metric(TelemetryMetric.SOC), CarTileKind.Metric(TelemetryMetric.AUX_12V))
 
-        val row = telemetryTab(tiles, liveMetrics = emptySet()).pane.rows.single()
+        val rows = telemetryTab(tiles, liveMetrics = emptySet()).pane.rows
 
-        assertEquals(TelemetryMetric.AUX_12V.displayName, row.title.toString())
-        assertEquals("$CAR_PLACEHOLDER V", row.texts.first().toString())
+        assertEquals(TelemetryMetric.AUX_12V.displayName, rows[1].title.toString())
+        assertEquals("$CAR_PLACEHOLDER V", rows[1].texts.first().toString())
     }
 
     @Test
-    fun aHealthHeroShowsTheBadgeAndItsStatus() {
-        val template = telemetryTab(listOf(CarTileKind.Health, CarTileKind.Metric(TelemetryMetric.SPEED)))
+    fun theSpeedAndPowerDialsAndTheBarStayOutOfTheRows() {
+        val tiles = listOf(
+            CarTileKind.Metric(TelemetryMetric.POWER),
+            CarTileKind.Metric(TelemetryMetric.SPEED),
+            CarTileKind.Metric(TelemetryMetric.SOC),
+        )
 
-        assertEquals("Diagnostics", template.header!!.title.toString())
-        assertNotNull("the badge needs a picture", template.pane.image)
-        assertEquals("56 km/h", template.pane.rows.single().texts.first().toString())
+        val template = telemetryTab(tiles)
+
+        assertNotNull("the dials still need their picture", template.pane.image)
+        assertEquals(listOf("Trip not recording"), template.pane.rows.map { it.title.toString() })
+    }
+
+    @Test
+    fun aLayoutWithoutADialOrBarHasNoPicture() {
+        val template = telemetryTab(listOf(CarTileKind.Health))
+
+        assertNull(template.pane.image)
+        assertEquals(listOf("Trip not recording", "Diagnostics"), template.pane.rows.map { it.title.toString() })
+    }
+
+    @Test
+    fun thePaneNeverHoldsMoreRowsThanTheHostShows() {
+        val tiles = TelemetryMetric.entries
+            .filter { it != TelemetryMetric.SOC && it != TelemetryMetric.SPEED && it != TelemetryMetric.POWER }
+            .take(CarTileLayout.MAX_TILES)
+            .map { CarTileKind.Metric(it) }
+
+        val rows: List<Row> = telemetryTab(tiles).pane.rows
+
+        assertEquals(4, rows.size)
     }
 
     @Test
@@ -153,6 +179,7 @@ class CarTemplateTest {
             supportedMetrics = supported,
             tiles = emptyList(),
             storedCodes = null,
+            trip = CarTripState(),
             renderer = renderer,
         )
 
@@ -161,14 +188,6 @@ class CarTemplateTest {
             "the empty car tab should explain itself",
             (template as MessageTemplate).message.toString().isNotBlank(),
         )
-    }
-
-    @Test
-    fun theDefaultLayoutHasAHeroAndThreeRows() {
-        val template = telemetryTab(CarTileLayout.default.tiles)
-
-        assertEquals(4, CarTileLayout.default.tiles.size)
-        assertEquals(3, template.pane.rows.size)
     }
 
     @Test
@@ -191,56 +210,54 @@ class CarTemplateTest {
         assertTrue(template.tabContents!!.template is PaneTemplate)
     }
 
+    private fun chargingTab(charging: CarChargingState, snapshot: TelemetrySnapshot = driving) = carChargingTab(
+        context = context,
+        snapshot = snapshot,
+        liveMetrics = supported,
+        isDemoMode = true,
+        connection = BleConnectionState.DemoMode,
+        supportedMetrics = supported,
+        charging = charging,
+        renderer = renderer,
+    )
+
     @Test
-    fun theChargingTabShowsTheLiveSession() {
-        val charging = CarChargingState(
-            isCharging = true,
-            targetPercent = 80,
-            secondsToTarget = 1860.0,
-            deliveredKWh = 12.4,
-            sessionStartSocPct = 40.0,
+    fun theChargingTabReportsTheLiveSession() {
+        val template = chargingTab(
+            CarChargingState(
+                isCharging = true,
+                targetPercent = 80,
+                secondsToTarget = 1860.0,
+                deliveredKWh = 12.4,
+                peakPowerKW = 61.8,
+                sessionStartSocPct = 40.0,
+            ),
+            driving.copy(isCharging = true, chargePowerKW = 61.8),
         )
 
-        val template = carChargingTab(
-            context = context,
-            snapshot = driving.copy(isCharging = true, chargePowerKW = 61.8),
-            liveMetrics = supported,
-            isDemoMode = true,
-            connection = BleConnectionState.DemoMode,
-            supportedMetrics = supported,
-            charging = charging,
-            renderer = renderer,
+        assertEquals("Charging", template.header!!.title.toString())
+        assertNotNull("the charging tab needs its dashboard", template.pane.image)
+        assertEquals(
+            listOf(
+                "Charging" to "40% → 77%",
+                "Energy delivered" to "12.4 kWh",
+                "Peak power" to "61.8 kW",
+            ),
+            rowTexts(template),
         )
-
-        assertEquals("State of Charge", template.header!!.title.toString())
-        assertNotNull("the charging hero needs a dial", template.pane.image)
-        val rows = template.pane.rows
-        assertEquals(3, rows.size)
-        assertEquals("Charge power", rows[0].title.toString())
-        assertEquals("61.8 kW · Charging", rows[0].texts.first().toString())
-        assertEquals("Time to 80%", rows[1].title.toString())
-        assertEquals("31 min", rows[1].texts.first().toString())
-        assertEquals("Energy delivered", rows[2].title.toString())
-        assertEquals("12.4 kWh", rows[2].texts.first().toString())
     }
 
     @Test
     fun anIdleChargingTabSaysSo() {
-        val template = carChargingTab(
-            context = context,
-            snapshot = driving,
-            liveMetrics = supported,
-            isDemoMode = true,
-            connection = BleConnectionState.DemoMode,
-            supportedMetrics = supported,
-            charging = CarChargingState(targetPercent = 90),
-            renderer = renderer,
-        )
+        val template = chargingTab(CarChargingState(targetPercent = 90))
 
-        val rows: List<Row> = template.pane.rows
-        assertEquals("$CAR_PLACEHOLDER kW · Not charging", rows[0].texts.first().toString())
-        assertEquals("Time to 90%", rows[1].title.toString())
-        assertEquals(CAR_PLACEHOLDER, rows[1].texts.first().toString())
-        assertEquals("0.0 kWh", rows[2].texts.first().toString())
+        assertEquals(
+            listOf(
+                "Not charging" to "Plug in to start a session",
+                "Energy delivered" to "0.0 kWh",
+                "Peak power" to "0.0 kW",
+            ),
+            rowTexts(template),
+        )
     }
 }

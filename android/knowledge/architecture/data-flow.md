@@ -38,15 +38,22 @@ sources:
 # Car dashboard
 
 Android Auto and AAOS cannot host Compose, so `car` serves a `TabTemplate` with two tabs —
-live telemetry and charging — and each tab is a `PaneTemplate`: one large hero dial drawn by
-`CarDialRenderer` (252° track, gradient fill, tick marks, the value and unit in the middle) plus
-host-rendered rows for the remaining metrics. A pane is used rather than a grid because a host
-draws a pane's picture at full size while grid images shrink to icon size in the dashboard card,
-which left the gauges unreadable with most of the pane empty. The telemetry tab mirrors the
-persisted `CarTileLayout` (the first tile is the hero, the rest are rows, capped at the six items
-a host is guaranteed to show), the charging tab reads `ChargingTracker.State`, and both are
+live telemetry and charging — and each tab is a `PaneTemplate`. The pane's picture is the phone's
+live dashboard drawn by `CarDashboardRenderer`: the state-of-charge bar over `MetricDial`-style
+dials (252° track, gradient fill, ticks, value, unit and a status chip) on dark cards. It is one
+square bitmap on purpose: a host shows a pane's image in a fixed square slot (about 290 px on the
+Desktop Head Unit) and centre-crops anything else, grid and row images shrink to icon size, and a
+sectioned template is rejected inside tabs. Number readouts therefore stay host-rendered rows,
+which keeps them crisp at whatever size the host chooses. The telemetry tab leads with a trip row
+from `TripTracker.State` (green "Recording trip" with distance and time, or the idle line), then
+lists the number metrics (trip average, 12 V) and diagnostics in `CarTileLayout` order; SoC, speed
+and power are the bar and dials. The charging tab leads with a charging row from
+`ChargingTracker.State` (green with start → current charge, or "Plug in to start a session"),
+then energy delivered and peak power, over a bar that marks the charge target and dials for charge
+power and time to target. A host silently drops rows past the fourth, so a pane never builds more.
+Row glyphs are rasterised to bitmaps because the host caches resource icons by id. Both tabs are
 invalidated from the same flows the phone collects — conflated and paced to one push a second,
-because every push makes the host re-decode the dial bitmap. Availability uses the phone's
+because every push makes the host re-decode the dashboard bitmap. Availability uses the phone's
 `metricAvailable` rule, so an unsupported or stale metric shows `--` instead of a plausible zero.
 
 Nothing flows backwards: a screen never writes to a profile or to the adapter. User actions go

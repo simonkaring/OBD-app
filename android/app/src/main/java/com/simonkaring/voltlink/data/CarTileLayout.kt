@@ -26,7 +26,7 @@ sealed interface CarTileKind {
         }
 }
 
-/** Persisted car dashboard selection and order, capped at the template's grid limit. */
+/** Persisted car dashboard selection and order, capped at what the car pane can show. */
 data class CarTileLayout(val tiles: List<CarTileKind>) {
     init {
         require(tiles.size <= MAX_TILES) { "Car layout holds at most $MAX_TILES dials" }
@@ -36,9 +36,9 @@ data class CarTileLayout(val tiles: List<CarTileKind>) {
 
     companion object {
         /**
-         * A car host guarantees at least six grid items (and may allow more), so the configurable
-         * layout stops there: every chosen dial reaches the screen instead of being dropped by
-         * the host's item limit.
+         * The pack bar and the speed and power dials draw into the pane's picture; every other
+         * tile is a row, and the host shows four rows, one of which is the trip status. Six tiles
+         * is the default mix, and the layout stops there.
          */
         const val MAX_TILES = 6
 
@@ -47,8 +47,10 @@ data class CarTileLayout(val tiles: List<CarTileKind>) {
         val default = CarTileLayout(
             tiles = listOf(
                 CarTileKind.Metric(TelemetryMetric.SOC),
-                CarTileKind.Metric(TelemetryMetric.POWER),
                 CarTileKind.Metric(TelemetryMetric.SPEED),
+                CarTileKind.Metric(TelemetryMetric.POWER),
+                CarTileKind.Metric(TelemetryMetric.TRIP_AVERAGE_CONSUMPTION),
+                CarTileKind.Metric(TelemetryMetric.AUX_12V),
                 CarTileKind.Health,
             ),
         )
