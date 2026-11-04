@@ -1,62 +1,69 @@
 package com.simonkaring.voltlink.car
 
-import android.content.Context
 import android.content.Intent
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.Session
-import androidx.car.app.model.Action
-import androidx.car.app.model.Header
-import androidx.car.app.model.ItemList
-import androidx.car.app.model.ListTemplate
-import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.VoltLinkApplication
-import com.simonkaring.voltlink.core.obd.BleConnectionState
-import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
-import com.simonkaring.voltlink.data.CarTileKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+
+/** Minimum gap between template updates; the host re-decodes every dial bitmap per push. */
+private const val CAR_REFRESH_MS = 1_000L
 
 class VoltLinkCarSession : Session() {
     override fun onCreateScreen(intent: Intent): Screen = VoltLinkCarScreen(carContext)
 }
 
 /**
- * Read-only telemetry list: one row per configured tile.
+ * The car dashboard: a tab template with live telemetry dials and a charging tab.
  *
- * The template is invalidated from the shared telemetry flow, so the car screen follows the
- * same connection the phone is using — demo, live or offline.
+ * Both tabs are built from the same [com.simonkaring.voltlink.services.VehicleDataManager]
+ * snapshot and [com.simonkaring.voltlink.services.ChargingTracker] state the phone UI reads, so
+ * nothing extra is polled while driving, and the templates are invalidated from those flows.
  */
 class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
     private val app: VoltLinkApplication
         get() = carContext.applicationContext as VoltLinkApplication
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val dials = CarDialRenderer()
+    private var activeTabId = CAR_TAB_TELEMETRY
 
     init {
         lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
-                    // Telemetry arrives about once a second; the host throttles template updates.
-                    // The scan state is included so the health row still refreshes when a scan
-                    // finishes while telemetry is idle or the adapter is offline, and the layout
-                    // so rows added in Settings appear without leaving the car screen.
+                    // The scan state, the car layout and the charging session are included so the
+                    // screen still refreshes when telemetry is idle, a scan finishes in the
+                    // background, or a session starts while the adapter is quiet.
+                    val supporting = combine(
+                        app.vehicleData.settings.carTileLayout,
+                        app.dtcScanner.state,
+                        app.chargingTracker.state,
+                    ) { _, _, _ -> Unit }
                     scope.launch {
                         combine(
                             app.vehicleData.telemetry,
                             app.vehicleData.connectionState,
                             app.vehicleData.isDemoMode,
-                            app.dtcScanner.state,
-                            app.vehicleData.settings.carTileLayout,
-                        ) { _, _, _, _, _ -> Unit }.collect { invalidate() }
+                            app.vehicleData.liveMetrics,
+                            supporting,
+                        ) { _, _, _, _, _ -> Unit }
+                            .conflate()
+                            .collect {
+                                invalidate()
+                                delay(CAR_REFRESH_MS)
+                            }
                     }
                 }
 
@@ -68,67 +75,55 @@ class VoltLinkCarScreen(carContext: CarContext) : Screen(carContext) {
     }
 
     override fun onGetTemplate(): Template {
-        // The health row reflects the last scan, which the car screen cannot trigger itself.
+        val manager = app.vehicleData
+        val snapshot = manager.telemetry.value
+        val isDemoMode = manager.isDemoMode.value
+        val connection = manager.connectionState.value
+        val supportedMetrics = manager.selectedProfile.supportedMetrics
+        val liveMetrics = manager.liveMetrics.value
         val scan = app.dtcScanner.state.value
-        return carTelemetryTemplate(
-            context = carContext,
-            snapshot = app.vehicleData.telemetry.value,
-            isDemoMode = app.vehicleData.isDemoMode.value,
-            connection = app.vehicleData.connectionState.value,
-            tiles = app.vehicleData.settings.carTileLayout.value.tiles,
-            storedCodes = scan.lastScanDate?.let { scan.codes.size },
-        )
-    }
-}
+        val charging = app.chargingTracker.state.value
 
-/**
- * Builds the car list: one row per configured tile, in the order set in Settings.
- *
- * A [ListTemplate] is scrollable, so the host shows every [com.simonkaring.voltlink.data.CarTileLayout.MAX_TILES]
- * row the layout allows. A [androidx.car.app.model.PaneTemplate] stops at four rows, which silently
- * dropped half of a user's selection.
- */
-internal fun carTelemetryTemplate(
-    context: Context,
-    snapshot: TelemetrySnapshot,
-    isDemoMode: Boolean,
-    connection: BleConnectionState,
-    tiles: List<CarTileKind>,
-    storedCodes: Int?,
-): ListTemplate {
-    val summary = CarTelemetrySummary.of(snapshot = snapshot, isDemoMode = isDemoMode, connection = connection)
-
-    val healthText: (Int?) -> String = { codes ->
-        when {
-            codes == null -> context.getString(R.string.car_row_not_scanned)
-            codes == 0 -> context.getString(R.string.car_row_no_codes)
-            else -> context.getString(R.string.car_row_stored_codes, codes)
-        }
-    }
-
-    val list = ItemList.Builder().apply {
-        tiles.forEach { tile ->
-            val title = if (tile == CarTileKind.Health) {
-                context.getString(R.string.car_row_health)
-            } else {
-                tile.title
-            }
-            addItem(
-                Row.Builder()
-                    .setTitle(title)
-                    .addText(carRowValue(tile, summary, snapshot, storedCodes, healthText))
-                    .build(),
+        val content = if (activeTabId == CAR_TAB_CHARGING) {
+            carChargingTab(
+                context = carContext,
+                snapshot = snapshot,
+                liveMetrics = liveMetrics,
+                isDemoMode = isDemoMode,
+                connection = connection,
+                supportedMetrics = supportedMetrics,
+                charging = CarChargingState(
+                    isCharging = charging.isCharging,
+                    targetPercent = charging.targetPercent.toInt(),
+                    secondsToTarget = charging.secondsToTarget,
+                    deliveredKWh = charging.current?.totalKWhDelivered ?: 0.0,
+                    sessionStartSocPct = charging.current?.startSocPct,
+                ),
+                renderer = dials,
+            )
+        } else {
+            carTelemetryTab(
+                context = carContext,
+                snapshot = snapshot,
+                liveMetrics = liveMetrics,
+                isDemoMode = isDemoMode,
+                connection = connection,
+                supportedMetrics = supportedMetrics,
+                tiles = manager.settings.carTileLayout.value.tiles,
+                storedCodes = scan.lastScanDate?.let { scan.codes.size },
+                renderer = dials,
             )
         }
-    }.build()
 
-    return ListTemplate.Builder()
-        .setHeader(
-            Header.Builder()
-                .setTitle(summary.title)
-                .setStartHeaderAction(Action.APP_ICON)
-                .build(),
-        )
-        .setSingleList(list)
-        .build()
+        return carTabTemplate(
+            context = carContext,
+            activeTabId = activeTabId,
+            content = content,
+        ) { contentId ->
+            if (contentId != activeTabId) {
+                activeTabId = contentId
+                invalidate()
+            }
+        }
+    }
 }

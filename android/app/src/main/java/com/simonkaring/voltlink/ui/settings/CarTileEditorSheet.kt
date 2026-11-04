@@ -41,8 +41,8 @@ import com.simonkaring.voltlink.data.CarTileLayout
 import com.simonkaring.voltlink.ui.theme.Theme
 
 /**
- * Chooses which rows the Android Auto pane shows and in what order. The health row is
- * always available; metric rows come from the active profile's supported signals.
+ * Chooses which dials the Android Auto grid shows and in what order. The health tile is
+ * always available; metric dials come from the active profile's supported signals.
  */
 @Composable
 fun CarTileEditorSheet(

@@ -63,14 +63,23 @@
 
     <!-- Android Auto layout. -->
     <string name="car_layout_title">Android Auto layout</string>
-    <string name="car_layout_usage">%1$d of %2$d rows used</string>
-    <string name="car_layout_add_row">Add a row</string>
-    <string name="car_layout_full">The car list is full. Remove a row to add another.</string>
-    <string name="car_layout_remove_row">Remove row</string>
+    <string name="car_layout_usage">%1$d of %2$d dials used</string>
+    <string name="car_layout_add_row">Add a dial</string>
+    <string name="car_layout_full">The car grid is full. Remove a dial to add another.</string>
+    <string name="car_layout_remove_row">Remove dial</string>
+    <string name="car_layout_empty">Pick the dials the car shows in Settings on your phone.</string>
     <string name="car_row_health">Diagnostics</string>
     <string name="car_row_not_scanned">Not scanned</string>
     <string name="car_row_no_codes">No stored codes</string>
     <string name="car_row_stored_codes">%1$d stored codes</string>
+    <string name="car_status_regen">Regen</string>
+    <string name="car_status_draw">Draw</string>
+    <string name="car_status_idle">Idle</string>
+    <string name="car_charging_status">Charging</string>
+    <string name="car_charging_status_idle">Not charging</string>
+    <string name="car_charging_power">Charge power</string>
+    <string name="car_charging_time_to_target">Time to %1$d%%</string>
+    <string name="car_charging_energy">Energy delivered</string>
 
     <!-- Charging. -->
     <string name="charging_status_charging">Charging</string>
@@ -144,7 +153,7 @@
     <string name="settings_notifications_hint">An ongoing notification mirrors charging progress on the lock screen while the car is plugged in.</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_android_auto">Android Auto</string>
-    <string name="settings_car_rows">Rows shown on the car pane, in order: %1$s</string>
+    <string name="settings_car_rows">Dials shown on the car pane, in order: %1$s</string>
     <string name="settings_edit_car_layout">Edit car layout</string>
     <string name="settings_widget">Home screen widget</string>
     <string name="settings_widget_hint">State of charge, power and speed on the home screen, refreshed from the live snapshot.</string>

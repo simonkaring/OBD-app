@@ -35,6 +35,20 @@ sources:
 6. **Rendering** — Compose screens collect the flows with `collectAsStateWithLifecycle()`;
    the Android Auto session, the home-screen widget and notifications read the same manager.
 
+# Car dashboard
+
+Android Auto and AAOS cannot host Compose, so `car` serves a `TabTemplate` with two tabs —
+live telemetry and charging — and each tab is a `PaneTemplate`: one large hero dial drawn by
+`CarDialRenderer` (252° track, gradient fill, tick marks, the value and unit in the middle) plus
+host-rendered rows for the remaining metrics. A pane is used rather than a grid because a host
+draws a pane's picture at full size while grid images shrink to icon size in the dashboard card,
+which left the gauges unreadable with most of the pane empty. The telemetry tab mirrors the
+persisted `CarTileLayout` (the first tile is the hero, the rest are rows, capped at the six items
+a host is guaranteed to show), the charging tab reads `ChargingTracker.State`, and both are
+invalidated from the same flows the phone collects — conflated and paced to one push a second,
+because every push makes the host re-decode the dial bitmap. Availability uses the phone's
+`metricAvailable` rule, so an unsupported or stale metric shows `--` instead of a plausible zero.
+
 Nothing flows backwards: a screen never writes to a profile or to the adapter. User actions go
 through the manager (`setDemoMode`, `selectProfile`, `selectVehicle`) or a tracker, and the new
 state comes back out of the flows.

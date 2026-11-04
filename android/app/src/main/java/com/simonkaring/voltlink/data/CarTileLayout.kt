@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * One car screen row: a telemetry metric, or the always-available health row backed by
+ * One car screen tile: a telemetry metric, or the always-available health tile backed by
  * `DtcScannerService` rather than a telemetry snapshot (the iOS `CarPlayTileKind`).
  */
 @Serializable
@@ -26,17 +26,21 @@ sealed interface CarTileKind {
         }
 }
 
-/** Persisted car pane selection and order, capped at the template's row limit. */
+/** Persisted car dashboard selection and order, capped at the template's grid limit. */
 data class CarTileLayout(val tiles: List<CarTileKind>) {
     init {
-        require(tiles.size <= MAX_TILES) { "Car layout holds at most $MAX_TILES rows" }
+        require(tiles.size <= MAX_TILES) { "Car layout holds at most $MAX_TILES dials" }
     }
 
     fun encode(): String = json.encodeToString(tiles)
 
     companion object {
-        /** Android Auto templates stay readable at a glance with at most eight rows. */
-        const val MAX_TILES = 8
+        /**
+         * A car host guarantees at least six grid items (and may allow more), so the configurable
+         * layout stops there: every chosen dial reaches the screen instead of being dropped by
+         * the host's item limit.
+         */
+        const val MAX_TILES = 6
 
         private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
