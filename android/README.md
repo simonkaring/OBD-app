@@ -66,8 +66,11 @@ The Desktop Head Unit window is the car screen. Open VoltLink from its rail; in 
 `help` lists the console commands, `screenshot /tmp/car.png` saves a frame, Ctrl-C quits it.
 
 Emulators need Android Auto installed, which Play refuses to do, so the script refuses a device
-without it: use the phone, or an image that already has it (`-a VoltLinkAuto34`). If the DHU drops
-(`Failed to read from transport`), force stop Android Auto and run the script again.
+without it: use the phone, or an image that already has it (`-a VoltLinkAuto34`). Android Auto will
+not let any shell start its head unit server, so when it is off the script opens the settings screen
+and names the one tap it needs; after that it stays up until Android Auto is force-stopped or the
+phone restarts. If the DHU drops (`Failed to read from transport`), force stop Android Auto and run
+the script again.
 
 `connectedDebugAndroidTest` uninstalls the app when it finishes, and demo mode is in memory only,
 so reinstall and toggle **Settings → Demo / Simulation mode** again if you were testing.

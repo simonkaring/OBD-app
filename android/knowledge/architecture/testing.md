@@ -49,10 +49,13 @@ export ANDROID_SERIAL=R5CWA0093XN             # or target every Gradle and adb c
 `car-emulator.sh` resolves exactly one device — `-s`, the AVD named with `-a`, or the only one
 attached — and fails with a one-line hint instead of guessing when several are attached. It then
 refuses a device without `com.google.android.projection.gearhead`, because emulator images have no
-Android Auto and Play cannot install it there. The server start, `adb forward tcp:5277` and the
-Desktop Head Unit launch (`sdkmanager "extras;google;auto"`, configs in `config/`) are automatic;
-the DHU must run in a real terminal, since a piped stdin ends the session as soon as it connects.
-Its console takes `help`, `screenshot /tmp/car.png` and Ctrl-C.
+Android Auto and Play cannot install it there. `adb forward tcp:5277` and the Desktop Head Unit
+launch (`sdkmanager "extras;google;auto"`, configs in `config/`) are automatic; the server is the
+one thing the script cannot always do alone, because `DeveloperHeadUnitNetworkService` is
+unexported and both retail phones and Play images refuse `adb root`, so when the port is closed it
+tries the shell start, opens Android Auto's settings and prints the toggle to tap instead of
+driving the UI with uiautomator. The DHU must run in a real terminal, since a piped stdin ends the
+session as soon as it connects. Its console takes `help`, `screenshot /tmp/car.png` and Ctrl-C.
 
 `connectedDebugAndroidTest` uninstalls both APKs, and demo mode lives in memory, so a device that
 was just verified loses the app and the simulation: reinstall and toggle **Settings → Demo /

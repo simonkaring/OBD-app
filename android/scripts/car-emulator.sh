@@ -140,28 +140,14 @@ fi
 
 # --- head unit server ---------------------------------------------------------
 
-# The head unit server sits behind Android Auto's developer menu, which is
-# enabled by tapping the version row in Settings seven times.
-ui_dump() { adb exec-out uiautomator dump /dev/tty 2>/dev/null; }
-
-node_bounds() {
-    # $1: exact visible text of the row
-    ui_dump | grep -o "[^>]*text=\"$1\"[^>]*" \
-        | grep -o 'bounds="\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]"' | tail -1
-}
-
-tap_bounds() {
-    local bounds="$1" x1 y1 x2 y2
-    bounds="${bounds#bounds=\"[}"
-    bounds="${bounds%]\"}"
-    x1="${bounds%%[,]*}"
-    bounds="${bounds#*,}"
-    y1="${bounds%%]*}"
-    bounds="${bounds#*[}"
-    x2="${bounds%%[,]*}"
-    y2="${bounds##*,}"
-    adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
-}
+# Android Auto's head unit server is DeveloperHeadUnitNetworkService, and it is not
+# exported: an ordinary shell gets "Requires permission not exported from uid …", and
+# both a retail phone and the Play emulator image are user/release-keys builds, so
+# `adb root` cannot lift that either. There is no start broadcast, and the server does
+# not come back by itself once Android Auto stops. So: start it from the shell when the
+# image allows it (userdebug or root), and otherwise ask for the one menu toggle rather
+# than driving the UI with uiautomator taps.
+HU_SERVICE="com.google.android.projection.gearhead/.companion.DeveloperHeadUnitNetworkService"
 
 head_unit_listening() {
     # Read the sockets first for the same reason as the package check: "grep -q" closing
@@ -172,78 +158,24 @@ head_unit_listening() {
     grep -qE '5277|149D' <<<"$sockets"
 }
 
-# A busy emulator sometimes throws an ANR dialog over the settings screen; it hides
-# every node the automation looks for, so clear it before reading the UI.
-dismiss_anr() {
-    local wait_bounds
-    wait_bounds="$(ui_dump | grep -o '[^>]*text="Wait"[^>]*' \
-        | grep -o 'bounds="\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]"' | tail -1)"
-    if [[ -n "$wait_bounds" ]]; then
-        tap_bounds "$wait_bounds"
-        sleep 3
-    fi
-}
-
-open_settings() {
-    adb shell am start -n "$AA_PACKAGE/.companion.settings.DefaultSettingsActivity" >/dev/null 2>&1
-    sleep 4
-    dismiss_anr
-}
-
-open_overflow_menu() {
-    local overflow=""
-    # uiautomator needs a beat after the activity starts, and dumps occasionally come back
-    # before the action bar is laid out, so retry instead of failing the whole run.
-    for _ in 1 2 3 4; do
-        overflow="$(ui_dump | grep -o 'content-desc="More options"[^>]*' \
-            | grep -o 'bounds="\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]"' | tail -1)"
-        [[ -n "$overflow" ]] && break
-        sleep 2
-    done
-    [[ -n "$overflow" ]] || return 1
-    tap_bounds "$overflow"
-    sleep 2
-}
-
-echo "==> starting the Android Auto head unit server"
+echo "==> head unit server"
 if head_unit_listening; then
     echo "    already listening on 5277"
 else
-    for attempt in 1 2 3; do
-        open_settings
-        open_overflow_menu || die "could not open Android Auto's overflow menu"
-
-        if [[ -n "$(node_bounds "Stop head unit server")" ]]; then
-            adb shell input keyevent 4 >/dev/null 2>&1 || true
-            echo "    already on"
-            break
-        fi
-
-        start_row="$(node_bounds "Start head unit server")"
-        if [[ -n "$start_row" ]]; then
-            tap_bounds "$start_row"
-            adb shell input keyevent 4 >/dev/null 2>&1 || true
-            sleep 3
-            head_unit_listening && break
-            echo "    attempt $attempt did not stick, retrying"
-            continue
-        fi
-
-        # No server entry: developer mode is off. Seven taps on the version row.
-        adb shell input keyevent 4 >/dev/null 2>&1 || true
-        for _ in $(seq 1 6); do adb shell input swipe 540 1900 540 600 200 >/dev/null 2>&1 || true; done
-        version_row="$(node_bounds "Version")"
-        if [[ -n "$version_row" ]]; then
-            for _ in $(seq 1 7); do
-                tap_bounds "$version_row"
-                sleep 0.3
-            done
-            echo "    enabled Android Auto developer mode"
-        fi
+    adb shell am start-foreground-service -n "$HU_SERVICE" >/dev/null 2>&1 || true
+    for _ in 1 2 3 4 5; do
+        head_unit_listening && break
+        sleep 1
     done
 
-    if ! head_unit_listening; then
-        echo "    the status bar did not confirm it; trying anyway" >&2
+    if head_unit_listening; then
+        echo "    started from the shell"
+    else
+        # Leave the user on the screen that holds the toggle; it is two taps from here.
+        adb shell am start -n "$AA_PACKAGE/.companion.settings.DefaultSettingsActivity" >/dev/null 2>&1 || true
+        die "the head unit server is off, and only Android Auto itself may start it.
+       On the phone: Android Auto > menu (top right) > Start head unit server, then re-run
+       this. It stays up until Android Auto is force-stopped or the phone restarts."
     fi
 fi
 
