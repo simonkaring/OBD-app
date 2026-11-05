@@ -48,8 +48,8 @@ native pane/grid payloads, stable refresh titles, API 7 sizing fallback, API 8+ 
 resource-only icons, battery levels/unknown state, draw/regen/charge/idle transitions,
 host-default icon tint, compact readouts, custom-image bucket boundaries, cached resource
 identity, speed/charging steps and unknown states, charging estimates/statuses, needle-free
-thick arcs, pixel equality for all 64 packaged
-frames and IoT-only discovery. Rendered frame contact sheets are saved locally at
+thick arcs, pixel equality for all 66 packaged
+frames (26 charging, 20 power, 20 speed) and IoT-only discovery. Rendered frame contact sheets are saved locally at
 `app/build/screenshots/companion/{power,speed,charging}-image-experiment.png`
 (asset preview, not a DHU screenshot). DHU preset selection and SDK-preset fallback
 were checked with stubbed SDK tools; the launcher script also passes `bash -n`.
@@ -65,7 +65,7 @@ power and speed images change only at telemetry state changes, with no continuou
 Vehicle has a separate car icon. Titles stay fixed while live values remain secondary text.
 Power offers a compact numeric text variant if its state label won't fit; the sign and icon
 still distinguish energy direction. Grid titles are single short words (`Battery`, `Range`,
-`Speed`, `Power`, `kWh/100 km`, `Trip`, `Charge`, `To 80%`, `Energy`): the library takes only a
+`Speed`, `Power`, `kWh/100 km`, `Trip`, `Charge`, `To 80%`, `Elapsed`, `Energy`): the library takes only a
 plain title string with no short variant, so the host ellipsized longer labels
 (`Charging power` rendered as `charging pow…`). The qualifiers moved into the value line,
 which already carries `≈`, the h:mm elapsed clock and the DKK cost. Consumption shows only the
@@ -80,7 +80,7 @@ At the user's request, Power and Speed display custom images inside their existi
 `src/debug/.../PowerImageExperiment.kt` supplies ten fixed frames per light/dark theme:
 idle; three draw levels; three regen levels; charging; unconfirmed energy input; unknown.
 Power's 20 transparent 192×192 PNGs are packaged under `src/debug/res/drawable-nodpi`
-alongside 20 Speed images and 24 shared Charging images; resource-backed CarIcons are cached. Distinct resource
+alongside 20 Speed images and 26 Charging images; resource-backed CarIcons are cached. Distinct resource
 IDs matter: this library compares bitmap-backed icons by type, not by their pixels.
 Using separate resource IDs prevents different states/themes comparing equal. No bitmap
 allocation or drawing happens during template refreshes; the host loads/scales the resources.
@@ -100,12 +100,14 @@ No phone screen changes.
 missing/invalid speed. These are coarse illustrations, not a speed limit or replacement for
 the vehicle's speedometer. Exact uncapped km/h stays in native text; no new speed calculation.
 
-`ChargingImageExperiment` keeps 12 frames per theme for charging power: unknown and levels
-0–10, 20 kW steps rounded down, visually capped at 200 kW. Its SOC-step frames (10% steps
-rounded down, full only at 100%, invalid SOC unknown) stay packaged for the experiment, but
-the Charging battery tile now uses Drive's discrete level icon so both tabs read the same.
+`ChargingImageExperiment` keeps 13 frames per theme: unknown, idle and levels 0–10 for
+charging power at 20 kW steps rounded down, visually capped at 200 kW. `socFrame` maps SOC
+through those same level images (10% steps rounded down, full only at 100%, invalid SOC
+unknown) instead of shipping separate SOC artwork; the Charging battery tile uses Drive's
+discrete level icon so both tabs read the same.
 The 200 kW cap is illustrative, not a charger/vehicle limit. Exact uncapped kW and existing `≈` estimate
-markers remain native text. Missing power is unknown, not zero or regen. Charging status,
+markers remain native text. Missing or zero charging power shows the neutral idle frame, never
+a magnitude arc or a regen reading. Charging status,
 ETA, elapsed session time, energy and estimated DKK cost reuse the existing projection.
 No new charging detection, integration or calculations are introduced.
 
@@ -290,7 +292,7 @@ screenshot is not an Android Auto screenshot.
 ## Verification recorded locally
 
 - Debug APK, instrumentation APK and R8 release build: successful.
-- JVM suite: 146 cases, 0 failures/errors, 1 skipped (including 9 companion projection tests).
+- JVM suite: 158 cases, 0 failures/errors, 1 skipped (including 9 companion projection tests).
 - Companion instrumentation: 2 tests passed at each of 800×480 and 1280×720 on an API 36
   emulator, covering disconnected navigation/theme switching and shared simulated charging
   → driving transitions. Existing phone `DemoDashboardSmokeTest`: passed.
@@ -300,10 +302,10 @@ screenshot is not an Android Auto screenshot.
   The instrumentation records originals inside the app's `files/companion-screenshots/`;
   retrieve with `adb exec-out run-as com.simonkaring.voltlink cat files/companion-screenshots/drive.png > drive.png`
   before Gradle's connected test task uninstalls the app.
-- `lintDebug`: blocked by 3 errors in retained, pre-existing `car/VoltLinkScreen.kt`:
-  experimental `GridTemplate.setItemSize`/`ITEM_SIZE_LARGE` use (line 480) and an invalid
-  charging format string (line 545). No companion-source lint findings. These unrelated
-  in-progress sources were not rewritten or suppressed.
+- `lintDebug`: now passes with 0 errors, 71 warnings and 1 hint. The three errors reported
+  earlier came from `car/VoltLinkScreen.kt` (experimental `GridTemplate.setItemSize`/
+  `ITEM_SIZE_LARGE` use and an invalid charging format string); that file no longer exists, and
+  the remaining `car/` sources and the companion are lint-clean. Nothing was suppressed.
 - Confirmed merged release manifest contains neither the preview activity nor Auto host
   metadata/service. Emulator display overrides were reset after testing.
 - Not validated: real adapter/head-unit operation, host restrictions, rotary hardware,

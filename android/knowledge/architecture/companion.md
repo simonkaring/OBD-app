@@ -41,7 +41,7 @@ DHU host validator and service exist only in debug.
 `PowerImageExperiment` selects ten coarse frames per theme: three draw levels (boundaries
 25/75 kW), three regen levels (10/30 kW magnitude), idle, charging, unconfirmed energy input
 and unknown. These thresholds are visual grouping, not calibrated motor limits. Android
-Canvas is only a reference asset generator in instrumentation: the 64 transparent 192px
+Canvas is only a reference asset generator in instrumentation: the 66 transparent 192px
 PNGs are packaged in debug resources and their resource-backed CarIcons are cached.
 Distinct resource IDs avoid the library's bitmap-icon equality limitation. Power and Speed
 use thick 24px arcs with no needles. A small 75%-alpha hub glyph names the quantity - gauge for
