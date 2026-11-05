@@ -12,9 +12,10 @@ This is a plausible experimental category, **not a guarantee of Play approval**.
 `src/debug/.../CompanionCarService.kt` declares IoT through the debug manifest, requests
 Car App API 7, and serves native `GridTemplate`s for Drive and Charging, plus a four-row
 `PaneTemplate` for Vehicle. Drive has six tiles: battery (with connection status),
-range, speed, signed battery power, trip consumption, and trip distance/time. Charging has
-four tiles: battery/status, charging power, ETA to 80%/elapsed h:mm, and session energy/estimated
-cost. Its battery and charging-power tiles use matching thick, needle-free dials.
+range, speed, signed battery power, trip consumption, and trip distance/time. Charging leads
+with the same battery/status and range tiles as Drive, then charging power, ETA to 80%/elapsed
+h:mm, and session energy/estimated cost (five tiles). Its charging-power tile uses the same
+thick, needle-free dial; its battery tile reuses Drive's discrete battery level icon.
 Drive battery icons use eight discrete Material resource levels
 (0–7, full only at 100%); missing/invalid SOC shows a question-mark battery, not empty.
 The Power and Speed tiles now run the custom-image experiment described below. Regen additionally requires
@@ -88,10 +89,11 @@ No phone screen changes.
 missing/invalid speed. These are coarse illustrations, not a speed limit or replacement for
 the vehicle's speedometer. Exact uncapped km/h stays in native text; no new speed calculation.
 
-`ChargingImageExperiment` shares 12 frames per theme between battery and charging power:
-unknown and levels 0–10. SOC uses 10% steps rounded down (full only at 100%; invalid SOC is
-unknown); charging power uses 20 kW steps rounded down, visually capped at 200 kW. This cap
-is illustrative, not a charger/vehicle limit. Exact uncapped kW and existing `≈` estimate
+`ChargingImageExperiment` keeps 12 frames per theme for charging power: unknown and levels
+0–10, 20 kW steps rounded down, visually capped at 200 kW. Its SOC-step frames (10% steps
+rounded down, full only at 100%, invalid SOC unknown) stay packaged for the experiment, but
+the Charging battery tile now uses Drive's discrete level icon so both tabs read the same.
+The 200 kW cap is illustrative, not a charger/vehicle limit. Exact uncapped kW and existing `≈` estimate
 markers remain native text. Missing power is unknown, not zero or regen. Charging status,
 ETA, elapsed session time, energy and estimated DKK cost reuse the existing projection.
 No new charging detection, integration or calculations are introduced.

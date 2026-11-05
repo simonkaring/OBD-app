@@ -41,38 +41,46 @@ class CompanionCarTemplateTest {
         }
     }
 
-    @Test fun chargingUsesFourStableTilesWithDialsAndExistingEstimates() {
+    @Test fun chargingUsesFiveStableTilesLeadingWithBatteryAndRange() {
         fun items(state: CompanionState, dark: Boolean = false) =
             ((companionCarTemplate(app, state, "charging", callback, darkMode = dark)
                 .tabContents.template as GridTemplate).singleList!!.items).map { it as GridItem }
         val state = readState(app).copy(charging = CompanionCharging.ACTIVE,
-            metrics = mapOf(TelemetryMetric.SOC to 72.0), chargePowerKW = 43.2, chargePowerEstimated = true,
+            metrics = mapOf(TelemetryMetric.SOC to 72.0), rangeKm = 312.0, rangeEstimated = false,
+            chargePowerKW = 43.2, chargePowerEstimated = true,
             secondsTo80 = 601.0, chargingSeconds = 3661, energyAddedKWh = 12.34, costDKK = 24.68)
         val first = items(state)
-        assertEquals(4, first.size)
+        assertEquals(5, first.size)
+        // The same battery and range tiles the Drive grid leads with, then the session tiles.
         assertEquals("72 % · Charge", first[0].text.toString())
-        assertEquals("≈ 43.2 kW", first[1].text.toString())
-        assertEquals("≈ 11 min · 1:01", first[2].text.toString())
-        assertEquals("12.34 kWh · ≈ 24.68 DKK", first[3].text.toString())
+        assertEquals("312 km", first[1].text.toString())
+        assertEquals("≈ 43.2 kW", first[2].text.toString())
+        assertEquals("≈ 11 min · 1:01", first[3].text.toString())
+        assertEquals("12.34 kWh · ≈ 24.68 DKK", first[4].text.toString())
         assertTrue(first.all { it.onClickDelegate == null && it.imageType == GridItem.IMAGE_TYPE_LARGE })
-        assertTrue(first.take(2).all { it.image!!.icon!!.type == IconCompat.TYPE_RESOURCE && it.image!!.tint == null })
-        assertTrue(first.drop(2).all { it.image!!.tint == CarColor.DEFAULT })
-        val next = items(state.copy(metrics = mapOf(TelemetryMetric.SOC to 82.0), chargePowerKW = 65.0))
+        // Battery reuses Drive's discrete level icon; charge power keeps the dial image experiment.
+        assertEquals(R.drawable.ic_companion_battery_5, batteryLevelIcon(72.0))
+        assertTrue(first[0].image!!.icon!!.type == IconCompat.TYPE_RESOURCE && first[0].image!!.tint == CarColor.DEFAULT)
+        assertTrue(first[2].image!!.icon!!.type == IconCompat.TYPE_RESOURCE && first[2].image!!.tint == null)
+        assertTrue(listOf(1, 3, 4).all { first[it].image!!.tint == CarColor.DEFAULT })
+        val next = items(state.copy(metrics = mapOf(TelemetryMetric.SOC to 92.0), chargePowerKW = 65.0))
         assertEquals(first.map { it.title.toString() }, next.map { it.title.toString() })
-        for (index in 0..1) {
-            assertNotEquals(first[index].image, next[index].image)
-            assertNotEquals(first[index].image, items(state, true)[index].image)
-        }
+        // A fresh SOC level redraws the battery icon; the power dial also changes with its value and theme.
+        assertNotEquals(first[0].image, next[0].image)
+        assertNotEquals(first[2].image, next[2].image)
+        assertNotEquals(first[2].image, items(state, true)[2].image)
         for ((status, label) in listOf(CompanionCharging.DISCONNECTED to "Offline",
             CompanionCharging.UNAVAILABLE to "Unknown", CompanionCharging.INACTIVE to "Not charging",
             CompanionCharging.COMPLETE to "Stopped · Target reached")) {
-            val missing = items(state.copy(charging = status, metrics = emptyMap(), chargePowerKW = null,
-                secondsTo80 = null, chargingSeconds = null, energyAddedKWh = null, costDKK = null))
+            val missing = items(state.copy(charging = status, metrics = emptyMap(), rangeKm = null,
+                chargePowerKW = null, secondsTo80 = null, chargingSeconds = null,
+                energyAddedKWh = null, costDKK = null))
             assertEquals(first.map { it.title.toString() }, missing.map { it.title.toString() })
             assertEquals("— · $label", missing[0].text.toString())
             assertEquals("—", missing[1].text.toString())
-            assertEquals("— · —", missing[2].text.toString())
+            assertEquals("—", missing[2].text.toString())
             assertEquals("— · —", missing[3].text.toString())
+            assertEquals("— · —", missing[4].text.toString())
         }
     }
 
@@ -116,6 +124,7 @@ class CompanionCarTemplateTest {
         assertEquals(6, items.size)
         assertEquals(items.map { it.title.toString() }, refreshed.map { it.title.toString() })
         assertTrue(refreshed[0].text.toString().startsWith("72 %"))
+        assertEquals("Range", items[1].title.toString())
         assertEquals("-18.5 kW · Energy in", refreshed[3].text.toString())
         assertEquals("— · Unknown", items[3].text.toString())
         assertTrue(items.all { it.image != null && it.imageType == GridItem.IMAGE_TYPE_LARGE })

@@ -13,10 +13,12 @@ See `android/COMPANION.md` for category evidence, launch commands and the test m
 
 The debug service creates a Session and lifecycle-bound Screen with three native tabs
 (Car App API 7): Drive uses six GridTemplate tiles (battery/status, range,
-speed, signed power, consumption, trip/time); Charging uses four grid tiles (battery/status,
-charge power, ETA to 80%/elapsed h:mm, energy/estimated DKK cost); Vehicle retains a four-row
+speed, signed power, consumption, trip/time); Charging uses five grid tiles, leading with the
+same battery/status and range tiles as Drive, then charge power, ETA to 80%/elapsed h:mm and
+energy/estimated DKK cost; Vehicle retains a four-row
 PaneTemplate. Stable item/row titles carry changing values in secondary text. Drive Power/Speed
-and Charging battery/power run the debug-only image experiment below; other icons are vectors.
+and Charging power run the debug-only image experiment below; the Charging battery tile reuses
+Drive's discrete battery level icon and every other icon is a vector.
 The host controls layout/size.
 API 8+ hosts receive an experimental large-item sizing request; API 7 retains default
 grid sizing. Resource icons request the large image slot and use the host's default
@@ -42,9 +44,10 @@ Distinct resource IDs avoid the library's bitmap-icon equality limitation. Power
 use thick 24px arcs with no needles or hubs. `SpeedImageExperiment` has stopped, eight
 20 km/h steps (rounded up, visually capped at 160), and missing/invalid-speed frames per
 theme. The coarse illustration is not a speed limit; exact uncapped speed stays in native
-text. Charging shares 24 neutral images (unknown and levels 0–10 per theme) between battery
-and power: 10% SOC steps rounded down, full only at 100%, invalid SOC unknown; 20 kW steps
-rounded down and visually capped at 200 kW, not a vehicle charging limit. Exact uncapped
+text. Charging keeps its 24 neutral images (unknown and levels 0–10 per theme) for the power tile:
+20 kW steps rounded down and visually capped at 200 kW, not a vehicle charging limit. The
+charging battery tile now uses Drive's discrete level icons instead of the SOC-step images,
+which stay packaged for the experiment. Exact uncapped
 charge power and existing estimate markers remain text. Both use the same needle-free arc
 renderer as Speed during asset generation. No charging detection or telemetry calculation
 changes. There is no runtime drawing, animation, live
