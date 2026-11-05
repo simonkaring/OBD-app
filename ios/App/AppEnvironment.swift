@@ -33,6 +33,15 @@ public final class AppEnvironment: ObservableObject {
     /// Battery health changes over months, so one daily sample is enough; this throttle keeps
     /// the fetch-and-save off the 1 Hz telemetry path.
     private var lastBatteryHealthCheck = Date.distantPast
+    /// Last completed trip. The widget cannot read SwiftData, so the figures are cached
+    /// when a trip finishes rather than fetched on every telemetry publish.
+    private var lastTripSummary: LastTripSummary?
+
+    private struct LastTripSummary {
+        var distanceKm: Double
+        var duration: TimeInterval
+        var consumptionKWhPer100Km: Double?
+    }
 
     private static func makeModelContainer() -> (ModelContainer, String?, String?) {
         let schema = Schema(versionedSchema: VoltLinkCurrentSchema.versioned)
@@ -112,6 +121,15 @@ public final class AppEnvironment: ObservableObject {
         // trips/sessions show up in the UI without a second context to reconcile.
         tTracker.modelContext = self.modelContainer.mainContext
         cTracker.modelContext = self.modelContainer.mainContext
+        refreshLastTripSummary()
+        tTracker.onTripFinished = { [weak self, weak vData, weak tTracker] in
+            guard let self, let vData, let tTracker else { return }
+            self.refreshLastTripSummary()
+            // Publish immediately so the widget swaps the live trip figure for the finished
+            // one even when the adapter stopped streaming as the trip ended.
+            self.publishSharedState(
+                snapshot: vData.latestTelemetry, vehicleData: vData, tripTracker: tTracker, force: true)
+        }
 
         vData.prepareDemoModeChange = { [weak vData, weak tTracker, weak cTracker] enabled in
             guard let vData, let tTracker, let cTracker else { return false }
@@ -214,6 +232,38 @@ public final class AppEnvironment: ObservableObject {
             at: now)
     }
 
+    /// Caches the most recent completed trip for the Home Screen widget.
+    private func refreshLastTripSummary() {
+        lastTripSummary = latestCompletedTrip().map(Self.summary(of:))
+    }
+
+    private func latestCompletedTrip() -> TripModel? {
+        var descriptor = FetchDescriptor<TripModel>(
+            predicate: #Predicate { $0.endTime != nil },
+            sortBy: [SortDescriptor(\TripModel.startTime, order: .reverse)])
+        descriptor.fetchLimit = 1
+        do {
+            return try modelContainer.mainContext.fetch(descriptor).first
+        } catch {
+            return nil
+        }
+    }
+
+    private static func summary(of trip: TripModel) -> LastTripSummary {
+        let elapsed = trip.endTime.map { max(0, $0.timeIntervalSince(trip.startTime)) } ?? 0
+        return LastTripSummary(
+            distanceKm: trip.distanceKm > 0 ? trip.distanceKm : 0,
+            duration: elapsed.isFinite ? elapsed : 0,
+            consumptionKWhPer100Km: plausibleConsumption(trip))
+    }
+
+    /// Zero energy means the trip had no power data, not a free drive: never show 0.
+    private static func plausibleConsumption(_ trip: TripModel) -> Double? {
+        guard trip.distanceKm > 0.1, trip.totalKWhUsed > 0 else { return nil }
+        let value = trip.efficiencyKWhPer100Km
+        return value.isFinite && value > 0 ? value : nil
+    }
+
     /// The widget extension cannot read `UnitPreferences`, so mirror the user's choice.
     private func currentUnits() -> SharedDisplayUnits {
         let preferences = UnitPreferences.shared
@@ -235,6 +285,14 @@ public final class AppEnvironment: ObservableObject {
         // The Live Activity mirrors whichever recording is active; charging wins, matching
         // `LiveActivityCoordinator`.
         let activeSessionStartedAt = chargingTracker.currentSession?.startTime ?? tripTracker?.currentTrip?.startTime
+        // Demo mode runs against simulated trips, so show the demo recording rather than a
+        // real trip's figures under the DEMO badge.
+        let lastTrip: LastTripSummary?
+        if vehicleData.isDemoMode, let demoTrip = tripTracker?.demoTrips.first {
+            lastTrip = Self.summary(of: demoTrip)
+        } else {
+            lastTrip = lastTripSummary
+        }
         let units = currentUnits()
         lastPublishedUnits = units
         let shared = SharedTelemetrySnapshot(
@@ -249,6 +307,9 @@ public final class AppEnvironment: ObservableObject {
             isTripActive: tripTracker?.currentTrip != nil,
             distanceKm: tripTracker?.currentTrip?.distanceKm ?? 0,
             averageConsumptionKWhPer100Km: tripTracker?.averageConsumption,
+            lastTripConsumptionKWhPer100Km: lastTrip?.consumptionKWhPer100Km,
+            lastTripDistanceKm: lastTrip?.distanceKm,
+            lastTripDurationSeconds: lastTrip?.duration,
             activeSessionStartedAt: activeSessionStartedAt,
             updatedAt: now,
             units: units

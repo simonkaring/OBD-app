@@ -69,6 +69,28 @@ final class SharedWidgetRefresherTests: XCTestCase {
         XCTAssertEqual(Self.reloads, 2)
     }
 
+    func testLastTripConsumptionChangeReloads() {
+        XCTAssertTrue(SharedWidgetRefresher.refreshIfNeeded(for: snapshot(), at: base))
+
+        var completed = snapshot()
+        completed.lastTripConsumptionKWhPer100Km = 18.4
+        XCTAssertTrue(SharedWidgetRefresher.refreshIfNeeded(for: completed, at: base.addingTimeInterval(61)))
+        XCTAssertEqual(Self.reloads, 2)
+    }
+
+    func testLastTripDistanceOrDurationChangeReloads() {
+        XCTAssertTrue(SharedWidgetRefresher.refreshIfNeeded(for: snapshot(), at: base))
+
+        var byDistance = snapshot()
+        byDistance.lastTripDistanceKm = 42
+        XCTAssertTrue(SharedWidgetRefresher.refreshIfNeeded(for: byDistance, at: base.addingTimeInterval(61)))
+
+        var byDuration = byDistance
+        byDuration.lastTripDurationSeconds = 3_600
+        XCTAssertTrue(SharedWidgetRefresher.refreshIfNeeded(for: byDuration, at: base.addingTimeInterval(122)))
+        XCTAssertEqual(Self.reloads, 3)
+    }
+
     func testUnitChangeReloadsEvenWhenValuesAreEqual() {
         XCTAssertTrue(SharedWidgetRefresher.refreshIfNeeded(for: snapshot(speedKmH: 100), at: base))
 

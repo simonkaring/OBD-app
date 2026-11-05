@@ -33,6 +33,9 @@ public final class TripTrackingManager {
     public private(set) var locationAuthorizationStatus: CLAuthorizationStatus = .notDetermined
 
     @ObservationIgnored public var modelContext: ModelContext?
+    /// Fired after a trip is saved and cleared, so non-UI consumers (the widget snapshot)
+    /// can refresh derived figures without polling SwiftData.
+    @ObservationIgnored public var onTripFinished: (@MainActor () -> Void)?
 
     /// A trip resumed via `merge(_:into:)` within this window of a prior trip's end is
     /// eligible for merging; the merge itself is user-triggered, never automatic.
@@ -113,6 +116,7 @@ public final class TripTrackingManager {
         self.lastSampleTime = nil
         resetStationaryTimer()
         Haptics.success()
+        onTripFinished?()
         return true
     }
 

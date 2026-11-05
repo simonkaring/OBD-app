@@ -128,6 +128,16 @@ final class ConsumptionTelemetryTests: XCTestCase {
         XCTAssertEqual(trip.efficiencyKWhPer100Km, trip.totalKWhUsed / trip.distanceKm * 100)
     }
 
+    func testStoppingATripNotifiesFinishedHandler() {
+        let tracker = TripTrackingManager()
+        tracker.setDemoMode(true, endSoc: 80)
+        var calls = 0
+        tracker.onTripFinished = { calls += 1 }
+        tracker.startTrip()
+        XCTAssertTrue(tracker.stopTrip())
+        XCTAssertEqual(calls, 1)
+    }
+
     func testDemoAndOlderSnapshotCompatibility() throws {
         let simulation = MockDrivingSimulation()
         simulation.scenario = .highwayCruising

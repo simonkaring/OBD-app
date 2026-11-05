@@ -71,6 +71,12 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
     public var distanceKm: Double
     /// Trip average consumption; nil while the trip is too short or power data is incomplete.
     public var averageConsumptionKWhPer100Km: Double?
+    /// Consumption of the most recently completed trip, shown on the Home Screen once the
+    /// trip is over. Nil until a finished trip has plausible energy data.
+    public var lastTripConsumptionKWhPer100Km: Double?
+    /// Distance and duration of that same trip; nil until a trip has been recorded.
+    public var lastTripDistanceKm: Double?
+    public var lastTripDurationSeconds: TimeInterval?
     /// Start of the trip or charging session the Live Activity mirrors (charging wins).
     public var activeSessionStartedAt: Date?
     public var updatedAt: Date
@@ -92,6 +98,9 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         isTripActive: Bool = false,
         distanceKm: Double = 0,
         averageConsumptionKWhPer100Km: Double? = nil,
+        lastTripConsumptionKWhPer100Km: Double? = nil,
+        lastTripDistanceKm: Double? = nil,
+        lastTripDurationSeconds: TimeInterval? = nil,
         activeSessionStartedAt: Date? = nil,
         updatedAt: Date = Date(),
         units: SharedDisplayUnits = SharedDisplayUnits()
@@ -107,6 +116,9 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         self.isTripActive = isTripActive
         self.distanceKm = distanceKm
         self.averageConsumptionKWhPer100Km = averageConsumptionKWhPer100Km
+        self.lastTripConsumptionKWhPer100Km = lastTripConsumptionKWhPer100Km
+        self.lastTripDistanceKm = lastTripDistanceKm
+        self.lastTripDurationSeconds = lastTripDurationSeconds
         self.activeSessionStartedAt = activeSessionStartedAt
         self.updatedAt = updatedAt
         self.units = units
@@ -114,7 +126,8 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case vehicleName, socPct, powerKW, speedKmH, rangeKm, isCharging, isConnected, isDemoMode, isTripActive, distanceKm,
-            averageConsumptionKWhPer100Km, activeSessionStartedAt, updatedAt, units
+            averageConsumptionKWhPer100Km, lastTripConsumptionKWhPer100Km, lastTripDistanceKm, lastTripDurationSeconds, activeSessionStartedAt,
+            updatedAt, units
     }
 
     /// Tolerates snapshots written before later fields (`speedKmH`, `units`, …) existed.
@@ -131,6 +144,9 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         isTripActive = try container.decodeIfPresent(Bool.self, forKey: .isTripActive) ?? false
         distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm) ?? 0
         averageConsumptionKWhPer100Km = try container.decodeIfPresent(Double.self, forKey: .averageConsumptionKWhPer100Km)
+        lastTripConsumptionKWhPer100Km = try container.decodeIfPresent(Double.self, forKey: .lastTripConsumptionKWhPer100Km)
+        lastTripDistanceKm = try container.decodeIfPresent(Double.self, forKey: .lastTripDistanceKm)
+        lastTripDurationSeconds = try container.decodeIfPresent(TimeInterval.self, forKey: .lastTripDurationSeconds)
         activeSessionStartedAt = try container.decodeIfPresent(Date.self, forKey: .activeSessionStartedAt)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
         units = try container.decodeIfPresent(SharedDisplayUnits.self, forKey: .units) ?? SharedDisplayUnits()
@@ -219,6 +235,9 @@ public enum SharedWidgetRefresher {
             String(Int(units.speed(kilometersPerHour: snapshot.speedKmH).rounded())),
             String(Int(units.distance(kilometers: snapshot.rangeKm ?? 0).rounded())),
             String(Int(units.distance(kilometers: snapshot.distanceKm).rounded())),
+            String(Int(units.efficiency(kilowattHoursPer100Kilometers: snapshot.lastTripConsumptionKWhPer100Km ?? 0).rounded())),
+            String(Int(units.distance(kilometers: snapshot.lastTripDistanceKm ?? 0).rounded())),
+            String(Int((snapshot.lastTripDurationSeconds ?? 0).rounded())),
             snapshot.isCharging ? "charging" : "idle",
             snapshot.isConnected ? "connected" : "disconnected",
             snapshot.isTripActive ? "trip" : "parked",

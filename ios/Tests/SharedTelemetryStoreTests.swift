@@ -31,6 +31,9 @@ final class SharedTelemetryStoreTests: XCTestCase {
             isTripActive: false,
             distanceKm: 0,
             averageConsumptionKWhPer100Km: 18.4,
+            lastTripConsumptionKWhPer100Km: 19.2,
+            lastTripDistanceKm: 158.9,
+            lastTripDurationSeconds: 6_600,
             activeSessionStartedAt: Date(timeIntervalSince1970: 1_700_000_000),
             updatedAt: Date(timeIntervalSince1970: 1_700_000_000)
         )
@@ -51,6 +54,9 @@ final class SharedTelemetryStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.speedKmH, 0)
         XCTAssertNil(snapshot.rangeKm)
         XCTAssertNil(snapshot.averageConsumptionKWhPer100Km)
+        XCTAssertNil(snapshot.lastTripConsumptionKWhPer100Km)
+        XCTAssertNil(snapshot.lastTripDistanceKm)
+        XCTAssertNil(snapshot.lastTripDurationSeconds)
         XCTAssertNil(snapshot.activeSessionStartedAt)
     }
 
