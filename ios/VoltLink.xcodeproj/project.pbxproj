@@ -127,6 +127,7 @@
 		CD94E3BA4961F906CC3CA5E1 /* VoltLinkLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B32908C6DAAD1CE59223A4 /* VoltLinkLiveActivityWidget.swift */; };
 		39EAF7A92C47F5A337AF35EF /* VoltLinkStatusWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25750A0CA294033C415DAA4E /* VoltLinkStatusWidget.swift */; };
 		AAE7482F93BA7C288DEA11B4 /* VoltLinkWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25C6F42B283AA411669087EB /* VoltLinkWidgets.swift */; };
+		1AA638CE7A53A8C3CE78CB7C /* BrandAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B1E0DE4326F9AB1FC7C5080 /* BrandAssets.xcassets */; };
 		BC45C785AD2B7F3B003D65D4 /* VoltLinkWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = ECE3E7DD5E841251314F7678 /* VoltLinkWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -264,6 +265,7 @@
 		25750A0CA294033C415DAA4E /* VoltLinkStatusWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkStatusWidget.swift"; sourceTree = "<group>"; };
 		25C6F42B283AA411669087EB /* VoltLinkWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkWidgets.swift"; sourceTree = "<group>"; };
 		215C39D3C9BCA05CB5043C59 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Assets.xcassets"; sourceTree = "<group>"; };
+		8B1E0DE4326F9AB1FC7C5080 /* BrandAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "BrandAssets.xcassets"; sourceTree = "<group>"; };
 		81F31879437340D5CD6ED968 /* VoltLink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoltLink.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1E72342EF5FEED24ED965995 /* VoltLinkUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VoltLinkUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ECE3E7DD5E841251314F7678 /* VoltLinkWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VoltLinkWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -678,7 +680,8 @@
 			children = (
 				01B32908C6DAAD1CE59223A4,
 				25750A0CA294033C415DAA4E,
-				25C6F42B283AA411669087EB
+				25C6F42B283AA411669087EB,
+				8B1E0DE4326F9AB1FC7C5080
 			);
 			path = "Widgets";
 			sourceTree = "<group>";
@@ -841,6 +844,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1AA638CE7A53A8C3CE78CB7C /* BrandAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

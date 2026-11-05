@@ -434,8 +434,20 @@ public struct SettingsView: View {
                 }
 
                 Section("App Information") {
-                    HStack {
-                        Text("App Version")
+                    HStack(spacing: 12) {
+                        Image("BrandMark")
+                            .resizable()
+                            .interpolation(.high)
+                            .frame(width: 52, height: 52)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("VoltLink")
+                                .font(.headline)
+                            Text("Live EV telemetry & diagnostics")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
                         Spacer()
                         Text("1.0.0")
                             .foregroundStyle(Theme.textSecondary)

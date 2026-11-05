@@ -146,7 +146,7 @@ def add_to_group(path, child_id):
 
 
 # Asset catalogs are regular `folder.assetcatalog` file references, not groups.
-for path in app_sources + app_resources + app_catalogs + ui_sources + ui_resources + ui_catalogs + widget_only_sources:
+for path in app_sources + app_resources + app_catalogs + ui_sources + ui_resources + ui_catalogs + widget_only_sources + widget_catalogs:
     add_to_group(path, ids_for(path)[0])
 
 
@@ -227,7 +227,7 @@ def render_file_references():
         fref = ids_for(path)[0]
         lines.append('\t\t%s /* %s */ = {isa = PBXFileReference; lastKnownFileType = %s; path = "%s"; sourceTree = "<group>"; };\n' % (
             fref, os.path.basename(path), file_type_for(path), os.path.basename(path)))
-    for catalog in app_catalogs + ui_catalogs:
+    for catalog in app_catalogs + ui_catalogs + widget_catalogs:
         lines.append('\t\t%s /* %s */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "%s"; sourceTree = "<group>"; };\n' % (
             ids_for(catalog)[0], os.path.basename(catalog), os.path.basename(catalog)))
     lines.append('\t\t%s /* %s.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = %s.app; sourceTree = BUILT_PRODUCTS_DIR; };\n' % (
@@ -253,6 +253,10 @@ app_resource_bfs = [ids_for(p)[1] for p in app_resources]
 asset_build_ids = {}
 for catalog in app_catalogs:
     asset_build_ids[catalog] = gid("buildfile:catalog", catalog)
+# The widget extension gets its own catalogs (brand mark) so it never links the app icon.
+widget_catalog_build_ids = {c: gid("buildfile:widget-catalog", c) for c in widget_catalogs}
+widget_resource_entries = "".join(
+    "\t\t\t\t%s /* %s in Resources */,\n" % (widget_catalog_build_ids[c], os.path.basename(c)) for c in widget_catalogs)
 ui_source_bfs = [ids_for(p)[1] for p in ui_sources]
 
 
@@ -276,6 +280,9 @@ def render_build_files_with_assets():
     for path in widget_sources:
         lines.append("\t\t%s /* %s in Sources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n" % (
             widget_bfs[path], os.path.basename(path), ids_for(path)[0], os.path.basename(path)))
+    for catalog in widget_catalogs:
+        lines.append("\t\t%s /* %s in Resources */ = {isa = PBXBuildFile; fileRef = %s /* %s */; };\n" % (
+            widget_catalog_build_ids[catalog], os.path.basename(catalog), ids_for(catalog)[0], os.path.basename(catalog)))
     return "".join(lines)
 
 
@@ -715,8 +722,8 @@ insert_before(
 
 insert_before(
     "/* End PBXResourcesBuildPhase section */",
-    "\t\t%s /* Resources */ = {\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t);\n"
-    "\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t};\n" % (widget_resources_phase,),
+    "\t\t%s /* Resources */ = {\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n%s\t\t\t);\n"
+    "\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t};\n" % (widget_resources_phase, widget_resource_entries),
 )
 
 insert_before(

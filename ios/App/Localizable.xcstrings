@@ -424,6 +424,7 @@
       }
     },
     "App Version" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1922,6 +1923,9 @@
         }
       }
     },
+    "Live EV telemetry & diagnostics" : {
+
+    },
     "Live state of health" : {
 
     },
@@ -3331,6 +3335,9 @@
           }
         }
       }
+    },
+    "VoltLink" : {
+
     },
     "VoltLink asks for permission the first time one of these is enabled. Notifications never include raw vehicle data." : {
 

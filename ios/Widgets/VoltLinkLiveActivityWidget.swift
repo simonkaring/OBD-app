@@ -97,6 +97,12 @@ private struct LockScreenActivityView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 4) {
+                    Image("BrandMarkTemplate")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 13, height: 13)
+                        .foregroundStyle(activityAccent(for: state.mode))
+                        .accessibilityHidden(true)
                     Text(context.attributes.vehicleName)
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
