@@ -53,6 +53,13 @@ class HistoryBackupTest {
         peakPowerKW = 120.0,
         averagePowerKW = 80.0,
         locationName = "Ionity",
+        latitude = 52.52,
+        longitude = 13.405,
+        startBatteryTempC = 31.0,
+        endBatteryTempC = 38.5,
+        startRangeKm = 280.0,
+        endRangeKm = 360.0,
+        isDC = true,
         samples = listOf(ChargingSample(start, 42.0, 118.0), ChargingSample(start.plusSeconds(60), 45.0, 110.0)),
     )
 
@@ -75,6 +82,10 @@ class HistoryBackupTest {
 
         val restoredSession = restored.chargingSessions.single()
         assertEquals("Ionity", restoredSession.locationName)
+        assertEquals(52.52, restoredSession.latitude!!, 1e-9)
+        assertEquals(31.0, restoredSession.startBatteryTempC!!, 1e-9)
+        assertEquals(360.0, restoredSession.endRangeKm!!, 1e-9)
+        assertEquals(true, restoredSession.isDC)
         assertEquals(2, restoredSession.samples.size)
 
         assertEquals(97.4, restored.batteryHealth.single().sohPct, 1e-9)

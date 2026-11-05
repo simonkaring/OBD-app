@@ -56,7 +56,9 @@ class VoltLinkApplication : Application() {
         dtcScanner = DtcScannerService(appScope, vehicleData, DtcLocalDatabase(this))
         historyStore = HistoryStore(this, appScope)
         tripTracker = TripTracker(appScope, historyStore)
-        chargingTracker = ChargingTracker(appScope, historyStore)
+        chargingTracker = ChargingTracker(appScope, historyStore) {
+            com.simonkaring.voltlink.services.lastKnownLocation(this@VoltLinkApplication)
+        }
         observeTelemetry()
         observeChargingState()
         observeDiagnostics()

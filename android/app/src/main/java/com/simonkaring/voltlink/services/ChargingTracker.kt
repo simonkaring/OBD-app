@@ -23,6 +23,8 @@ import java.time.Instant
 class ChargingTracker(
     private val scope: CoroutineScope,
     private val store: HistoryStore,
+    /** Optional last-known position; never prompts, and returning null just omits the fix. */
+    private val locationProvider: (() -> LocationFix?)? = null,
 ) {
     data class State(
         val current: ChargingSessionRecord? = null,
@@ -116,11 +118,22 @@ class ChargingTracker(
         chargedKWh = 0.0
         targetReachedNotified = false
         lastSampleAt = null
+        // A new session must not bill the gap since the previous update to its first interval.
+        lastUpdate = now
+        val fix = runCatching { locationProvider?.invoke() }.getOrNull()?.takeIf { it.hasValidCoordinate }
         val session = ChargingSessionRecord(
             startTime = now,
             startSocPct = snapshot.stateOfChargePct,
             endSocPct = snapshot.stateOfChargePct,
-            locationName = if (snapshot.chargePowerKW > 22.0) "DC Fast Charger" else "AC Charger",
+            locationName = if (snapshot.chargePowerKW > ChargingTimeEstimator.DC_POWER_THRESHOLD_KW) {
+                "DC Fast Charger"
+            } else {
+                "AC Charger"
+            },
+            latitude = fix?.latitude,
+            longitude = fix?.longitude,
+            startBatteryTempC = snapshot.batteryTempC.takeIf(::plausibleBatteryTemp),
+            startRangeKm = snapshot.vehicleRangeKm?.takeIf(::plausibleRange),
         )
         _state.value = _state.value.copy(current = session, isCharging = true)
         updateSession(session, snapshot, now)
@@ -149,6 +162,9 @@ class ChargingTracker(
             peakPowerKW = maxOf(session.peakPowerKW, power),
             averagePowerKW = ChargingSessionMath.averagePowerKW(chargedKWh, session.startTime, now)
                 ?: session.averagePowerKW,
+            endBatteryTempC = snapshot.batteryTempC.takeIf(::plausibleBatteryTemp)
+                ?: session.endBatteryTempC,
+            endRangeKm = snapshot.vehicleRangeKm?.takeIf(::plausibleRange) ?: session.endRangeKm,
             samples = newSamples,
         )
         _state.value = _state.value.copy(current = updated)
@@ -156,14 +172,24 @@ class ChargingTracker(
 
     private fun closeSession(session: ChargingSessionRecord, now: Instant) {
         val end = lastChargingAt ?: now
+        // The class is decided by what the session actually drew, not by its first reading.
+        val isDC = session.peakPowerKW > ChargingTimeEstimator.DC_POWER_THRESHOLD_KW
         val finished = session.copy(
             endTime = end,
             averagePowerKW = ChargingSessionMath.averagePowerKW(chargedKWh, session.startTime, end)
                 ?: session.averagePowerKW,
+            isDC = isDC,
+            locationName = if (isDC) "DC Fast Charger" else "AC Charger",
         )
         if (!isDemoMode) scope.launch { store.saveChargingSession(finished) }
         discardSession()
     }
+
+    private fun plausibleBatteryTemp(value: Double): Boolean =
+        value.isFinite() && value > -50.0 && value < 100.0
+
+    private fun plausibleRange(value: Double?): Boolean =
+        value != null && value.isFinite() && value > 0.0
 
     private fun discardSession() {
         _state.value = _state.value.copy(current = null, isCharging = false, secondsToTarget = null)

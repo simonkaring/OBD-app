@@ -5,6 +5,7 @@ import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
 import com.simonkaring.voltlink.data.DistanceUnit
 import com.simonkaring.voltlink.data.PowerUnit
 import com.simonkaring.voltlink.data.TemperatureUnit
+import com.simonkaring.voltlink.data.UnitFormatter
 
 /** Display-unit bundle: telemetry stays SI, conversion happens only at render time. */
 data class UnitPrefs(
@@ -36,11 +37,20 @@ data class UnitPrefs(
     /** Converts an already-decoded power reading (kW) for render-only surfaces. */
     fun powerValue(kilowatts: Double): Double = if (power == PowerUnit.HORSEPOWER) kilowatts * 1.34102 else kilowatts
 
+    /** Converts an already-decoded temperature reading (°C) for render-only surfaces. */
+    fun temperatureValue(celsius: Double): Double = UnitFormatter.temperature(celsius, temperature)
+
+    /** Converts an already-decoded distance reading (km) for render-only surfaces. */
+    fun distanceValue(km: Double): Double = UnitFormatter.distance(km, distance)
+
     val powerUnitLabel: String get() = power.label
+
+    val temperatureUnitLabel: String get() = temperature.label
 
     val speedUnit: String get() = if (distance == DistanceUnit.MILES) "mph" else "km/h"
 
     val distanceUnitLabel: String get() = if (distance == DistanceUnit.MILES) "mi" else "km"
+
 
     fun range(metric: TelemetryMetric): ClosedFloatingPointRange<Double> {
         var start = metric.rangeStart

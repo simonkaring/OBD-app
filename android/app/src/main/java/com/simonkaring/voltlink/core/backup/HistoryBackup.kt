@@ -32,7 +32,7 @@ data class HistoryBackup(
     fun toJson(): String = CODEC.encodeToString(serializer(), this)
 
     companion object {
-        const val CURRENT_VERSION = 1
+        const val CURRENT_VERSION = 2
         private val CODEC = Json {
             prettyPrint = true
             ignoreUnknownKeys = true
@@ -80,6 +80,13 @@ data class HistoryBackup(
                     peakPowerKW = session.peakPowerKW,
                     averagePowerKW = session.averagePowerKW,
                     locationName = session.locationName,
+                    latitude = session.latitude,
+                    longitude = session.longitude,
+                    startBatteryTempC = session.startBatteryTempC,
+                    endBatteryTempC = session.endBatteryTempC,
+                    startRangeKm = session.startRangeKm,
+                    endRangeKm = session.endRangeKm,
+                    isDC = session.isDC,
                     samples = session.samples.map { BackupChargingSample(it.timestamp.toEpochMilli(), it.socPct, it.powerKW) },
                 )
             },
@@ -156,6 +163,13 @@ data class BackupChargingSession(
     val peakPowerKW: Double = 0.0,
     val averagePowerKW: Double = 0.0,
     val locationName: String = "Fast Charger",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val startBatteryTempC: Double? = null,
+    val endBatteryTempC: Double? = null,
+    val startRangeKm: Double? = null,
+    val endRangeKm: Double? = null,
+    val isDC: Boolean? = null,
     val samples: List<BackupChargingSample> = emptyList(),
 ) {
     fun toRecord(): ChargingSessionRecord = ChargingSessionRecord(
@@ -168,6 +182,13 @@ data class BackupChargingSession(
         peakPowerKW = peakPowerKW,
         averagePowerKW = averagePowerKW,
         locationName = locationName,
+        latitude = latitude,
+        longitude = longitude,
+        startBatteryTempC = startBatteryTempC,
+        endBatteryTempC = endBatteryTempC,
+        startRangeKm = startRangeKm,
+        endRangeKm = endRangeKm,
+        isDC = isDC,
         samples = samples.map { ChargingSample(Instant.ofEpochMilli(it.timestampMs), it.socPct, it.powerKW) },
     )
 }

@@ -90,6 +90,15 @@ but simulated rows never reach the history database. See [Demo mode](/architectu
   (`ChargingSessionMath`), not the mean of telemetry samples, so a DC taper cannot pull
   the figure below what the charger itself displays. The helper returns `null` until
   enough time has passed, and the last stored value stands.
+- `ChargingTracker` captures the session's start and end battery temperature and vehicle
+  range, decides the AC/DC class at close from the session's peak power against the
+  estimator's DC threshold, and records a last-known position at start when location was
+  already granted. That lookup never prompts or starts location updates; without a recent
+  fix the session has no coordinates and the CSV leaves them blank.
+- `HistoryStore` loads each archived session's curve together with its row, so the history
+  card and the detail sheet draw the same scrubbable chart the live session uses. The
+  monthly summary (`ChargingHistoryInsights`) sums completed sessions in the local month
+  and prices them with the settings' electricity rate.
 - `HistoryStore` keeps one battery-health reading per vehicle per **local** calendar
   day. The query window and the backup `dayKey` both come from `ZoneId.systemDefault()`;
   a UTC bucket merged two local days west of UTC and split one east of it.

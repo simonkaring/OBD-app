@@ -1,6 +1,7 @@
 package com.simonkaring.voltlink.services
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -73,6 +74,32 @@ object TripLocation {
 
     /** Matches the iOS `TripLocationManager` accuracy bound. */
     const val maxAccuracyMeters = 100f
+}
+
+/**
+ * Best last-known position for a charging session that starts while the car is parked.
+ *
+ * Never prompts for permission and never starts location updates: without an existing grant or
+ * a recent fix it returns null and the session simply has no coordinates. The 15-minute bound
+ * keeps a genuinely old position from being attached to a charge at a different place.
+ */
+@SuppressLint("MissingPermission")
+fun lastKnownLocation(context: Context): LocationFix? {
+    if (!TripLocationService.hasLocationPermission(context)) return null
+    val manager = context.getSystemService(LocationManager::class.java) ?: return null
+    val newest = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+        .mapNotNull { provider -> runCatching { manager.getLastKnownLocation(provider) }.getOrNull() }
+        .maxByOrNull { it.time }
+        ?: return null
+    if (System.currentTimeMillis() - newest.time > 15 * 60_000L) return null
+    return LocationFix(
+        timestamp = Instant.ofEpochMilli(newest.time),
+        latitude = newest.latitude,
+        longitude = newest.longitude,
+        altitudeM = if (newest.hasAltitude()) newest.altitude else 0.0,
+        speedKmH = if (newest.hasSpeed()) newest.speed * 3.6 else 0.0,
+        accuracyM = if (newest.hasAccuracy()) newest.accuracy else Float.MAX_VALUE,
+    ).takeIf { it.hasValidCoordinate && it.accuracyM <= TripLocation.maxAccuracyMeters }
 }
 
 /**

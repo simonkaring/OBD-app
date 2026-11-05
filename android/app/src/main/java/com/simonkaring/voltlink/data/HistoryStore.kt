@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.simonkaring.voltlink.core.telemetry.ChargingTimeEstimator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,10 +73,31 @@ data class ChargingSessionRecord(
     val peakPowerKW: Double = 0.0,
     val averagePowerKW: Double = 0.0,
     val locationName: String = "Fast Charger",
+    /** Position captured when the session started, when a fix was already available. */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val startBatteryTempC: Double? = null,
+    val endBatteryTempC: Double? = null,
+    val startRangeKm: Double? = null,
+    val endRangeKm: Double? = null,
+    /** DC classification recorded at session close; null on rows written before it existed. */
+    val isDC: Boolean? = null,
     val samples: List<ChargingSample> = emptyList(),
 ) {
     val duration: java.time.Duration
         get() = java.time.Duration.between(startTime, endTime ?: Instant.now())
+
+    val hasLocation: Boolean
+        get() {
+            val latitude = latitude ?: return false
+            val longitude = longitude ?: return false
+            return latitude in -90.0..90.0 && longitude in -180.0..180.0 &&
+                !(latitude == 0.0 && longitude == 0.0)
+        }
+
+    /** Older rows have no stored class, so their peak power decides it. */
+    val isDCCharging: Boolean
+        get() = isDC ?: (peakPowerKW > ChargingTimeEstimator.DC_POWER_THRESHOLD_KW)
 }
 
 data class BatteryHealthRecord(
@@ -85,7 +107,7 @@ data class BatteryHealthRecord(
 )
 
 /** SQLite schema mirroring the SwiftData V3 models used by the iOS app. */
-private class VoltLinkDatabase(context: Context) : SQLiteOpenHelper(context, "voltlink.db", null, 1) {
+private class VoltLinkDatabase(context: Context) : SQLiteOpenHelper(context, "voltlink.db", null, 2) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             """CREATE TABLE trips(
@@ -105,7 +127,9 @@ private class VoltLinkDatabase(context: Context) : SQLiteOpenHelper(context, "vo
             """CREATE TABLE charging_sessions(
                 id TEXT PRIMARY KEY, start_time INTEGER NOT NULL, end_time INTEGER,
                 start_soc REAL NOT NULL, end_soc REAL NOT NULL, kwh REAL NOT NULL,
-                peak_power REAL NOT NULL, avg_power REAL NOT NULL, location_name TEXT NOT NULL)""",
+                peak_power REAL NOT NULL, avg_power REAL NOT NULL, location_name TEXT NOT NULL,
+                latitude REAL, longitude REAL, start_temp REAL, end_temp REAL,
+                start_range REAL, end_range REAL, is_dc INTEGER)""",
         )
         db.execSQL(
             """CREATE TABLE charging_samples(
@@ -120,7 +144,21 @@ private class VoltLinkDatabase(context: Context) : SQLiteOpenHelper(context, "vo
         )
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            // Additive columns: existing sessions keep their rows and simply have no location,
+            // temperature, range or recorded AC/DC class.
+            listOf(
+                "latitude REAL",
+                "longitude REAL",
+                "start_temp REAL",
+                "end_temp REAL",
+                "start_range REAL",
+                "end_range REAL",
+                "is_dc INTEGER",
+            ).forEach { column -> db.execSQL("ALTER TABLE charging_sessions ADD COLUMN $column") }
+        }
+    }
 }
 
 /**
@@ -248,8 +286,7 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
     /** Everything the history screens show, in the portable backup shape. */
     suspend fun backupSnapshot(): com.simonkaring.voltlink.core.backup.HistoryBackup = withContext(Dispatchers.IO) {
         val trips = loadTrips().map { trip -> trip.copy(samples = loadTripSamples(trip.id)) }
-        val sessions = loadChargingSessions().map { session -> session.copy(samples = loadChargingSamples(session.id)) }
-        com.simonkaring.voltlink.core.backup.HistoryBackup.capture(trips, sessions, loadBatteryHealth())
+        com.simonkaring.voltlink.core.backup.HistoryBackup.capture(trips, loadChargingSessions(), loadBatteryHealth())
     }
 
     /** Applies only the rows a [BackupPlan] decided are missing. */
@@ -276,6 +313,13 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
                 put("peak_power", session.peakPowerKW)
                 put("avg_power", session.averagePowerKW)
                 put("location_name", session.locationName)
+                putNullable("latitude", session.latitude)
+                putNullable("longitude", session.longitude)
+                putNullable("start_temp", session.startBatteryTempC)
+                putNullable("end_temp", session.endBatteryTempC)
+                putNullable("start_range", session.startRangeKm)
+                putNullable("end_range", session.endRangeKm)
+                putNullable("is_dc", session.isDC?.let { if (it) 1 else 0 })
             },
             SQLiteDatabase.CONFLICT_REPLACE,
         )
@@ -328,6 +372,14 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
             refreshAll()
         }
 
+    private fun ContentValues.putNullable(key: String, value: Double?) {
+        if (value == null || !value.isFinite()) putNull(key) else put(key, value)
+    }
+
+    private fun ContentValues.putNullable(key: String, value: Int?) {
+        if (value == null) putNull(key) else put(key, value)
+    }
+
     private suspend fun loadTrips(): List<TripRecord> = withContext(Dispatchers.IO) {
         val trips = mutableListOf<TripRecord>()
         db.readableDatabase.rawQuery(
@@ -357,7 +409,7 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
     private suspend fun loadChargingSessions(): List<ChargingSessionRecord> = withContext(Dispatchers.IO) {
         val sessions = mutableListOf<ChargingSessionRecord>()
         db.readableDatabase.rawQuery(
-            "SELECT id, start_time, end_time, start_soc, end_soc, kwh, peak_power, avg_power, location_name FROM charging_sessions ORDER BY start_time DESC",
+            "SELECT id, start_time, end_time, start_soc, end_soc, kwh, peak_power, avg_power, location_name, latitude, longitude, start_temp, end_temp, start_range, end_range, is_dc FROM charging_sessions ORDER BY start_time DESC",
             null,
         ).use { cursor ->
             while (cursor.moveToNext()) {
@@ -371,10 +423,19 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
                     peakPowerKW = cursor.getDouble(6),
                     averagePowerKW = cursor.getDouble(7),
                     locationName = cursor.getString(8),
+                    latitude = if (cursor.isNull(9)) null else cursor.getDouble(9),
+                    longitude = if (cursor.isNull(10)) null else cursor.getDouble(10),
+                    startBatteryTempC = if (cursor.isNull(11)) null else cursor.getDouble(11),
+                    endBatteryTempC = if (cursor.isNull(12)) null else cursor.getDouble(12),
+                    startRangeKm = if (cursor.isNull(13)) null else cursor.getDouble(13),
+                    endRangeKm = if (cursor.isNull(14)) null else cursor.getDouble(14),
+                    isDC = if (cursor.isNull(15)) null else cursor.getInt(15) != 0,
                 )
             }
         }
-        sessions
+        // Archived sessions keep their curve: both the card and the detail sheet draw it, and
+        // without this every stored session looked like it had no samples at all.
+        sessions.map { session -> session.copy(samples = loadChargingSamples(session.id)) }
     }
 
     private suspend fun loadBatteryHealth(): List<BatteryHealthRecord> = withContext(Dispatchers.IO) {

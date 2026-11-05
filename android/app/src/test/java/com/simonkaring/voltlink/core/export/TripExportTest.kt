@@ -110,6 +110,33 @@ class TripExportTest {
     }
 
     @Test
+    fun `charging csv records a captured position`() {
+        val session = ChargingSessionRecord(
+            id = "session-2",
+            startTime = start,
+            endTime = start.plusSeconds(1_800),
+            startSocPct = 20.0,
+            endSocPct = 80.0,
+            totalKWhDelivered = 40.0,
+            peakPowerKW = 150.0,
+            averagePowerKW = 90.0,
+            locationName = "DC Fast Charger",
+            latitude = 48.1351,
+            longitude = 11.5820,
+            startBatteryTempC = 24.0,
+            endBatteryTempC = 38.5,
+            startRangeKm = 120.0,
+            endRangeKm = 410.0,
+            isDC = true,
+        )
+        val rows = TripExport.chargingCsv(session).trim().split("\n")
+        assertEquals(
+            "2026-03-04T09:15:00Z,2026-03-04T09:45:00Z,30.0,20.000,80.000,40.000,150.000,90.000,DC Fast Charger,48.135100,11.582000",
+            rows[1],
+        )
+    }
+
+    @Test
     fun `filenames follow the iOS naming scheme`() {
         assertTrue(
             TripExport.tripFilename(trip, "gpx").matches(Regex("VoltLink-Trip-\\d{4}-\\d{2}-\\d{2}\\.gpx")),

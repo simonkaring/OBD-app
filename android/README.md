@@ -121,7 +121,7 @@ Implemented in this pass:
 | Diagnostics | Mode 03/07 scan across ECUs, curated + Wal33D definitions, Mode 02 freeze frames, Mode 04 clearing, severity detail |
 | Persistence | SQLite (trips, trip samples, charging sessions, charging curves, battery health) |
 | Trip log | Auto/manual recording, energy + distance integration, efficiency, SOC delta, recorded trace chart, and a this-month summary (distance, net energy, weighted efficiency, cost from the electricity price) |
-| Charging | Live session, energy delivered, taper-aware time-to-target, session history with charge curve, battery-health trend |
+| Charging | Live session with elapsed time, average power, estimates to target and 100%, usable capacity, pack voltage/current/temperature; taper-aware time-to-target, monthly charging summary, session detail with charge curve, delete and battery-health trend. Sessions record a last-known position (filled into the CSV coordinate columns), battery temperature, vehicle range and AC/DC class |
 | Units & settings | km/mi, °C/°F, kW/hp, charge target, electricity price per kWh, profile picker, adapter pairing |
 | Alerts | Charging finished, charge target reached, fault codes, adapter loss, ongoing charging notification |
 | Export | Trip CSV, charging CSV and trip GPX via `FileProvider` + the system share sheet (same headers and GPX layout as iOS), plus a community PID contribution JSON (`schemaVersion` 1, pretty-printed, sorted keys) built from the OBD terminal log |

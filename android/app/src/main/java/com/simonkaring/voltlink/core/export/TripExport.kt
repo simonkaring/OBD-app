@@ -44,14 +44,18 @@ object TripExport {
     }
 
     fun chargingCsv(session: ChargingSessionRecord): String {
+        // Column order stays identical to the iOS export; the extra session metadata lives in
+        // the app and the backup document, not in this shared CSV contract.
         val header =
             "start_time,end_time,duration_minutes,start_soc_pct,end_soc_pct,energy_kwh,peak_power_kw,average_power_kw,location,latitude,longitude"
         val durationMinutes = session.endTime
             ?.let { java.time.Duration.between(session.startTime, it).toMillis() / 60_000.0 }
             ?.let { String.format(Locale.US, "%.1f", it) }
             ?: ""
-        // Android records no location fix with a session, so the coordinate columns stay empty
-        // and the location label carries the context.
+        // A session keeps the last known position from when it started; without one the
+        // coordinate columns stay empty and the location label carries the context.
+        val latitude = if (session.hasLocation) String.format(Locale.US, "%.6f", session.latitude) else ""
+        val longitude = if (session.hasLocation) String.format(Locale.US, "%.6f", session.longitude) else ""
         val row = listOf(
             iso(session.startTime),
             session.endTime?.let(::iso) ?: "",
@@ -62,8 +66,8 @@ object TripExport {
             number(session.peakPowerKW),
             number(session.averagePowerKW),
             csvField(session.locationName),
-            "",
-            "",
+            latitude,
+            longitude,
         ).joinToString(",")
         return "$header\n$row\n"
     }
