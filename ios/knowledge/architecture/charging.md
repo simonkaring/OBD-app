@@ -30,12 +30,18 @@ sources:
    `startSOC`, `currentSOC`, `currentPowerKW`, `peakPowerKW`,
    `totalEnergyKWh`, and the recent charge curve.
 2. **Persisted history** — `ChargingTrackingManager` writes
-   `ChargingSessionModel` rows through SwiftData. It starts a session when
-   telemetry reports charging while stationary, records snapshots, and stops
-   after three consecutive non-charging snapshots (`endSessionSnapshotThreshold`)
-   to avoid splitting one charge into fragments. A row stores start/end SOC,
-   delivered kWh, peak/average power, a reverse-geocoded location, and a
-   timestamped power curve (`ChargingSampleModel`, schema V2).
+   `ChargingSessionModel` rows through SwiftData. It starts a session only
+   after charging has been observed continuously for `startConfirmationSeconds`
+   (60 s), backdating the start to the first observation, so a regen pulse on
+   a stale 0 km/h wheel-speed sample cannot create history. It records
+   snapshots and stops after three consecutive non-charging snapshots
+   (`endSessionSnapshotThreshold`) to avoid splitting one charge into
+   fragments. Sessions that end within `minimumRetainedSessionDuration` (60 s)
+   without delivering `minimumRetainedSessionEnergyKWh` (0.5 kWh) are deleted
+   instead of persisted and never raise a notification; demo mode starts
+   recording immediately. A row stores start/end SOC, delivered kWh,
+   peak/average power, a reverse-geocoded location, and a timestamped power
+   curve (`ChargingSampleModel`, schema V2).
 
 # Curve capture
 

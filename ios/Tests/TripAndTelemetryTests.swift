@@ -421,14 +421,17 @@ final class TripAndTelemetryTests: XCTestCase {
             manager.applyUpdate(.speed(0), timestamp: start.addingTimeInterval(Double(seconds)))
             manager.applyUpdate(.soc(50 + Double(seconds) * 0.004), timestamp: start.addingTimeInterval(Double(seconds)))
         }
-        tracker.processTelemetrySnapshot(manager.latestTelemetry)
-        XCTAssertTrue(tracker.isRecordingSession)
+        tracker.processTelemetrySnapshot(manager.latestTelemetry, now: start.addingTimeInterval(30))
+        XCTAssertFalse(tracker.isRecordingSession, "An estimate needs its confirmation window too")
 
+        var recorded = false
         for seconds in stride(from: 40, through: 150, by: 10) {
             manager.applyUpdate(.speed(0), timestamp: start.addingTimeInterval(Double(seconds)))
             manager.applyUpdate(.soc(50.12), timestamp: start.addingTimeInterval(Double(seconds)))
-            tracker.processTelemetrySnapshot(manager.latestTelemetry)
+            tracker.processTelemetrySnapshot(manager.latestTelemetry, now: start.addingTimeInterval(Double(seconds)))
+            recorded = recorded || tracker.isRecordingSession
         }
+        XCTAssertTrue(recorded, "A sustained estimate still opens a session")
         XCTAssertFalse(manager.latestTelemetry.isCharging)
         XCTAssertEqual(manager.latestTelemetry.chargePowerKW, 0)
         XCTAssertEqual(manager.latestTelemetry.powerKW, 0)
@@ -541,17 +544,27 @@ final class TripAndTelemetryTests: XCTestCase {
         snap.chargePowerKW = 50.0
         snap.stateOfChargePct = 20.0
 
-        // Step 1: Start charging session
-        tracker.processTelemetrySnapshot(snap)
+        // Step 1: Charging must be sustained before a session is opened, so a regen pulse
+        // cannot create history. The recorded start is backdated to the first observation.
+        let started = Date.now
+        tracker.processTelemetrySnapshot(snap, now: started)
+        XCTAssertFalse(tracker.isRecordingSession, "One charging snapshot is not enough")
+        tracker.processTelemetrySnapshot(
+            snap, now: started.addingTimeInterval(ChargingTrackingManager.startConfirmationSeconds - 1))
+        XCTAssertFalse(tracker.isRecordingSession)
+
+        tracker.processTelemetrySnapshot(
+            snap, now: started.addingTimeInterval(ChargingTrackingManager.startConfirmationSeconds))
         XCTAssertTrue(tracker.isRecordingSession)
         XCTAssertNotNil(tracker.currentSession)
         XCTAssertEqual(tracker.currentSession?.startSocPct, 20.0)
+        XCTAssertEqual(tracker.currentSession?.startTime, started)
         XCTAssertEqual(tracker.currentSession?.peakPowerKW, 50.0)
 
         // Step 2: Intermediate charging update
         snap.chargePowerKW = 75.0
         snap.stateOfChargePct = 25.0
-        tracker.processTelemetrySnapshot(snap)
+        tracker.processTelemetrySnapshot(snap, now: started.addingTimeInterval(70))
         XCTAssertEqual(tracker.currentSession?.peakPowerKW, 75.0)
         XCTAssertEqual(tracker.currentSession?.endSocPct, 25.0)
 
@@ -559,13 +572,34 @@ final class TripAndTelemetryTests: XCTestCase {
         // hysteresis keeps one charge from fragmenting on a dropped poll.
         snap.isCharging = false
         snap.chargePowerKW = 0.0
-        tracker.processTelemetrySnapshot(snap)
+        tracker.processTelemetrySnapshot(snap, now: started.addingTimeInterval(80))
         XCTAssertTrue(tracker.isRecordingSession)
 
         for _ in 1..<ChargingTrackingManager.endSessionSnapshotThreshold {
-            tracker.processTelemetrySnapshot(snap)
+            tracker.processTelemetrySnapshot(snap, now: started.addingTimeInterval(90))
         }
         XCTAssertFalse(tracker.isRecordingSession)
+        XCTAssertNil(tracker.currentSession)
+    }
+
+    /// Alternating regen-length pulses and movement must never add up to a session.
+    func testIntermittentRegenDoesNotRecordChargingSession() {
+        let tracker = ChargingTrackingManager()
+        var snap = TelemetrySnapshot()
+        snap.stateOfChargePct = 60
+        let started = Date.now
+
+        for tick in 0..<6 {
+            snap.isCharging = true
+            snap.speedKmH = 0
+            snap.chargePowerKW = 25
+            tracker.processTelemetrySnapshot(snap, now: started.addingTimeInterval(Double(tick) * 30))
+            XCTAssertFalse(tracker.isRecordingSession)
+
+            snap.isCharging = false
+            snap.chargePowerKW = 0
+            tracker.processTelemetrySnapshot(snap, now: started.addingTimeInterval(Double(tick) * 30 + 1))
+        }
         XCTAssertNil(tracker.currentSession)
     }
 

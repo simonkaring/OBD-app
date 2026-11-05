@@ -12,7 +12,7 @@ final class TripPersistenceTests: XCTestCase {
         env.tripTracker.isAutoTripEnabled = false
         env.tripTracker.startTrip(startSoc: 80)
         let realTripID = try XCTUnwrap(env.tripTracker.currentTrip?.id)
-        env.chargingTracker.startSession(startSoc: 20)
+        env.chargingTracker.startSession(startSoc: 20, startedAt: Date().addingTimeInterval(-600))
         let realChargeID = try XCTUnwrap(env.chargingTracker.currentSession?.id)
         env.vehicleData.toggleDemoMode(true)
         (env.vehicleData.obdConnection as? MockOBDAdapter)?.simulationEngine.stop()
@@ -344,7 +344,7 @@ final class TripPersistenceTests: XCTestCase {
         context.autosaveEnabled = false
         let tracker = ChargingTrackingManager()
         tracker.modelContext = context
-        tracker.startSession(startSoc: 40)
+        tracker.startSession(startSoc: 40, startedAt: Date().addingTimeInterval(-120))
         let session = try XCTUnwrap(tracker.currentSession)
         XCTAssertEqual(session.curveSamples.count, 1, "The session starts with a curve point at its starting SOC")
 
@@ -365,6 +365,38 @@ final class TripPersistenceTests: XCTestCase {
         XCTAssertEqual(saved.count, 1)
         XCTAssertEqual(saved.first?.curveSamples.count, 2)
         XCTAssertEqual(saved.first?.curveSamples.map(\.powerKW).max(), 50)
+    }
+
+    @MainActor
+    func testShortEmptyChargingSessionIsDiscardedInsteadOfSaved() throws {
+        let context = ModelContext(container)
+        context.autosaveEnabled = false
+        let tracker = ChargingTrackingManager()
+        tracker.modelContext = context
+        tracker.startSession(startSoc: 42, startedAt: Date().addingTimeInterval(-20))
+
+        XCTAssertTrue(tracker.stopSession(endSoc: 42))
+
+        XCTAssertNil(tracker.currentSession)
+        XCTAssertFalse(tracker.isRecordingSession)
+        XCTAssertNil(tracker.persistenceError)
+        XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<ChargingSessionModel>()), 0)
+    }
+
+    @MainActor
+    func testShortSessionWithDeliveredEnergyIsRetained() throws {
+        let context = ModelContext(container)
+        context.autosaveEnabled = false
+        let tracker = ChargingTrackingManager()
+        tracker.modelContext = context
+        tracker.startSession(startSoc: 20, startedAt: Date().addingTimeInterval(-30))
+        let session = try XCTUnwrap(tracker.currentSession)
+        session.totalKWhDelivered = 1.5
+
+        XCTAssertTrue(tracker.stopSession(endSoc: 21))
+
+        XCTAssertNil(tracker.currentSession)
+        XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<ChargingSessionModel>()), 1)
     }
 
     @MainActor

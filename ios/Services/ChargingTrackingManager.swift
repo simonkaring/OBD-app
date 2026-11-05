@@ -17,11 +17,21 @@ public final class ChargingTrackingManager: ObservableObject {
 
     /// Consecutive non-charging snapshots required before an active session is closed.
     static let endSessionSnapshotThreshold = 3
+    /// Charging must be observed for this long before a session is recorded, so a regen
+    /// pulse or a wheel-speed sample that still reads 0 km/h cannot open one. The start is
+    /// backdated to the first observation, keeping the recorded duration and curve honest.
+    static let startConfirmationSeconds: TimeInterval = 60
+    /// A session shorter than this that also delivered almost no energy is discarded
+    /// instead of persisted: it was a detection artifact, not a charge.
+    static let minimumRetainedSessionDuration: TimeInterval = 60
+    static let minimumRetainedSessionEnergyKWh: Double = 0.5
 
     private var cancellables = Set<AnyCancellable>()
     private var lastSnapshotTime: Date?
     private var lastSaveTime: Date?
     private var nonChargingSnapshotCount = 0
+    /// First charging observation of a candidate session, awaiting confirmation.
+    private var pendingChargeStart: (time: Date, soc: Double)?
     private var geocoder = CLGeocoder()
     /// Most recent curve point, used to throttle sample capture to meaningful changes.
     private var lastCurveSample: (timestamp: Date, socPct: Double)?
@@ -33,7 +43,9 @@ public final class ChargingTrackingManager: ObservableObject {
         self.locationManager = locationManager
     }
 
-    public func startSession(startSoc: Double = 0.0, locationName: String = "Charging Station") {
+    public func startSession(
+        startSoc: Double = 0.0, locationName: String = "Charging Station", startedAt: Date = .now
+    ) {
         guard currentSession == nil else { return }
         let lat = isDemoMode ? nil : locationManager.currentLocation?.coordinate.latitude
         let lon = isDemoMode ? nil : locationManager.currentLocation?.coordinate.longitude
@@ -46,7 +58,7 @@ public final class ChargingTrackingManager: ObservableObject {
         }()
 
         let session = ChargingSessionModel(
-            startTime: Date(),
+            startTime: startedAt,
             startSocPct: startSoc,
             locationName: locationName,
             latitude: validCoord?.lat,
@@ -54,9 +66,12 @@ public final class ChargingTrackingManager: ObservableObject {
         )
         self.currentSession = session
         self.isRecordingSession = true
-        self.lastSnapshotTime = Date()
+        // Integration starts at the backdated start so the confirmation window's energy is
+        // included in the first snapshot.
+        self.lastSnapshotTime = startedAt
         self.lastSaveTime = Date()
         self.hasNotifiedChargeTarget = false
+        self.nonChargingSnapshotCount = 0
 
         context?.insert(session)
         save()
@@ -89,10 +104,10 @@ public final class ChargingTrackingManager: ObservableObject {
     }
 
     @discardableResult
-    public func stopSession(endSoc: Double? = nil) -> Bool {
+    public func stopSession(endSoc: Double? = nil, at now: Date = .now) -> Bool {
         guard let session = currentSession else { return true }
         if session.endTime == nil {
-            session.endTime = Date()
+            session.endTime = now
             if let endSoc { session.endSocPct = endSoc }
         }
 
@@ -102,6 +117,16 @@ public final class ChargingTrackingManager: ObservableObject {
         let durationHours = session.endTime!.timeIntervalSince(session.startTime) / 3600.0
         if durationHours > 0 && session.totalKWhDelivered > 0 {
             session.averagePowerKW = session.totalKWhDelivered / durationHours
+        }
+
+        // A detection artifact never becomes history, and never raises a notification.
+        if !isDemoMode, Self.isTrivial(session) {
+            guard discardTrivialSession(session) else {
+                Haptics.error()
+                return false
+            }
+            finishSessionState()
+            return true
         }
 
         guard save() else {
@@ -115,14 +140,31 @@ public final class ChargingTrackingManager: ObservableObject {
         }
         #endif
 
+        finishSessionState()
+        Haptics.success()
+        return true
+    }
+
+    /// A session this short that delivered almost nothing cannot be a real charge.
+    private static func isTrivial(_ session: ChargingSessionModel) -> Bool {
+        guard let endTime = session.endTime else { return false }
+        return endTime.timeIntervalSince(session.startTime) < minimumRetainedSessionDuration
+            && session.totalKWhDelivered < minimumRetainedSessionEnergyKWh
+    }
+
+    private func discardTrivialSession(_ session: ChargingSessionModel) -> Bool {
+        context?.delete(session)
+        return save()
+    }
+
+    private func finishSessionState() {
         self.currentSession = nil
         self.isRecordingSession = false
         self.lastSnapshotTime = nil
         self.lastCurveSample = nil
         self.hasNotifiedChargeTarget = false
         self.nonChargingSnapshotCount = 0
-        Haptics.success()
-        return true
+        self.pendingChargeStart = nil
     }
 
     @discardableResult
@@ -131,6 +173,7 @@ public final class ChargingTrackingManager: ObservableObject {
         guard stopSession(endSoc: endSoc) else { return false }
         geocoder.cancelGeocode()
         demoSessions.removeAll()
+        pendingChargeStart = nil
         isDemoMode = enabled
         if enabled { demoSessions = [Self.odenseChargingSession()] }
         return true
@@ -192,6 +235,7 @@ public final class ChargingTrackingManager: ObservableObject {
         geocoder.cancelGeocode()
         demoSessions.removeAll()
         nonChargingSnapshotCount = 0
+        pendingChargeStart = nil
         self.currentSession = nil
         self.isRecordingSession = false
         self.lastSnapshotTime = nil
@@ -210,7 +254,7 @@ public final class ChargingTrackingManager: ObservableObject {
         NotificationCenter.default.post(name: Notification.Name("ClearSampleChargingSessions"), object: nil)
     }
 
-    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot) {
+    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, now: Date = .now) {
         // The vehicle manager resolves explicit status and speed validity once for all consumers.
         let chargingPower = max(0, telemetry.chargePowerKW)
         let isActivelyCharging = telemetry.isCharging && (!telemetry.hasFreshSpeed || telemetry.speedKmH < 1.0)
@@ -218,7 +262,7 @@ public final class ChargingTrackingManager: ObservableObject {
         if isRecordingSession {
             if isActivelyCharging {
                 nonChargingSnapshotCount = 0
-                recordSnapshot(telemetry, chargingPower: chargingPower)
+                recordSnapshot(telemetry, chargingPower: chargingPower, at: now)
             } else {
                 lastSnapshotTime = nil
                 // Hysteresis: a single dropout (a missed poll, a CP handshake pause, the
@@ -226,21 +270,35 @@ public final class ChargingTrackingManager: ObservableObject {
                 // one charge into several fragments. Require a sustained gap instead.
                 nonChargingSnapshotCount += 1
                 if nonChargingSnapshotCount >= Self.endSessionSnapshotThreshold {
-                    stopSession(endSoc: telemetry.stateOfChargePct)
+                    stopSession(endSoc: telemetry.stateOfChargePct, at: now)
                 }
             }
-        } else {
-            if isActivelyCharging {
-                nonChargingSnapshotCount = 0
-                startSession(startSoc: telemetry.stateOfChargePct)
-                recordSnapshot(telemetry, chargingPower: chargingPower)
-            }
+            return
         }
+
+        guard isActivelyCharging else {
+            pendingChargeStart = nil
+            return
+        }
+
+        // Require a sustained charge before recording: regen while the wheel-speed reply
+        // still reads 0 km/h, or BMS offset at a red light, used to open sub-minute
+        // sessions. The start is backdated to the first observation.
+        if pendingChargeStart == nil {
+            pendingChargeStart = (now, telemetry.stateOfChargePct)
+        }
+        guard let pending = pendingChargeStart else { return }
+        let confirmation = isDemoMode ? 0 : Self.startConfirmationSeconds
+        guard now.timeIntervalSince(pending.time) >= confirmation else { return }
+
+        nonChargingSnapshotCount = 0
+        startSession(startSoc: pending.soc, startedAt: pending.time)
+        pendingChargeStart = nil
+        recordSnapshot(telemetry, chargingPower: chargingPower, at: now)
     }
 
-    public func recordSnapshot(_ telemetry: TelemetrySnapshot, chargingPower: Double) {
+    public func recordSnapshot(_ telemetry: TelemetrySnapshot, chargingPower: Double, at now: Date = .now) {
         guard let session = currentSession, session.endTime == nil else { return }
-        let now = Date()
         let dtHours: Double
         if let last = lastSnapshotTime {
             let interval = now.timeIntervalSince(last)
