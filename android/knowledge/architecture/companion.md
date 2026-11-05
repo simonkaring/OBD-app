@@ -13,9 +13,9 @@ See `android/COMPANION.md` for category evidence, launch commands and the test m
 
 The debug service creates a Session and lifecycle-bound Screen with three native tabs
 (Car App API 7): Drive uses six GridTemplate tiles (battery/status, range,
-speed, signed power, consumption, trip/time); Charging uses five grid tiles, leading with the
-same battery/status and range tiles as Drive, then charge power, ETA to 80%/elapsed h:mm and
-energy/estimated DKK cost; Vehicle retains a four-row
+speed, signed power, consumption, trip/time); Charging uses six grid tiles, leading with the
+same battery/status and range tiles as Drive, then charge power, ETA to 80%, the elapsed
+session clock and energy/estimated DKK cost; Vehicle retains a four-row
 PaneTemplate. Stable item/row titles carry changing values in secondary text. Drive Power/Speed
 and Charging power run the debug-only image experiment below; the Charging battery tile reuses
 Drive's discrete battery level icon and every other icon is a vector.
@@ -44,7 +44,12 @@ and unknown. These thresholds are visual grouping, not calibrated motor limits. 
 Canvas is only a reference asset generator in instrumentation: the 64 transparent 192px
 PNGs are packaged in debug resources and their resource-backed CarIcons are cached.
 Distinct resource IDs avoid the library's bitmap-icon equality limitation. Power and Speed
-use thick 24px arcs with no needles or hubs. `SpeedImageExperiment` has stopped, eight
+use thick 24px arcs with no needles. A small 75%-alpha hub glyph names the quantity - gauge for
+speed, up/down trend arrow (pause when idle) for power direction, bolt for charging - so the
+three dial families are distinguishable without reading the text. The charging dial paints its arc
+and bolt in `Theme.regenGreen` only while power flows; zero or absent charging power selects the
+separate `idle` frame (empty dial, neutral grey bolt) instead of the unknown question mark, so an
+idle session is neither green nor an error. `SpeedImageExperiment` has stopped, eight
 20 km/h steps (rounded up, visually capped at 160), and missing/invalid-speed frames per
 theme. The coarse illustration is not a speed limit; exact uncapped speed stays in native
 text. Charging keeps its 24 neutral images (unknown and levels 0–10 per theme) for the power tile:

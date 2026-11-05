@@ -168,9 +168,10 @@ private fun companionGrid(context: Context, state: CompanionState, charging: Boo
             R.drawable.ic_car_charging,
             image = ChargingImageExperiment.icon(context, ChargingImageExperiment.powerFrame(state.chargePowerKW), darkMode))
         tile(R.string.companion_grid_to80,
-            context.getString(R.string.companion_grid_trip_value,
-                number(state.secondsTo80?.let { kotlin.math.ceil(it / 60) }, 0, "min", true), gridTripTime(state.chargingSeconds)),
+            number(state.secondsTo80?.let { kotlin.math.ceil(it / 60) }, 0, "min", true),
             R.drawable.ic_companion_timer)
+        // Session clock stays its own tile so both values remain readable at grid width.
+        tile(R.string.companion_grid_elapsed, gridTripTime(state.chargingSeconds), R.drawable.ic_companion_timer)
         tile(R.string.companion_grid_energy,
             context.getString(R.string.companion_grid_trip_value,
                 number(state.energyAddedKWh, 2, "kWh"), number(state.costDKK, 2, "DKK", true)),

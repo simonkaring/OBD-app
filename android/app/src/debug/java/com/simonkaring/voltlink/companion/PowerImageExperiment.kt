@@ -94,17 +94,21 @@ internal object PowerImageExperiment {
             if (angle > 270) canvas.drawArc(arc, 274f, angle - 274, false, paint)
             if (angle < 270) canvas.drawArc(arc, angle, 266 - angle, false, paint)
             if (frame == PowerImageFrame.IDLE) canvas.drawArc(arc, 268f, 4f, false, paint)
+            // Hub glyph names the direction, so the power dial never reads as a speed or charge dial.
+            val hub = when (frame) {
+                PowerImageFrame.IDLE -> R.drawable.ic_companion_idle
+                PowerImageFrame.REGEN_LOW, PowerImageFrame.REGEN_MID, PowerImageFrame.REGEN_HIGH ->
+                    R.drawable.ic_companion_regen
+                else -> R.drawable.ic_companion_draw
+            }
+            drawDialSymbol(context, canvas, hub, foreground)
         } else {
             val symbol = when (frame) {
                 PowerImageFrame.CHARGING -> R.drawable.ic_car_charging
                 PowerImageFrame.ENERGY_IN -> R.drawable.ic_companion_regen
                 else -> R.drawable.ic_companion_unknown
             }
-            requireNotNull(context.getDrawable(symbol)).mutate().apply {
-                setTint(foreground)
-                setBounds(70, 78, 122, 130)
-                draw(canvas)
-            }
+            drawDialSymbol(context, canvas, symbol, foreground, RectF(70f, 78f, 122f, 130f), 255)
         }
         return bitmap
     }

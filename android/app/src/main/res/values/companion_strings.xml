@@ -13,6 +13,7 @@
     <string name="companion_grid_idle">Idle</string>
     <string name="companion_grid_energy_in">Energy in</string>
     <string name="companion_grid_charge_power">Charge</string>
+    <string name="companion_grid_elapsed">Elapsed</string>
     <string name="companion_grid_unknown">Unknown</string>
     <string name="companion_grid_offline">Offline</string>
     <string name="companion_grid_connecting">Connecting</string>

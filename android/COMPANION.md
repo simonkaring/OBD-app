@@ -13,9 +13,10 @@ This is a plausible experimental category, **not a guarantee of Play approval**.
 Car App API 7, and serves native `GridTemplate`s for Drive and Charging, plus a four-row
 `PaneTemplate` for Vehicle. Drive has six tiles: battery (with connection status),
 range, speed, signed battery power, trip consumption, and trip distance/time. Charging leads
-with the same battery/status and range tiles as Drive, then charging power, ETA to 80%/elapsed
-h:mm, and session energy/estimated cost (five tiles). Its charging-power tile uses the same
-thick, needle-free dial; its battery tile reuses Drive's discrete battery level icon.
+with the same battery/status and range tiles as Drive, then charging power, ETA to 80%, the
+elapsed session clock and session energy/estimated cost (six tiles; the ETA and the clock are
+separate tiles so both values stay readable at grid width). Its charging-power tile uses the
+same thick, needle-free dial; its battery tile reuses Drive's discrete battery level icon.
 Drive battery icons use eight discrete Material resource levels
 (0–7, full only at 100%); missing/invalid SOC shows a question-mark battery, not empty.
 The Power and Speed tiles now run the custom-image experiment described below. Regen additionally requires
@@ -85,7 +86,13 @@ Using separate resource IDs prevents different states/themes comparing equal. No
 allocation or drawing happens during template refreshes; the host loads/scales the resources.
 The template never draws or animates a surface, and exact signed kW/state labels remain
 host-rendered text below the image. Both dials use thicker 24px arcs (previously 13px) with
-no needle or hub. The Charging dials use the same arc geometry and neutral theme palettes.
+no needle. Each hub now carries a small 75%-alpha glyph naming the quantity, so a tile reads as
+speed, power or charge at a glance: a gauge for speed, the up/down trend arrow (or pause for
+idle) for power direction, and the bolt for charging. The Charging dials use the same arc
+geometry, and their progress arc and hub bolt use the app's charging green
+(`Theme.regenGreen`) only while power is actually flowing. Zero or absent charging power falls back
+to a separate `idle` frame: the same empty dial with a neutral grey bolt, so nothing flowing never
+reads as green, and it never shows the unknown question mark either.
 No phone screen changes.
 
 `SpeedImageExperiment` uses a matching neutral arc: stopped, eight 20 km/h steps

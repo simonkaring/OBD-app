@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import androidx.compose.ui.graphics.toArgb
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.GridItem
 import androidx.car.app.model.GridTemplate
@@ -18,6 +19,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.simonkaring.voltlink.VoltLinkApplication
 import com.simonkaring.voltlink.R
 import com.simonkaring.voltlink.core.telemetry.TelemetryMetric
+import com.simonkaring.voltlink.ui.theme.Theme
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
@@ -41,7 +43,7 @@ class CompanionCarTemplateTest {
         }
     }
 
-    @Test fun chargingUsesFiveStableTilesLeadingWithBatteryAndRange() {
+    @Test fun chargingUsesSixStableTilesLeadingWithBatteryAndRange() {
         fun items(state: CompanionState, dark: Boolean = false) =
             ((companionCarTemplate(app, state, "charging", callback, darkMode = dark)
                 .tabContents.template as GridTemplate).singleList!!.items).map { it as GridItem }
@@ -50,19 +52,21 @@ class CompanionCarTemplateTest {
             chargePowerKW = 43.2, chargePowerEstimated = true,
             secondsTo80 = 601.0, chargingSeconds = 3661, energyAddedKWh = 12.34, costDKK = 24.68)
         val first = items(state)
-        assertEquals(5, first.size)
+        assertEquals(6, first.size)
         // The same battery and range tiles the Drive grid leads with, then the session tiles.
         assertEquals("72 % · Charge", first[0].text.toString())
         assertEquals("312 km", first[1].text.toString())
         assertEquals("≈ 43.2 kW", first[2].text.toString())
-        assertEquals("≈ 11 min · 1:01", first[3].text.toString())
-        assertEquals("12.34 kWh · ≈ 24.68 DKK", first[4].text.toString())
+        assertEquals("≈ 11 min", first[3].text.toString())
+        assertEquals("1:01", first[4].text.toString())
+        assertEquals("12.34 kWh · ≈ 24.68 DKK", first[5].text.toString())
+        assertEquals("Elapsed", first[4].title.toString())
         assertTrue(first.all { it.onClickDelegate == null && it.imageType == GridItem.IMAGE_TYPE_LARGE })
         // Battery reuses Drive's discrete level icon; charge power keeps the dial image experiment.
         assertEquals(R.drawable.ic_companion_battery_5, batteryLevelIcon(72.0))
         assertTrue(first[0].image!!.icon!!.type == IconCompat.TYPE_RESOURCE && first[0].image!!.tint == CarColor.DEFAULT)
         assertTrue(first[2].image!!.icon!!.type == IconCompat.TYPE_RESOURCE && first[2].image!!.tint == null)
-        assertTrue(listOf(1, 3, 4).all { first[it].image!!.tint == CarColor.DEFAULT })
+        assertTrue(listOf(1, 3, 4, 5).all { first[it].image!!.tint == CarColor.DEFAULT })
         val next = items(state.copy(metrics = mapOf(TelemetryMetric.SOC to 92.0), chargePowerKW = 65.0))
         assertEquals(first.map { it.title.toString() }, next.map { it.title.toString() })
         // A fresh SOC level redraws the battery icon; the power dial also changes with its value and theme.
@@ -77,25 +81,27 @@ class CompanionCarTemplateTest {
                 energyAddedKWh = null, costDKK = null))
             assertEquals(first.map { it.title.toString() }, missing.map { it.title.toString() })
             assertEquals("— · $label", missing[0].text.toString())
-            assertEquals("—", missing[1].text.toString())
-            assertEquals("—", missing[2].text.toString())
-            assertEquals("— · —", missing[3].text.toString())
-            assertEquals("— · —", missing[4].text.toString())
+            // Range, power, ETA and elapsed each show one placeholder; energy keeps two.
+            for (index in 1..4) assertEquals("—", missing[index].text.toString())
+            assertEquals("— · —", missing[5].text.toString())
         }
     }
 
     @Test fun chargingImagesKeepUnknownDistinctAndFullSocOnlyAt100Percent() {
         for (invalid in listOf(null, -1.0, Double.NaN, Double.POSITIVE_INFINITY)) {
             assertEquals(ChargingImageFrame.UNKNOWN, ChargingImageExperiment.socFrame(invalid))
-            assertEquals(ChargingImageFrame.UNKNOWN, ChargingImageExperiment.powerFrame(invalid))
+            // No live power means "not charging yet", so the dial keeps the bolt instead of a question mark.
+            assertEquals(ChargingImageFrame.IDLE, ChargingImageExperiment.powerFrame(invalid))
         }
+        // Zero is a real reading with nothing flowing: grey idle, neither green nor unknown.
+        assertEquals(ChargingImageFrame.IDLE, ChargingImageExperiment.powerFrame(0.0))
         assertEquals(ChargingImageFrame.UNKNOWN, ChargingImageExperiment.socFrame(100.01))
         assertEquals(ChargingImageFrame.LEVEL_0, ChargingImageExperiment.socFrame(0.0))
         assertEquals(ChargingImageFrame.LEVEL_9, ChargingImageExperiment.socFrame(99.99))
         assertEquals(ChargingImageFrame.LEVEL_10, ChargingImageExperiment.socFrame(100.0))
         for (step in 0..10) {
-            assertEquals(ChargingImageFrame.entries[step + 1], ChargingImageExperiment.socFrame(step * 10.0))
-            assertEquals(ChargingImageFrame.entries[step + 1], ChargingImageExperiment.powerFrame(step * 20.0))
+            assertEquals(ChargingImageFrame.entries[step + 2], ChargingImageExperiment.socFrame(step * 10.0))
+            if (step > 0) assertEquals(ChargingImageFrame.entries[step + 2], ChargingImageExperiment.powerFrame(step * 20.0))
         }
         assertEquals(ChargingImageFrame.LEVEL_0, ChargingImageExperiment.powerFrame(19.99))
         assertEquals(ChargingImageFrame.LEVEL_10, ChargingImageExperiment.powerFrame(Double.MAX_VALUE))
@@ -103,14 +109,24 @@ class CompanionCarTemplateTest {
         assertSame(image, ChargingImageExperiment.icon(app, ChargingImageExperiment.powerFrame(59.9), true))
         assertNotEquals(image, ChargingImageExperiment.icon(app, ChargingImageFrame.LEVEL_3, true))
         assertNotEquals(image, ChargingImageExperiment.icon(app, ChargingImageFrame.LEVEL_2, false))
-        assertEquals(24, ChargingImageFrame.entries.flatMap { listOf(it.lightImage, it.darkImage) }.toSet().size)
+        assertEquals(26, ChargingImageFrame.entries.flatMap { listOf(it.lightImage, it.darkImage) }.toSet().size)
         checkFrames("charging", listOf(false, true).flatMap { dark -> ChargingImageFrame.entries.map { frame ->
             Triple("${frame.name.lowercase()}_${if (dark) "dark" else "light"}",
                 ChargingImageExperiment.render(app, frame, dark), if (dark) frame.darkImage else frame.lightImage)
         } })
         val bitmap = ChargingImageExperiment.render(app, ChargingImageFrame.LEVEL_10, true)
-        assertEquals(Color.TRANSPARENT, bitmap.getPixel(96, 104))
+        // The charge bolt sits in the hub, so this dial cannot be mistaken for the speed dial.
+        assertTrue(paintedHub(bitmap) > 0)
         assertEquals(255, Color.alpha(bitmap.getPixel(16, 104)))
+        // The dial reads green while charging, matching the phone's charging colour.
+        val green = Theme.regenGreen.toArgb()
+        assertTrue("Charging dial is green",
+            (0 until bitmap.height).any { y -> (0 until bitmap.width).any { x -> bitmap.getPixel(x, y) == green } })
+        // At zero nothing is flowing, so the bolt and arc stay neutral grey.
+        val idle = ChargingImageExperiment.render(app, ChargingImageFrame.IDLE, true)
+        assertTrue("Idle dial keeps the bolt", paintedHub(idle) > 0)
+        assertFalse("Idle dial is not green",
+            (0 until idle.height).any { y -> (0 until idle.width).any { x -> idle.getPixel(x, y) == green } })
     }
 
     @Test fun driveUsesStableNativeGridWithLiveValuesInSecondaryText() {
@@ -168,7 +184,8 @@ class CompanionCarTemplateTest {
         } })
         for (frame in listOf(PowerImageFrame.IDLE, PowerImageFrame.DRAW_HIGH, PowerImageFrame.REGEN_HIGH)) {
             val bitmap = PowerImageExperiment.render(app, frame, true)
-            assertEquals("No needle or hub", Color.TRANSPARENT, bitmap.getPixel(96, 104))
+            // Still needle-free, but the hub now carries the direction glyph that identifies power.
+            assertTrue("Hub glyph", paintedHub(bitmap) > 0)
             assertEquals("Thicker arc", 255, Color.alpha(bitmap.getPixel(16, 104)))
         }
     }
@@ -192,8 +209,13 @@ class CompanionCarTemplateTest {
             Triple("${frame.name.lowercase()}_${if (dark) "dark" else "light"}",
                 SpeedImageExperiment.render(app, frame, dark), if (dark) frame.darkImage else frame.lightImage)
         } })
-        assertEquals(Color.TRANSPARENT, SpeedImageExperiment.render(app, SpeedImageFrame.SPEED_160, true).getPixel(96, 104))
+        // The gauge glyph in the hub distinguishes the speed dial from the power and charge dials.
+        assertTrue(paintedHub(SpeedImageExperiment.render(app, SpeedImageFrame.SPEED_160, true)) > 0)
     }
+
+    /** Pixels painted inside a dial hub, where the quantity glyph sits. */
+    private fun paintedHub(bitmap: Bitmap) =
+        (86..122).sumOf { y -> (78..114).count { x -> bitmap.getPixel(x, y) != 0 } }
 
     private fun checkFrames(kind: String, frames: List<Triple<String, Bitmap, Int>>) {
         val hashes = mutableSetOf<Int>()
