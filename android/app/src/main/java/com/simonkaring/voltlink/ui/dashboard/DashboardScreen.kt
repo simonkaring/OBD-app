@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Vrpano
@@ -363,35 +362,5 @@ private fun HeaderButton(
         Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(15.dp))
         Spacer(Modifier.width(6.dp))
         Text(label, color = Theme.textPrimary, fontSize = 12.sp)
-    }
-}
-
-/** Compact charging banner shown while the pack is filling. */
-@Composable
-fun ChargingBanner(snapshot: TelemetrySnapshot, modifier: Modifier = Modifier) {
-    if (!snapshot.isCharging) return
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Theme.cardBackground)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Filled.Bolt, contentDescription = null, tint = Theme.regenGreen)
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = stringResource(R.string.dashboard_charging_banner, snapshot.chargePowerKW),
-            color = Theme.textPrimary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = String.format(Locale.US, "%.0f%%", snapshot.stateOfChargePct),
-            color = Theme.regenGreen,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
     }
 }

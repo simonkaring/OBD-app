@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -94,7 +93,6 @@ fun SettingsScreen(
     val notificationsEnabled by settings.notificationsEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
-    var showProfiles by remember { mutableStateOf(false) }
     var showCatalog by remember { mutableStateOf(false) }
     var showLog by remember { mutableStateOf(false) }
     var showMetricStatus by remember { mutableStateOf(false) }
@@ -160,40 +158,36 @@ fun SettingsScreen(
 
         item {
             SettingsCard(stringResource(R.string.settings_vehicle)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { showProfiles = !showProfiles },
-                    verticalAlignment = Alignment.CenterVertically,
+                // The whole vehicle line opens the catalog; the explicit button below stays as
+                // the discoverable affordance for the same action.
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { showCatalog = true },
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            selectedModelName ?: manager.selectedProfile.vehicleName,
-                            color = Theme.textPrimary,
-                            fontSize = 14.sp,
-                        )
-                        val metricCount = manager.selectedProfile.supportedMetrics.size
-                        val metricCountLabel = pluralStringResource(
-                            R.plurals.settings_published_metrics,
-                            metricCount,
-                            metricCount,
-                        )
-                        Text(
-                            if (selectedModelName != null) {
-                                stringResource(
-                                    R.string.settings_profile_metrics,
-                                    manager.selectedProfile.vehicleName,
-                                    metricCountLabel,
-                                )
-                            } else {
-                                metricCountLabel
-                            },
-                            color = Theme.textSecondary,
-                            fontSize = 12.sp,
-                        )
-                    }
                     Text(
-                        if (showProfiles) stringResource(R.string.action_close) else stringResource(R.string.settings_change),
-                        color = Theme.electricCyan,
-                        fontSize = 13.sp,
+                        selectedModelName ?: manager.selectedProfile.vehicleName,
+                        color = Theme.textPrimary,
+                        fontSize = 14.sp,
+                    )
+                    val metricCount = manager.selectedProfile.supportedMetrics.size
+                    val metricCountLabel = pluralStringResource(
+                        R.plurals.settings_published_metrics,
+                        metricCount,
+                        metricCount,
+                    )
+                    Text(
+                        if (selectedModelName != null) {
+                            stringResource(
+                                R.string.settings_profile_metrics,
+                                manager.selectedProfile.vehicleName,
+                                metricCountLabel,
+                            )
+                        } else {
+                            metricCountLabel
+                        },
+                        color = Theme.textSecondary,
+                        fontSize = 12.sp,
                     )
                 }
                 Row {
@@ -206,29 +200,6 @@ fun SettingsScreen(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
                     ) {
                         Text(stringResource(R.string.settings_metric_status), color = Theme.electricCyan, fontSize = 13.sp)
-                    }
-                }
-                if (showProfiles) {
-                    Spacer(Modifier.height(8.dp))
-                    VehicleProfileId.entries.forEach { id ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (id == profileId) Theme.electricCyan.copy(alpha = 0.15f) else Theme.faintFill)
-                                .clickable {
-                                    manager.selectProfile(id)
-                                    showProfiles = false
-                                }
-                                .padding(horizontal = 10.dp, vertical = 10.dp),
-                        ) {
-                            Text(
-                                id.displayName,
-                                color = if (id == profileId) Theme.electricCyan else Theme.textPrimary,
-                                fontSize = 13.sp,
-                            )
-                        }
-                        Spacer(Modifier.height(6.dp))
                     }
                 }
             }
@@ -638,6 +609,3 @@ internal fun SegmentedRow(options: List<Pair<String, String>>, selected: String,
         }
     }
 }
-
-private val VehicleProfileId.subtitle: String
-    get() = String.format(Locale.US, "%d metrics", makeProfile().supportedMetrics.size)

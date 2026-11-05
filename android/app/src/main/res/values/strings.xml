@@ -36,7 +36,6 @@
     <string name="dashboard_status_connected">Connected</string>
     <string name="dashboard_status_scanning">Scanning…</string>
     <string name="dashboard_status_disconnected">Disconnected</string>
-    <string name="dashboard_charging_banner">Charging · %1$.1f kW</string>
     <string name="chart_title">Live telemetry</string>
     <string name="chart_empty_title">Waiting for the first sample</string>
     <string name="chart_waiting">Waiting for vehicle data</string>
@@ -138,7 +137,6 @@
         <item quantity="one">%1$d published metric</item>
         <item quantity="other">%1$d published metrics</item>
     </plurals>
-    <string name="settings_change">Change</string>
     <string name="settings_browse_catalog">Browse vehicle catalog</string>
     <string name="settings_metric_status">Metric status</string>
     <string name="settings_units">Units</string>

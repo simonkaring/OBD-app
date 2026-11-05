@@ -25,7 +25,6 @@
     <string name="companion_car_disconnected">Disconnected · Set up on phone only when safely parked</string>
     <string name="companion_car_pack">Pack voltage / temperature</string>
     <string name="companion_car_health">Battery health / profile capacity</string>
-    <string name="companion_car_motion">Speed / power (+ consumption, − regen)</string>
     <string name="companion_preview">VoltLink · Companion preview</string>
     <string name="companion_not_auto">Development only · Not Android Auto · Do not use while driving</string>
     <string name="companion_day">Day</string>
