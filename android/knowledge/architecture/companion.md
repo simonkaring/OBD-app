@@ -26,8 +26,11 @@ foreground tint for contrast instead of custom green. SOC selects one of eight d
 Material battery levels, with a distinct unknown icon; power changes between draw, regen,
 charging, idle and unavailable states. Regen requires known motion and is never inferred
 during active charging. No continuous animation is used. Titles/counts
-remain fixed while icons and secondary text change. Short consumption labels and an h:mm
-trip clock reduce text clipping. The repository DHU preset now
+remain fixed while icons and secondary text change. Grid titles are single short words
+(`Battery`, `Range`, `Speed`, `Power`, `kWh/100 km`, `Trip`, `Charge`, `To 80%`, `Energy`),
+because the library accepts only a plain title string with no short variant and the host
+ellipsizes longer labels on narrow tiles; qualifiers, `≈`, the h:mm clocks and DKK cost stay in
+the value line. The h:mm trip clock also reduces clipping. The repository DHU preset now
 uses 1920×1080 at 240 dpi to enlarge host text/controls; it does not change real head units.
 It reads the same projection at most once per second while STARTED,
 calling invalidate only on state or host-theme change. No extra acquisition. The permissive

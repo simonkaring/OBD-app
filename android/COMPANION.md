@@ -63,8 +63,12 @@ in light mode), not custom green: the user's host rendered the mint tint too dar
 power and speed images change only at telemetry state changes, with no continuous animation.
 Vehicle has a separate car icon. Titles stay fixed while live values remain secondary text.
 Power offers a compact numeric text variant if its state label won't fit; the sign and icon
-still distinguish energy direction. Consumption puts `Avg kWh/100km` in the fixed label
-and shows only the number below; trip time uses h:mm instead of h:mm:ss to reduce clipping.
+still distinguish energy direction. Grid titles are single short words (`Battery`, `Range`,
+`Speed`, `Power`, `kWh/100 km`, `Trip`, `Charge`, `To 80%`, `Energy`): the library takes only a
+plain title string with no short variant, so the host ellipsized longer labels
+(`Charging power` rendered as `charging pow…`). The qualifiers moved into the value line,
+which already carries `≈`, the h:mm elapsed clock and the DKK cost. Consumption shows only the
+number below its short unit label; trip time uses h:mm instead of h:mm:ss to reduce clipping.
 The host still controls
 columns, typography and scrolling; large sizing affects minimum tile width and image size,
 not a custom font-size setting. The phone UI and acquisition remain unchanged.

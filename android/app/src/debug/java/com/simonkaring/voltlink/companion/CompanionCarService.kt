@@ -164,7 +164,7 @@ private fun companionGrid(context: Context, state: CompanionState, charging: Boo
             batteryLevelIcon(soc))
         // The first two tiles are the battery and range the Drive grid leads with.
         tile(R.string.companion_grid_range, number(state.rangeKm, 0, "km", state.rangeEstimated), R.drawable.ic_companion_range)
-        tile(R.string.companion_charge_power, number(state.chargePowerKW, 1, "kW", state.chargePowerEstimated),
+        tile(R.string.companion_grid_charge_power, number(state.chargePowerKW, 1, "kW", state.chargePowerEstimated),
             R.drawable.ic_car_charging,
             image = ChargingImageExperiment.icon(context, ChargingImageExperiment.powerFrame(state.chargePowerKW), darkMode))
         tile(R.string.companion_grid_to80,

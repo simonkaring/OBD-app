@@ -275,7 +275,7 @@ class CompanionCarTemplateTest {
         assertEquals("40 km/h", first[2].text.toString())
         assertEquals("80 km/h", next[2].text.toString())
         assertNotEquals(first[3].image, next[3].image)
-        assertEquals("Avg kWh/100km", first[4].title.toString())
+        assertEquals(app.getString(R.string.companion_grid_consumption), first[4].title.toString())
         assertEquals("173.1", first[4].text.toString())
         assertEquals("0.3 km · 0:01", first[5].text.toString())
         assertEquals("—", gridTripTime(null))

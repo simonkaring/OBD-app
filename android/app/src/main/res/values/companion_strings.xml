@@ -1,10 +1,10 @@
 <resources>
     <string name="companion_grid_range">Range</string>
-    <string name="companion_grid_consumption">Avg kWh/100km</string>
+    <string name="companion_grid_consumption">kWh/100 km</string>
     <string name="companion_grid_power">Power</string>
-    <string name="companion_grid_trip">Trip · h:mm</string>
-    <string name="companion_grid_to80">To 80% · h:mm elapsed</string>
-    <string name="companion_grid_energy">Energy · Est. cost</string>
+    <string name="companion_grid_trip">Trip</string>
+    <string name="companion_grid_to80">To 80%</string>
+    <string name="companion_grid_energy">Energy</string>
     <string name="companion_grid_charge_complete">Stopped · Target reached</string>
     <string name="companion_grid_power_value">%1$s · %2$s</string>
     <string name="companion_grid_draw">Draw</string>
@@ -12,6 +12,7 @@
     <string name="companion_grid_charging">Charge</string>
     <string name="companion_grid_idle">Idle</string>
     <string name="companion_grid_energy_in">Energy in</string>
+    <string name="companion_grid_charge_power">Charge</string>
     <string name="companion_grid_unknown">Unknown</string>
     <string name="companion_grid_offline">Offline</string>
     <string name="companion_grid_connecting">Connecting</string>
