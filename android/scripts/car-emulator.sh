@@ -13,7 +13,7 @@
 set -euo pipefail
 
 AVD="${VOLTLINK_AVD:-VoltLinkAuto34}"
-DHU_CONFIG="${VOLTLINK_DHU_CONFIG:-default_1080p.ini}"
+DHU_CONFIG="${VOLTLINK_DHU_CONFIG:-voltlink_1080p.ini}"
 AA_PACKAGE="${VOLTLINK_AA_PACKAGE:-com.google.android.projection.gearhead}"
 
 usage() {
@@ -54,8 +54,10 @@ DHU_DIR="$SDK/extras/google/auto"
 [[ -x "$EMULATOR" ]] || die "missing $EMULATOR — install the emulator package"
 [[ -x "$DHU_DIR/desktop-head-unit" ]] || die \
     "missing $DHU_DIR/desktop-head-unit — install the \"Android Auto Desktop Head Unit Emulator\" SDK extra"
-[[ -f "$DHU_DIR/config/$DHU_CONFIG" ]] || die \
-    "unknown head unit config $DHU_CONFIG (see the files in $DHU_DIR/config)"
+CONFIG_FILE="$ROOT/scripts/dhu/$DHU_CONFIG"
+if [[ ! -f "$CONFIG_FILE" ]]; then CONFIG_FILE="$DHU_DIR/config/$DHU_CONFIG"; fi
+[[ -f "$CONFIG_FILE" ]] || die \
+    "unknown head unit config $DHU_CONFIG (see scripts/dhu/ or $DHU_DIR/config)"
 
 # Every adb call is pinned to the selected device, so a phone and an emulator can
 # be attached at the same time without any command becoming ambiguous.
@@ -187,4 +189,4 @@ echo "==> forwarding tcp:5277"
 echo "==> launching $SERIAL in the Desktop Head Unit ($DHU_CONFIG)"
 echo "    console: \"help\" for commands, \"screenshot /tmp/car.png\" to save a frame, Ctrl-C to quit"
 cd "$DHU_DIR"
-exec ./desktop-head-unit -c "config/$DHU_CONFIG" -a 5277
+exec ./desktop-head-unit -c "$CONFIG_FILE" -a 5277

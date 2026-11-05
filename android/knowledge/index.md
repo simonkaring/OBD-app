@@ -4,6 +4,7 @@ okf_version: "0.2"
 
 # Architecture
 * [Android app structure](architecture/overview.md) - Package layout, the one-way data flow, and which module to change for a given task.
+* [Automotive companion preview](architecture/companion.md) - Read-only telemetry projection, standalone preview, and experimental debug Android Auto IoT service.
 * [Data flow](architecture/data-flow.md) - How adapter bytes become a published telemetry snapshot, from BLE through ISO-TP and a vehicle profile to Compose, the car pane and the widget.
 * [Demo mode](architecture/demo-mode.md) - How the physics simulation replaces the adapter, the four scenarios, and the manual overrides.
 * [Testing and verification](architecture/testing.md) - Which Gradle commands to run, how to install on a phone or emulator and open the Android Auto head unit, what each suite covers, the screenshot harness, and the OKF drift gate for the Android bundle.

@@ -39,15 +39,8 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.VoltLink">
-        <!-- Lets the Android Auto host on a phone discover VoltLinkCarAppService. -->
-        <meta-data
-            android:name="com.google.android.gms.car.application"
-            android:resource="@xml/automotive_app_desc" />
-        <!-- Application-level on purpose: the Car App library reads this key from the
-             application info (AppInfo.retrieveMinCarAppApiLevel), not from the service. -->
-        <meta-data
-            android:name="androidx.car.app.minCarApiLevel"
-            android:value="1" />
+        <!-- Automotive experiments (IoT service + standalone preview) are registered only
+             in src/debug. Release has no car registration pending category review. -->
 
         <activity
             android:name=".MainActivity"
@@ -65,17 +58,6 @@
             android:name=".services.TripLocationService"
             android:exported="false"
             android:foregroundServiceType="location" />
-
-        <!-- Android Auto / AAOS: live telemetry pane (the CarPlay dashboard equivalent). -->
-        <service
-            android:name=".car.VoltLinkCarAppService"
-            android:exported="true"
-            android:label="@string/app_name">
-            <intent-filter>
-                <action android:name="androidx.car.app.CarAppService" />
-                <category android:name="androidx.car.app.category.CHARGING" />
-            </intent-filter>
-        </service>
 
         <!-- Home-screen telemetry widget. -->
         <receiver
