@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: "Testing and verification"
-description: "Which Gradle commands to run, how to install on a phone or emulator and open the Android Auto head unit, what each suite covers, the screenshot harness, and the OKF drift gate for the Android bundle."
+description: "Gradle commands, phone and emulator testing, companion preview limitations, screenshots, and the OKF drift gate."
 tags: [architecture, testing, okf]
 status: stable
 sources:
@@ -35,6 +35,11 @@ OKF source files. Instrumentation tests need a device; `recordScreenshots` write
 
 # Running it
 
+**Companion:** debug builds register an experimental IoT `CompanionCarService` for the DHU;
+`CompanionPreviewActivity` remains a separate standalone preview. Follow
+`android/COMPANION.md`. Release registration stays disabled pending category review.
+Standalone tests do not certify host templates, rotary input or driving restrictions.
+
 ```bash
 ./gradlew installDebug                        # build + install on the attached device
 adb -s R5CWA0093XN install -r app/build/outputs/apk/debug/app-debug.apk   # several devices attached
@@ -57,6 +62,10 @@ tries the shell start, opens Android Auto's settings and prints the toggle to ta
 driving the UI with uiautomator. The DHU must run in a real terminal, since a piped stdin ends the
 session as soon as it connects. Its console takes `help`, `screenshot /tmp/car.png` and Ctrl-C.
 
+Reinstalling kills the app process, so the head unit drops the car session; the next launch builds
+a fresh `TabTemplate` from whatever the managers publish. Demo mode, the trip and the charging
+session live in memory, so a reinstall resets them too.
+
 `connectedDebugAndroidTest` uninstalls both APKs, and demo mode lives in memory, so a device that
 was just verified loses the app and the simulation: reinstall and toggle **Settings → Demo /
 Simulation mode** again.
@@ -71,6 +80,8 @@ Simulation mode** again.
 | `app/src/test/.../services` | Trip location start-command policy, fix filtering, reducer state machine |
 | `app/src/test/.../core/{ai,backup,export,history}` | Log analysis, backup merge, GPX/CSV export, monthly insights |
 | `app/src/test/.../okf` | OKF conformance and drift for `android/knowledge` |
+| `app/src/test/.../companion` | Honest availability, range prerequisites, charging, cost and stale signals |
+| `app/src/androidTest/.../companion` | Native grid/pane stability, API sizing fallback, cached dial frames and packaged-image equality; standalone navigation, themes, disconnection and shared demo charging |
 | `app/src/androidTest/.../ScreenshotTest` | Captures every screen (dashboard, trips, charging, diagnostics, DTC detail, demo sheet, settings, HUD) |
 | `app/src/androidTest/.../ui` | Sheet and picker flows driven through the real activity |
 | `app/src/androidTest/.../DemoDashboardSmokeTest` | Boots disconnected, switches demo on, checks the tab shell |

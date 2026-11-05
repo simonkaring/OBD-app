@@ -1,5 +1,12 @@
 # VoltLink Android — Kotlin & Jetpack Compose OBD-II App
 
+> **Automotive companion status:** Debug builds register an experimental Android Auto **IoT**
+> service with native Drive, Charging and Vehicle tabs for DHU testing. Release registration
+> remains disabled; IoT has OBD-app precedent but VoltLink has not received Play approval.
+> See [COMPANION.md](COMPANION.md) for DHU and standalone-preview instructions.
+> Drive and Charging use native grids with thick, needle-free dial images; Vehicle uses a pane.
+> Older car-dashboard and configurable car-layout descriptions below refer to unregistered legacy code.
+
 Native Android companion to [VoltLink iOS](../ios/README.md). Same telemetry pipeline,
 same vehicle profiles, same dark glass design language — implemented with Kotlin, Jetpack
 Compose and the Android Bluetooth LE stack, with no shared build tooling with `ios/`.
@@ -17,7 +24,7 @@ Compose and the Android Bluetooth LE stack, with no shared build tooling with `i
   telemetry widget, launcher shortcuts for trip control and DTC scanning, and service
   reminders — the platform equivalents of the iOS share sheets, WidgetKit widget and
   App Intents.
-- **Car, AI and sync**: an Android Auto / AAOS telemetry pane (CarPlay equivalent), an opt-in
+- **Companion, AI and sync**: experimental debug Android Auto IoT tabs plus a standalone preview, an opt-in
   Gemini/OpenAI OBD log analyzer with a Keystore-encrypted key, an opt-in history mirror to a
   user-chosen folder (Drive, OneDrive, local), a 69-brand / 599-model vehicle catalog, and an
   Android 16 Live Update charging card.
@@ -48,7 +55,8 @@ cd android
 # Widget and shortcuts are wired through the manifest:
 #   .core.widget.TelemetryWidgetProvider  (Add widget from Settings)
 #   .core.shortcuts.AppShortcuts          (long-press the launcher icon)
-#   .car.VoltLinkCarAppService            (Android Auto / AAOS, charging category)
+#   .companion.CompanionPreviewActivity  (debug-only standalone preview)
+#   .companion.CompanionCarService       (debug-only Android Auto IoT experiment)
 #   .services.TripLocationService         (foreground GPS while a trip records)
 ```
 
@@ -57,20 +65,15 @@ cd android
 ```bash
 ./gradlew installDebug                        # build + install on the attached device
 
-./scripts/car-emulator.sh                     # phone over USB: server + Desktop Head Unit
-./scripts/car-emulator.sh -s R5CWA0093XN      # pick one when several devices are attached
-./scripts/car-emulator.sh -a VoltLinkAuto34   # emulator instead of a phone
+adb shell am start -n com.simonkaring.voltlink/.companion.CompanionPreviewActivity
 ```
 
-The Desktop Head Unit window is the car screen. Open VoltLink from its rail; in the terminal
-`help` lists the console commands, `screenshot /tmp/car.png` saves a frame, Ctrl-C quits it.
+The preview is a standalone debug activity, not a DHU app. See [COMPANION.md](COMPANION.md)
+for 800×480 / 1280×720 bench testing and the local DHU experiment's approval caveats.
 
-Emulators need Android Auto installed, which Play refuses to do, so the script refuses a device
-without it: use the phone, or an image that already has it (`-a VoltLinkAuto34`). Android Auto will
-not let any shell start its head unit server, so when it is off the script opens the settings screen
-and names the one tap it needs; after that it stays up until Android Auto is force-stopped or the
-phone restarts. If the DHU drops (`Failed to read from transport`), force stop Android Auto and run
-the script again.
+Run `./scripts/car-emulator.sh -s <serial>` for the debug IoT service. Enable Android Auto
+developer settings → Unknown sources for the sideloaded app, then reconnect the DHU.
+Local discovery does not establish Play category approval.
 
 `connectedDebugAndroidTest` uninstalls the app when it finishes, and demo mode is in memory only,
 so reinstall and toggle **Settings → Demo / Simulation mode** again if you were testing.
@@ -107,7 +110,7 @@ Implemented in this pass:
 | --- | --- |
 | Live telemetry dashboard | Widget layout is user configurable (metric, dial/bar/number style, half/full width, order) and persisted; default is speed + power dials, SoC bar, 12 V and average consumption tiles, rolling chart |
 | Profile metric status | Settings sheet listing every metric the active profile supports as Live, No data or Not connected, with the OBDb provenance notice |
-| Car dashboard | Android Auto tabs for live telemetry and charging; each tab draws the phone's look into the pane picture (state-of-charge bar over speed and power dials) beside host rows that say whether a trip is recording or a charge session is running, then the number readouts such as trip average. The tiles are chosen and ordered in Settings, capped at six |
+| Companion preview | Debug-only standalone landscape Drive, Charging and Vehicle screens read the existing manager and trackers at 1 Hz; unavailable/stale signals are hidden, estimates require real inputs, and simulation uses the existing mock adapter. Not an Android Auto app. |
 | Scrubbable charge chart | Charge power against elapsed time with a drag readout of time, speed and SoC, for live and recorded sessions |
 | BLE ELM327 transport | Scan/connect/discover, command queue, 4 s timeout, stale-response drain, routing-failure recovery, OBD terminal log |
 | ISO-TP / UDS decoding | Same multi-ECU bucket parser, 11- and 29-bit headers, plausibility bounds |
@@ -126,7 +129,7 @@ Implemented in this pass:
 | Launcher shortcuts | Start/stop trip, scan fault codes, open charging — the App Intents equivalent; the trip label tracks the recorder |
 | Service reminder | Last vehicle-reported distance to service with 500/1000/2000/5000 km thresholds and a weekly alert |
 | Vehicle catalog | `assets/vehicle_catalog.json` (69 brands, 599 models) browsed brand → model family → model year → variant, with an EV/All filter and one search field that matches brand, model, family or model year. The picked row selects its profile and remembers the model name for trips, the widget and reminders |
-| Android Auto / AAOS | `CarAppService` + `TabTemplate` with telemetry and charging tabs; each tab is a `PaneTemplate` whose square picture is the phone's pack bar and `MetricDial` dials drawn into a bitmap, with rows for trip and charging status and the number metrics, refreshed from the same snapshot, trip and charging session as the phone UI (paced to one push a second); discovered through the `com.google.android.gms.car.application` meta-data and `res/xml/automotive_app_desc.xml` (template capability) |
+| Android Auto | Debug-only IoT experiment: native Drive GridTemplate (six tiles), Charging GridTemplate (four tiles) and Vehicle PaneTemplate, all from shared companion state. Power, speed, charging power and charging SOC use thick, needle-free dial images with exact values in native text. Release registration stays disabled pending review; old `car/` sources are unused. |
 | AI log analyzer | Gemini (`AIza…`) or OpenAI (`sk-…`) decoding of the captured OBD trace; the key is AES-GCM encrypted under an Android Keystore key |
 | Cloud backup | Opt-in mirror of trips, charging sessions and battery health to a folder picked with the system picker; restore merges the newest file by id and never deletes local rows |
 | Live Update | Charging notification promoted (`setRequestPromotedOngoing`) with a `ProgressStyle` bar, target point and short critical SoC text on Android 16+ |
@@ -204,7 +207,8 @@ app/src/main/java/com/simonkaring/voltlink/
 │   │                                  # (AbrpExpression/AbrpProfile), catalog, community
 │   │                                  # PID contribution, reminders
 │   └── widget/                        # Home-screen widget provider and snapshot store
-├── car/                         # CarAppService, session and telemetry pane for Android Auto
+├── car/                         # retained unused bitmap/template experiment
+├── companion/                   # projection; native IoT service + standalone preview in src/debug
 ├── data/                        # SQLite history store, DTC database, settings, reminder prefs
 ├── services/                    # BLE transport, polling loop, telemetry reducer/manager,
 │                                # DTC scanner, trip tracker, charging tracker, trip GPS service

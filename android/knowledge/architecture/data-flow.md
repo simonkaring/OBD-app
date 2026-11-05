@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: "Data flow"
-description: "How adapter bytes become a published telemetry snapshot, from BLE through ISO-TP and a vehicle profile to Compose, the car pane and the widget."
+description: "How adapter bytes become a published telemetry snapshot, from BLE through ISO-TP and a vehicle profile to Compose, the companion preview and the widget."
 tags: [architecture, telemetry, obd]
 status: stable
 sources:
@@ -35,7 +35,12 @@ sources:
 6. **Rendering** — Compose screens collect the flows with `collectAsStateWithLifecycle()`;
    the Android Auto session, the home-screen widget and notifications read the same manager.
 
-# Car dashboard
+# Car screen
+
+**Platform correction:** The older implementation described below is retained unused work.
+The debug build now registers a separate IoT experiment using native Drive/Charging grids and a Vehicle pane,
+not these bitmap layouts/fallbacks. Its shared read-only projection, standalone preview
+and category-review caveats are in [Automotive companion preview](/architecture/companion.md).
 
 Android Auto and AAOS cannot host Compose, so `car` serves a `TabTemplate` with two tabs —
 live telemetry and charging — and each tab is a `PaneTemplate`. The pane's picture is the phone's

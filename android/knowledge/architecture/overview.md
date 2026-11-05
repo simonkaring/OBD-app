@@ -34,7 +34,8 @@ Everything is in the single `:app` module under `com.simonkaring.voltlink`:
 | `services` | `VehicleDataManager` (main-actor facade), the polling loop, the reducer, trip/charging trackers, DTC scanner, foreground location |
 | `data` | DataStore-backed settings, dashboard and car-tile layouts, history, local DTC database |
 | `ui` | Compose screens (`dashboard`, `trips`, `charging`, `diagnostics`, `settings`), shared components and the design tokens in `ui/theme/Theme.kt` |
-| `car` | Android Auto / AAOS templates (the CarPlay counterpart) |
+| `car` | Retained legacy experimental templates, unregistered; the debug IoT service lives in `companion` and Play approval remains unverified |
+| `companion` | Read-only projection; `src/debug` contains the standalone preview and experimental native Android Auto IoT service |
 | `core/widget`, `core/shortcuts`, `core/notifications`, `core/ai`, `core/backup`, `core/export` | platform integrations |
 
 # Where to change what
