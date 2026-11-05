@@ -30,6 +30,8 @@ final class SharedTelemetryStoreTests: XCTestCase {
             isDemoMode: false,
             isTripActive: false,
             distanceKm: 0,
+            averageConsumptionKWhPer100Km: 18.4,
+            activeSessionStartedAt: Date(timeIntervalSince1970: 1_700_000_000),
             updatedAt: Date(timeIntervalSince1970: 1_700_000_000)
         )
 
@@ -48,6 +50,8 @@ final class SharedTelemetryStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.socPct, 55)
         XCTAssertEqual(snapshot.speedKmH, 0)
         XCTAssertNil(snapshot.rangeKm)
+        XCTAssertNil(snapshot.averageConsumptionKWhPer100Km)
+        XCTAssertNil(snapshot.activeSessionStartedAt)
     }
 
     func testMissingSnapshotLoadsNil() {
@@ -76,6 +80,16 @@ final class SharedTelemetryStoreTests: XCTestCase {
         XCTAssertEqual(units.speed(kilometersPerHour: 100), 100 / 1.609_344, accuracy: 0.000_1)
         XCTAssertEqual(units.distance(kilometers: 1.609_344), 1, accuracy: 0.000_1)
         XCTAssertEqual(units.power(kilowatts: 74.569_987_2), 100, accuracy: 0.000_1)
+    }
+
+    func testEfficiencyUsesPerHundredOfSelectedDistanceUnit() {
+        let metric = SharedDisplayUnits(distance: .kilometers, power: .kilowatts)
+        XCTAssertEqual(metric.efficiency(kilowattHoursPer100Kilometers: 18), 18, accuracy: 0.000_1)
+        XCTAssertEqual(metric.efficiencySymbol, "kWh/100km")
+
+        let imperial = SharedDisplayUnits(distance: .miles, power: .kilowatts)
+        XCTAssertEqual(imperial.efficiency(kilowattHoursPer100Kilometers: 18), 18 * 1.609_344, accuracy: 0.000_1)
+        XCTAssertEqual(imperial.efficiencySymbol, "kWh/100mi")
     }
 
     func testStaleSnapshotIsNotServedForWidgets() {

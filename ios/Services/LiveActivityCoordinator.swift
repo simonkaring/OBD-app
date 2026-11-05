@@ -17,7 +17,8 @@ public final class LiveActivityCoordinator {
 
     private var activity: Activity<VoltLinkActivityAttributes>?
     private var activeMode: VoltLinkActivityAttributes.Mode?
-    private var startedAt = Date()
+    /// Fallback elapsed origin for a session whose recorder has no start time yet.
+    private var activityStartedAt = Date()
     private var lastUpdate = Date.distantPast
     private static let minimumUpdateInterval: TimeInterval = 5
     /// A Live Activity the app never updates again (app killed, adapter lost) must not
@@ -45,19 +46,15 @@ public final class LiveActivityCoordinator {
 
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
-        let state = VoltLinkActivityAttributes.ContentState(
-            mode: mode,
-            socPct: snapshot.socPct,
-            powerKW: snapshot.powerKW,
-            speedKmH: snapshot.speedKmH,
-            distanceKm: snapshot.distanceKm,
-            startedAt: mode == activeMode ? startedAt : Date(),
-            units: snapshot.units,
-            isDemoMode: snapshot.isDemoMode
-        )
+        // The recorder owns the clock: a trip or charging session started before the app
+        // was relaunched still shows its full elapsed time. The fallback only lasts until
+        // the recorder publishes its start time.
+        let startedAt = snapshot.activeSessionStartedAt ?? (mode == activeMode ? activityStartedAt : Date())
+        let state = VoltLinkActivityContent.make(mode: mode, snapshot: snapshot, startedAt: startedAt)
 
         if activity == nil || activeMode != mode {
             end()
+            activityStartedAt = startedAt
             start(mode: mode, state: state, vehicleName: snapshot.vehicleName)
             return
         }
@@ -86,7 +83,6 @@ public final class LiveActivityCoordinator {
         do {
             activity = try Activity.request(attributes: attributes, content: content, pushType: nil)
             activeMode = mode
-            startedAt = state.startedAt
             lastUpdate = Date()
         } catch {
             // Live Activities can be disabled per app or by the system; the app keeps

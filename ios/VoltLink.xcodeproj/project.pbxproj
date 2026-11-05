@@ -30,6 +30,7 @@
 		8A7736C16FB069A49949F5B6 /* SharedTelemetryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0765617C8DF40413722A6D /* SharedTelemetryStore.swift */; };
 		634D0349796895F4F141C221 /* UnitConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4BDB20C61D0AC5A0A5B8AD /* UnitConversion.swift */; };
 		217EB137B537F6CA79DE8EDC /* VoltLinkActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A801A80E1DA56AC9168B353E /* VoltLinkActivityAttributes.swift */; };
+		1559816CE8DA3AA5C59CB358 /* VoltLinkActivityContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006F44B32BDF3E708D134D04 /* VoltLinkActivityContent.swift */; };
 		75D0908CAFE35420FB182A95 /* ChargingPowerEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7FD8E0A2BB4635D2775094C /* ChargingPowerEstimator.swift */; };
 		D588F6623693ABACB0959019 /* ChargingSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156889D92AF2BBE4810A56D2 /* ChargingSessionTracker.swift */; };
 		08087A0EF85FA2BE6A1B2874 /* ChargingTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A1484163A3FF30452A6ADD /* ChargingTarget.swift */; };
@@ -122,6 +123,7 @@
 		BB903F1735625D43EEA0431B /* SharedTelemetryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0765617C8DF40413722A6D /* SharedTelemetryStore.swift */; };
 		8F249A8F9978FA8E08ACF0D8 /* UnitConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4BDB20C61D0AC5A0A5B8AD /* UnitConversion.swift */; };
 		7DEA20DF696CC70B8DAF9110 /* VoltLinkActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A801A80E1DA56AC9168B353E /* VoltLinkActivityAttributes.swift */; };
+		8959C88CE02A5A52864C99B4 /* VoltLinkActivityContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006F44B32BDF3E708D134D04 /* VoltLinkActivityContent.swift */; };
 		CD94E3BA4961F906CC3CA5E1 /* VoltLinkLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B32908C6DAAD1CE59223A4 /* VoltLinkLiveActivityWidget.swift */; };
 		39EAF7A92C47F5A337AF35EF /* VoltLinkStatusWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25750A0CA294033C415DAA4E /* VoltLinkStatusWidget.swift */; };
 		AAE7482F93BA7C288DEA11B4 /* VoltLinkWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25C6F42B283AA411669087EB /* VoltLinkWidgets.swift */; };
@@ -169,6 +171,7 @@
 		FB0765617C8DF40413722A6D /* SharedTelemetryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SharedTelemetryStore.swift"; sourceTree = "<group>"; };
 		8A4BDB20C61D0AC5A0A5B8AD /* UnitConversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UnitConversion.swift"; sourceTree = "<group>"; };
 		A801A80E1DA56AC9168B353E /* VoltLinkActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkActivityAttributes.swift"; sourceTree = "<group>"; };
+		006F44B32BDF3E708D134D04 /* VoltLinkActivityContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkActivityContent.swift"; sourceTree = "<group>"; };
 		A7FD8E0A2BB4635D2775094C /* ChargingPowerEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingPowerEstimator.swift"; sourceTree = "<group>"; };
 		156889D92AF2BBE4810A56D2 /* ChargingSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingSessionTracker.swift"; sourceTree = "<group>"; };
 		63A1484163A3FF30452A6ADD /* ChargingTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingTarget.swift"; sourceTree = "<group>"; };
@@ -434,7 +437,8 @@
 			children = (
 				FB0765617C8DF40413722A6D,
 				8A4BDB20C61D0AC5A0A5B8AD,
-				A801A80E1DA56AC9168B353E
+				A801A80E1DA56AC9168B353E,
+				006F44B32BDF3E708D134D04
 			);
 			path = "Sharing";
 			sourceTree = "<group>";
@@ -870,6 +874,7 @@
 				8A7736C16FB069A49949F5B6 /* SharedTelemetryStore.swift in Sources */,
 				634D0349796895F4F141C221 /* UnitConversion.swift in Sources */,
 				217EB137B537F6CA79DE8EDC /* VoltLinkActivityAttributes.swift in Sources */,
+				1559816CE8DA3AA5C59CB358 /* VoltLinkActivityContent.swift in Sources */,
 				75D0908CAFE35420FB182A95 /* ChargingPowerEstimator.swift in Sources */,
 				D588F6623693ABACB0959019 /* ChargingSessionTracker.swift in Sources */,
 				08087A0EF85FA2BE6A1B2874 /* ChargingTarget.swift in Sources */,
@@ -949,6 +954,7 @@
 				BB903F1735625D43EEA0431B /* SharedTelemetryStore.swift in Sources */,
 				8F249A8F9978FA8E08ACF0D8 /* UnitConversion.swift in Sources */,
 				7DEA20DF696CC70B8DAF9110 /* VoltLinkActivityAttributes.swift in Sources */,
+				8959C88CE02A5A52864C99B4 /* VoltLinkActivityContent.swift in Sources */,
 				CD94E3BA4961F906CC3CA5E1 /* VoltLinkLiveActivityWidget.swift in Sources */,
 				39EAF7A92C47F5A337AF35EF /* VoltLinkStatusWidget.swift in Sources */,
 				AAE7482F93BA7C288DEA11B4 /* VoltLinkWidgets.swift in Sources */,
@@ -1018,6 +1024,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/VoltLink.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "8SWT4K78KH";
@@ -1042,6 +1049,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/VoltLink.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "8SWT4K78KH";
@@ -1111,6 +1119,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Widgets/VoltLinkWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "8SWT4K78KH";
@@ -1137,6 +1146,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Widgets/VoltLinkWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "8SWT4K78KH";

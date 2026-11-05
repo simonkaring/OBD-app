@@ -232,6 +232,9 @@ public final class AppEnvironment: ObservableObject {
 
         let soc = vehicleData.displayedTelemetry.stateOfChargePct
         let range = vehicleData.estimatedFullRangeKm.map { $0 * max(0, min(100, soc)) / 100 }
+        // The Live Activity mirrors whichever recording is active; charging wins, matching
+        // `LiveActivityCoordinator`.
+        let activeSessionStartedAt = chargingTracker.currentSession?.startTime ?? tripTracker?.currentTrip?.startTime
         let units = currentUnits()
         lastPublishedUnits = units
         let shared = SharedTelemetrySnapshot(
@@ -245,6 +248,8 @@ public final class AppEnvironment: ObservableObject {
             isDemoMode: vehicleData.isDemoMode,
             isTripActive: tripTracker?.currentTrip != nil,
             distanceKm: tripTracker?.currentTrip?.distanceKm ?? 0,
+            averageConsumptionKWhPer100Km: tripTracker?.averageConsumption,
+            activeSessionStartedAt: activeSessionStartedAt,
             updatedAt: now,
             units: units
         )

@@ -44,6 +44,14 @@ public struct SharedDisplayUnits: Codable, Hashable, Sendable {
     public func power(kilowatts: Double) -> Double {
         power == .kilowatts ? kilowatts : kilowatts / UnitConversion.kilowattsPerHorsepower
     }
+
+    /// Consumption is expressed per 100 of the selected distance unit, matching
+    /// `UnitPreferences.efficiencyValue(fromKilowattHoursPer100Kilometers:)`.
+    public func efficiency(kilowattHoursPer100Kilometers value: Double) -> Double {
+        distance == .kilometers ? value : value * UnitConversion.kilometersPerMile
+    }
+
+    public var efficiencySymbol: String { "kWh/100\(distance.symbol)" }
 }
 
 /// The small telemetry snapshot shared with the widget extension through the app group.
@@ -61,6 +69,10 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
     public var isDemoMode: Bool
     public var isTripActive: Bool
     public var distanceKm: Double
+    /// Trip average consumption; nil while the trip is too short or power data is incomplete.
+    public var averageConsumptionKWhPer100Km: Double?
+    /// Start of the trip or charging session the Live Activity mirrors (charging wins).
+    public var activeSessionStartedAt: Date?
     public var updatedAt: Date
     public var units: SharedDisplayUnits
 
@@ -79,6 +91,8 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         isDemoMode: Bool = false,
         isTripActive: Bool = false,
         distanceKm: Double = 0,
+        averageConsumptionKWhPer100Km: Double? = nil,
+        activeSessionStartedAt: Date? = nil,
         updatedAt: Date = Date(),
         units: SharedDisplayUnits = SharedDisplayUnits()
     ) {
@@ -92,12 +106,15 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         self.isDemoMode = isDemoMode
         self.isTripActive = isTripActive
         self.distanceKm = distanceKm
+        self.averageConsumptionKWhPer100Km = averageConsumptionKWhPer100Km
+        self.activeSessionStartedAt = activeSessionStartedAt
         self.updatedAt = updatedAt
         self.units = units
     }
 
     private enum CodingKeys: String, CodingKey {
-        case vehicleName, socPct, powerKW, speedKmH, rangeKm, isCharging, isConnected, isDemoMode, isTripActive, distanceKm, updatedAt, units
+        case vehicleName, socPct, powerKW, speedKmH, rangeKm, isCharging, isConnected, isDemoMode, isTripActive, distanceKm,
+            averageConsumptionKWhPer100Km, activeSessionStartedAt, updatedAt, units
     }
 
     /// Tolerates snapshots written before later fields (`speedKmH`, `units`, …) existed.
@@ -113,6 +130,8 @@ public struct SharedTelemetrySnapshot: Codable, Sendable, Equatable {
         isDemoMode = try container.decodeIfPresent(Bool.self, forKey: .isDemoMode) ?? false
         isTripActive = try container.decodeIfPresent(Bool.self, forKey: .isTripActive) ?? false
         distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm) ?? 0
+        averageConsumptionKWhPer100Km = try container.decodeIfPresent(Double.self, forKey: .averageConsumptionKWhPer100Km)
+        activeSessionStartedAt = try container.decodeIfPresent(Date.self, forKey: .activeSessionStartedAt)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
         units = try container.decodeIfPresent(SharedDisplayUnits.self, forKey: .units) ?? SharedDisplayUnits()
     }

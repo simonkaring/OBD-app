@@ -58,7 +58,13 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
    - `LiveActivityCoordinator` starts/updates/ends the single trip-or-charging
      Live Activity (charging wins when both are active). Its content carries a
      `staleDate` of one snapshot TTL, so an activity the app can no longer
-     update dims instead of showing frozen values.
+     update dims instead of showing frozen values. The state also carries the
+     estimated range, the trip average consumption, and the recorder's start
+     time (`activeSessionStartedAt`), so the Lock Screen card and Dynamic Island
+     show range, consumption, and an elapsed clock that survives an app relaunch
+     mid-trip. The elapsed clock renders with `Text(timerInterval:)`, so it
+     ticks without spending activity updates; power, speed, and consumption use
+     the coordinator's five-second update floor.
 
    Unit changes are preferences, not telemetry, so the one-second sweep also
    republishes the app-group snapshot when `UnitPreferences` differs from what
