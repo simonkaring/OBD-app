@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Status-bar and shortcut glyph: the mark's bolt on its own. -->
+    <group
+        android:scaleX="0.2029888"
+        android:scaleY="0.2029888"
+        android:translateX="-50.9424"
+        android:translateY="-47.4944">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M556.3,281.5Q557.9,263.5 547.4,278.2L370.7,524.3Q360.2,538.9 378.1,537L476.8,526.6Q494.7,524.7 493.3,542.7L479.5,718.5Q478.1,736.5 488.1,721.5L663.8,456.8Q673.8,441.8 655.9,443.7L558.8,453.9Q540.9,455.8 542.5,437.9Z" />
+    </group>
+</vector>

@@ -3,7 +3,21 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#00F0FF"
-        android:pathData="M62,22 L38,58 L52,58 L46,86 L72,48 L57,48 Z" />
+    <!-- VoltLink mark: a mint plate behind an off-white plate, with a bolt knocked
+         through both. Scaled so the farthest corner of the offset mint plate sits
+         on the 66dp adaptive-icon safe circle (55.3dp bounding box, 108dp layer). -->
+    <group
+        android:scaleX="0.0830808"
+        android:scaleY="0.0830808"
+        android:translateX="10.2164"
+        android:translateY="10.2164">
+        <path
+            android:fillColor="#1FE3C4"
+            android:fillType="evenOdd"
+            android:pathData="M402,224L682,224A178,178 0 0 1 860,402L860,682A178,178 0 0 1 682,860L402,860A178,178 0 0 1 224,682L224,402A178,178 0 0 1 402,224Z M556.3,281.5Q557.9,263.5 547.4,278.2L370.7,524.3Q360.2,538.9 378.1,537L476.8,526.6Q494.7,524.7 493.3,542.7L479.5,718.5Q478.1,736.5 488.1,721.5L663.8,456.8Q673.8,441.8 655.9,443.7L558.8,453.9Q540.9,455.8 542.5,437.9Z" />
+        <path
+            android:fillColor="#F3F7F4"
+            android:fillType="evenOdd"
+            android:pathData="M372,194L652,194A178,178 0 0 1 830,372L830,652A178,178 0 0 1 652,830L372,830A178,178 0 0 1 194,652L194,372A178,178 0 0 1 372,194Z M556.3,281.5Q557.9,263.5 547.4,278.2L370.7,524.3Q360.2,538.9 378.1,537L476.8,526.6Q494.7,524.7 493.3,542.7L479.5,718.5Q478.1,736.5 488.1,721.5L663.8,456.8Q673.8,441.8 655.9,443.7L558.8,453.9Q540.9,455.8 542.5,437.9Z" />
+    </group>
 </vector>

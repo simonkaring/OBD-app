@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -503,12 +506,24 @@ fun SettingsScreen(
 
         item {
             SettingsCard(stringResource(R.string.settings_about)) {
-                Text(stringResource(R.string.settings_about_app), color = Theme.textPrimary, fontSize = 14.sp)
-                Text(
-                    stringResource(R.string.settings_about_body),
-                    color = Theme.textSecondary,
-                    fontSize = 12.sp,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_brand_mark),
+                        contentDescription = null,
+                        modifier = Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)),
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(stringResource(R.string.settings_about_app), color = Theme.textPrimary, fontSize = 14.sp)
+                        Text(
+                            stringResource(R.string.settings_about_body),
+                            color = Theme.textSecondary,
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
                 Spacer(Modifier.height(4.dp))
                 Text(
                     stringResource(R.string.settings_about_credits),

@@ -133,7 +133,7 @@ class NotificationService(private val context: Context) {
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_CHARGING)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.notif_charging_title, soc))
             .setContentText(text)
             .setSubText(eta)
@@ -203,7 +203,7 @@ class NotificationService(private val context: Context) {
         if (!enabled) return
         ensureChannels()
         val notification = NotificationCompat.Builder(context, CHANNEL_ALERTS)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setAutoCancel(true)

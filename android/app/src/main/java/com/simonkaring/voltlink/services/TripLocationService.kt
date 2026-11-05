@@ -219,7 +219,7 @@ class TripLocationService : Service(), LocationListener {
             android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
         )
         return NotificationCompat.Builder(this, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Recording trip route")
             .setContentText("GPS logging stops when the trip ends")
             .setOngoing(true)
