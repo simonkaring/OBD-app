@@ -71,6 +71,15 @@ must compile for both.
 - Do not hold a manager reference across an `await` without checking
   `Task.isCancelled` or the relevant session flag.
 - Never block the CoreBluetooth queue; adapter I/O is callback based.
+- Diagnostic capture never writes the capture file inline. `BluetoothManager`
+  hands each record to `CaptureLogWriter`, an `@unchecked Sendable` class with a
+  serial utility queue, so a slow disk cannot stall the BLE callback path. The
+  queue is bounded at 4,096 pending records; overflow drops records and counts
+  them, and `stopCapture()` reports that count in `captureError` so a partial
+  capture is never presented as complete. A failed write ends the capture and
+  closes the handle; `stopCapture()` and `deinit` drain the queue before closing
+  so a stopped capture is always complete on disk. Tests that read the file
+  mid-capture call `flushCaptureWrites()` first.
 - Static SDK values that are immutable but not annotated `Sendable` (for
   example `CBUUID` constants) use `nonisolated(unsafe)` with a comment
   explaining why the value cannot mutate.

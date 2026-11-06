@@ -27,6 +27,7 @@ final class OBDCaptureTests: XCTestCase {
         XCTAssertEqual(manager.log.count, 500)
         XCTAssertEqual(manager.log.first?.sent, "CMD0100")
         XCTAssertEqual(manager.log.last?.sent, "CMD0599")
+        manager.flushCaptureWrites()
         let captured = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(captured.contains("# Vehicle: Mercedes-Benz EQA 250 (2021)"))
         XCTAssertNotNil(captured.range(of: #"# Started: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z"#, options: .regularExpression))
@@ -168,11 +169,13 @@ final class OBDCaptureTests: XCTestCase {
         let url = try XCTUnwrap(manager.captureFileURL)
         manager.sendCommand("SAVED", completion: nil)
         manager.receiveResponseChunk("saved response\r>")
+        manager.flushCaptureWrites()
         let partial = try Data(contentsOf: url)
 
         try XCTUnwrap(handle).close()
         manager.sendCommand("WRITE_FAILURE", completion: nil)
         manager.receiveResponseChunk("still in live log\r>")
+        awaitCaptureStop(manager)
         XCTAssertFalse(manager.isCapturing)
         XCTAssertNotNil(manager.captureError)
         XCTAssertEqual(manager.captureFileURL, url)
@@ -185,6 +188,16 @@ final class OBDCaptureTests: XCTestCase {
 
         let reopened = BluetoothManager(commandWriter: { _ in }, scheduleRecovery: { _ in }, captureDirectory: directory)
         XCTAssertEqual(reopened.captureFileURL, url)
+    }
+
+    /// Capture file writes run on a background queue, so a failed write surfaces
+    /// asynchronously. Spin the main run loop until the manager reacts.
+    @MainActor
+    private func awaitCaptureStop(_ manager: BluetoothManager) {
+        let deadline = Date().addingTimeInterval(5)
+        while manager.isCapturing && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
     }
 
     @MainActor

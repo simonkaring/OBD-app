@@ -308,21 +308,11 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         expr = expr.replacingOccurrences(of: "<<16", with: "*65536")
         expr = expr.replacingOccurrences(of: "<<32", with: "*4294967296")
 
-        // Evaluate mathematical expression using NSExpression
+        // Evaluate the remaining arithmetic with a real parser. `NSExpression(format:)`
+        // raises an *uncatchable* ObjC exception on malformed input, so a profile with a
+        // bad equation could crash the app mid-drive; this returns nil instead.
         let cleanExpr = expr.replacingOccurrences(of: "--", with: "+")
-
-        // ponytail: NSExpression(format:) raises an *uncatchable* ObjC exception on
-        // anything that isn't a well-formed expression. Reject non-arithmetic input here
-        // rather than crash the app mid-drive.
-        // Upgrade path: a real tokenizer if the ABRP grammar grows past byte math.
-        guard cleanExpr.range(of: "^[0-9.+*/() -]+$", options: .regularExpression) != nil else { return nil }
-
-        let nsExpr = NSExpression(format: cleanExpr)
-        if let result = nsExpr.expressionValue(with: nil, context: nil) as? NSNumber {
-            return result.doubleValue
-        }
-
-        return nil
+        return ArithmeticExpression.evaluate(cleanExpr)
     }
 
     /// A..Z (case-insensitive) = 0..25, aa..az = 26..51, ba.. = 52.. (spreadsheet columns).
@@ -333,6 +323,91 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         case 1: return chars[0]
         case 2: return (chars[0] + 1) * 26 + chars[1]
         default: return nil
+        }
+    }
+}
+
+/// Recursive-descent evaluator for the plain decimal arithmetic that ABRP byte math
+/// reduces to: numbers, unary sign, `+ - * /`, and parentheses. Supersedes
+/// `NSExpression(format:)`, which cannot report a malformed expression without raising an
+/// uncatchable ObjC exception. Returns nil on any syntax error, trailing junk, division by
+/// zero, or a non-finite result.
+struct ArithmeticExpression {
+    private let source: [Character]
+    private var position = 0
+
+    private init(_ text: String) {
+        source = Array(text)
+    }
+
+    static func evaluate(_ text: String) -> Double? {
+        var parser = ArithmeticExpression(text)
+        guard let value = parser.parseSum() else { return nil }
+        parser.skipWhitespace()
+        guard parser.position == parser.source.count, value.isFinite else { return nil }
+        return value
+    }
+
+    private mutating func skipWhitespace() {
+        while position < source.count, source[position].isWhitespace {
+            position += 1
+        }
+    }
+
+    private mutating func parseSum() -> Double? {
+        guard var value = parseProduct() else { return nil }
+        while true {
+            skipWhitespace()
+            guard position < source.count else { return value }
+            let op = source[position]
+            guard op == "+" || op == "-" else { return value }
+            position += 1
+            guard let rhs = parseProduct() else { return nil }
+            value = op == "+" ? value + rhs : value - rhs
+        }
+    }
+
+    private mutating func parseProduct() -> Double? {
+        guard var value = parseFactor() else { return nil }
+        while true {
+            skipWhitespace()
+            guard position < source.count else { return value }
+            let op = source[position]
+            guard op == "*" || op == "/" else { return value }
+            position += 1
+            guard let rhs = parseFactor() else { return nil }
+            if op == "*" {
+                value *= rhs
+            } else {
+                guard rhs != 0 else { return nil }
+                value /= rhs
+            }
+        }
+    }
+
+    private mutating func parseFactor() -> Double? {
+        skipWhitespace()
+        guard position < source.count else { return nil }
+        switch source[position] {
+        case "+", "-":
+            let op = source[position]
+            position += 1
+            guard let value = parseFactor() else { return nil }
+            return op == "-" ? -value : value
+        case "(":
+            position += 1
+            guard let value = parseSum() else { return nil }
+            skipWhitespace()
+            guard position < source.count, source[position] == ")" else { return nil }
+            position += 1
+            return value
+        default:
+            let start = position
+            while position < source.count, source[position].isNumber || source[position] == "." {
+                position += 1
+            }
+            guard position > start, let value = Double(String(source[start..<position])) else { return nil }
+            return value
         }
     }
 }

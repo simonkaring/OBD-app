@@ -144,4 +144,41 @@ final class ABRPProfileLoaderTests: XCTestCase {
         let i3 = bmw?.modelFamilies.first { $0.id == "bmw-i3" }
         XCTAssertEqual(i3?.variants.count, 3)
     }
+
+    // MARK: - Arithmetic parser
+
+    private func parserValue(_ expression: String) throws -> Double {
+        try XCTUnwrap(ArithmeticExpression.evaluate(expression))
+    }
+
+    func testArithmeticParserHonoursPrecedenceAndAssociativity() throws {
+        XCTAssertEqual(ArithmeticExpression.evaluate("1+2*3"), 7)
+        XCTAssertEqual(ArithmeticExpression.evaluate("(1+2)*3"), 9)
+        XCTAssertEqual(ArithmeticExpression.evaluate("2*3+4*5"), 26)
+        XCTAssertEqual(ArithmeticExpression.evaluate("10-4-3"), 3)
+        XCTAssertEqual(ArithmeticExpression.evaluate("20/5/2"), 2)
+        XCTAssertEqual(ArithmeticExpression.evaluate("8/4*2"), 4)
+        XCTAssertEqual(try parserValue("((12)*256+34)/10"), 310.6, accuracy: 1e-9)
+    }
+
+    func testArithmeticParserHandlesSignsDecimalsAndWhitespace() throws {
+        XCTAssertEqual(ArithmeticExpression.evaluate("-5+3"), -2)
+        XCTAssertEqual(ArithmeticExpression.evaluate("5--3"), 8)
+        XCTAssertEqual(ArithmeticExpression.evaluate("-(2+3)"), -5)
+        XCTAssertEqual(ArithmeticExpression.evaluate("2*-3"), -6)
+        XCTAssertEqual(try parserValue("1.12*100/2.5-7.16"), 37.64, accuracy: 1e-9)
+        XCTAssertEqual(ArithmeticExpression.evaluate("  1 + 2  "), 3)
+    }
+
+    /// Malformed equations must return nil; `NSExpression(format:)` raised an uncatchable
+    /// ObjC exception on the same input.
+    func testArithmeticParserRejectsMalformedExpressions() {
+        let malformed = [
+            "", "   ", "GARBAGE(A;B", "1+", "1++", "()", "2(3)", "(1+2", "1+2)",
+            "1 2", "1.2.3", "*5", "1/0", "5/(2-2)", "1e3", "5%2", ".", "NaN", "1$",
+        ]
+        for expression in malformed {
+            XCTAssertNil(ArithmeticExpression.evaluate(expression), "expected nil for \"\(expression)\"")
+        }
+    }
 }

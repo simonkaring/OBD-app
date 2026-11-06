@@ -19,7 +19,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     @Published public private(set) var captureError: String?
 
     private var captureDestination = URL.documentsDirectory.appendingPathComponent("VoltLink-OBD-Capture.txt")
-    private var captureHandle: FileHandle?
+    private var captureWriter: CaptureLogWriter?
+    private var droppedCaptureRecords = 0
     private var openCaptureFile: (URL) throws -> FileHandle = { try FileHandle(forWritingTo: $0) }
     private static let captureDateFormat = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
 
@@ -84,10 +85,8 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
     }
 
     deinit {
-        do {
-            try captureHandle?.close()
-        } catch {
-            NSLog("OBD capture close failed; file may be partial: %@", error.localizedDescription)
+        if let failure = captureWriter?.finish() {
+            NSLog("OBD capture close failed; file may be partial: %@", failure.localizedDescription)
         }
     }
 
@@ -122,7 +121,10 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
             } else {
                 try files.moveItem(at: stagingURL, to: captureDestination)
             }
-            captureHandle = opened
+            captureWriter = CaptureLogWriter(handle: opened) { [weak self] error in
+                Task { @MainActor in self?.captureWriteDidFail(error) }
+            }
+            droppedCaptureRecords = 0
             captureFileURL = captureDestination
             isCapturing = true
         } catch {
@@ -136,15 +138,35 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
 
     public func stopCapture() {
         dispatchPrecondition(condition: .onQueue(.main))
-        guard let handle = captureHandle else { return }
-        captureHandle = nil
-        var failures: [String] = []
-        do { try handle.synchronize() } catch { failures.append(error.localizedDescription) }
-        do { try handle.close() } catch { failures.append(error.localizedDescription) }
+        guard let writer = captureWriter else { return }
+        captureWriter = nil
         isCapturing = false
+        var failures: [String] = []
+        if let failure = writer.finish() { failures.append(failure.localizedDescription) }
+        if droppedCaptureRecords > 0 {
+            failures.append("\(droppedCaptureRecords) records were dropped because the file could not keep up")
+            droppedCaptureRecords = 0
+        }
         if !failures.isEmpty {
             captureError = "Capture stopped: \(failures.joined(separator: "; ")). Export the capture file to recover partial data."
         }
+    }
+
+    /// Waits for queued capture records to reach disk. Capture I/O runs off the main actor,
+    /// so callers that inspect the file mid-capture need to drain it first.
+    func flushCaptureWrites() {
+        captureWriter?.flush()
+    }
+
+    /// A failed write ends the capture: later records would only fail again. The writer has
+    /// already stopped writing, so closing it keeps the partial file intact.
+    private func captureWriteDidFail(_ error: Error) {
+        guard let writer = captureWriter else { return }
+        captureWriter = nil
+        isCapturing = false
+        _ = writer.finish()
+        captureError =
+            "Capture stopped: \(error.localizedDescription). Export the capture file to recover partial data; the last record may be incomplete."
     }
 
     @MainActor
@@ -329,21 +351,77 @@ public final class BluetoothManager: NSObject, ObservableObject, OBDConnectionPr
 
     private func appendLog(sent: String, response: String) {
         let entry = OBDLogEntry(timestamp: Date(), sent: sent, response: response)
-        if let handle = captureHandle {
-            do {
-                let record = "[\(entry.timestamp.formatted(Self.captureDateFormat))] TX: \(sent)\n\(response)\n\n"
-                // ponytail: synchronous per-record I/O; use a bounded writer queue if OBD rates outgrow this.
-                try handle.write(contentsOf: Data(record.utf8))
-            } catch {
-                stopCapture()
-                captureError =
-                    "Capture stopped: \(error.localizedDescription). Export the capture file to recover partial data; the last record may be incomplete."
+        if let writer = captureWriter {
+            let record = "[\(entry.timestamp.formatted(Self.captureDateFormat))] TX: \(sent)\n\(response)\n\n"
+            if !writer.append(Data(record.utf8)) {
+                droppedCaptureRecords += 1
             }
         }
         log.append(entry)
         if log.count > Self.maxLogEntries {
             log.removeFirst(log.count - Self.maxLogEntries)
         }
+    }
+}
+
+/// Serialized, bounded writer for the OBD capture file. Keeps record I/O off the main actor
+/// so a slow write can never stall the BLE callback path; once `maxPendingRecords` records are
+/// waiting, further records are dropped and counted instead of growing memory without bound.
+private final class CaptureLogWriter: @unchecked Sendable {
+    static let maxPendingRecords = 4_096
+
+    private let queue = DispatchQueue(label: "com.simonkaring.voltlink.capture-log", qos: .utility)
+    private let slots = DispatchSemaphore(value: CaptureLogWriter.maxPendingRecords)
+    private let handle: FileHandle
+    private let onWriteFailure: @Sendable (Error) -> Void
+    /// Only touched on `queue`; read after `queue.sync` in `finish()`.
+    private var writeFailure: Error?
+    private var isFinished = false
+
+    init(handle: FileHandle, onWriteFailure: @escaping @Sendable (Error) -> Void) {
+        self.handle = handle
+        self.onWriteFailure = onWriteFailure
+    }
+
+    /// Returns false when the writer is saturated and the record was dropped.
+    @discardableResult
+    func append(_ data: Data) -> Bool {
+        guard slots.wait(timeout: .now()) == .success else { return false }
+        queue.async { [self] in
+            defer { slots.signal() }
+            guard !isFinished, writeFailure == nil else { return }
+            do {
+                try handle.write(contentsOf: data)
+            } catch {
+                writeFailure = error
+                onWriteFailure(error)
+            }
+        }
+        return true
+    }
+
+    /// Waits for every queued record to be written.
+    func flush() {
+        queue.sync {}
+    }
+
+    /// Drains queued records and closes the handle, returning the first failure seen.
+    func finish() -> Error? {
+        let failure: Error? = queue.sync {
+            isFinished = true
+            return writeFailure
+        }
+        do {
+            try handle.synchronize()
+        } catch {
+            return failure ?? error
+        }
+        do {
+            try handle.close()
+        } catch {
+            return failure ?? error
+        }
+        return failure
     }
 }
 

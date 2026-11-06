@@ -54,7 +54,9 @@ iOS-only code (`UI`, `CarPlay`, `App`).
 | `SharedTelemetryStoreTests` | App-group snapshot round trip, display units, freshness expiry, legacy decoding |
 | `SharedWidgetRefresherTests` | Widget reload throttle, render-relevant change detection |
 | `KnowledgeBundleTests` | OKF conformance and drift against generated concepts |
-| `DashboardLayoutTests`, `ABRPProfileLoaderTests`, `BluetoothManagerTests` | Layout, equation loading, connection handling |
+| `ABRPProfileLoaderTests` | ABRP profile loading and the arithmetic parser behind byte equations |
+| `OBDCaptureTests` | Diagnostic capture file, header/records, write failure, restart and reopen |
+| `DashboardLayoutTests`, `BluetoothManagerTests` | Layout, connection handling |
 | `UITests/VoltLinkSmokeUITests` | First-run demo mode, dashboard header, Diagnostics tab |
 
 # Conventions

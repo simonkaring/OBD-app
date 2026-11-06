@@ -27,12 +27,49 @@ public struct TripDetailView: View {
         return "\(minutes) m"
     }
 
-    // Display-only sampling keeps long trips bounded without deleting recorded telemetry.
-    // ponytail: uniform sampling may miss brief peaks; use an extrema-preserving algorithm if needed.
-    static func displaySamples(_ samples: [TelemetryPointModel], limit: Int) -> [TelemetryPointModel] {
+    /// Display-only sampling keeps long trips bounded without deleting recorded telemetry.
+    /// Uniform spacing by default, which suits route geometry. Pass `extremaOf` to keep each
+    /// bucket's lowest and highest sample instead, so brief speed or power peaks survive the
+    /// downsample rather than falling between two kept points.
+    static func displaySamples(
+        _ samples: [TelemetryPointModel],
+        limit: Int,
+        extremaOf metric: ((TelemetryPointModel) -> Double)? = nil
+    ) -> [TelemetryPointModel] {
         guard limit > 1 else { return Array(samples.prefix(max(0, limit))) }
         guard samples.count > limit else { return samples }
-        return (0..<limit).map { samples[$0 * (samples.count - 1) / (limit - 1)] }
+        guard limit > 2, let metric else {
+            return (0..<limit).map { samples[$0 * (samples.count - 1) / (limit - 1)] }
+        }
+
+        // Two slots hold the endpoints; the rest are spent in pairs, one bucket per pair.
+        let budget = limit - 2
+        let bucketCount = budget / 2
+        var selected: [TelemetryPointModel] = [samples[0]]
+        var cursor = 1
+        if budget % 2 == 1 {
+            selected.append(samples[cursor])
+            cursor += 1
+        }
+        // Every bucket holds at least two samples, so it can yield a distinct min and max.
+        let interiorCount = samples.count - 1 - cursor
+        for bucket in 0..<bucketCount {
+            let start = cursor + bucket * interiorCount / bucketCount
+            let end = cursor + (bucket + 1) * interiorCount / bucketCount
+            var low = start
+            var high = start
+            for index in start..<end {
+                let value = metric(samples[index])
+                if value < metric(samples[low]) { low = index }
+                if value > metric(samples[high]) { high = index }
+            }
+            if low == high {
+                high = low == start ? start + 1 : start
+            }
+            selected.append(contentsOf: [low, high].sorted().map { samples[$0] })
+        }
+        selected.append(samples[samples.count - 1])
+        return selected
     }
 
     public var body: some View {
@@ -68,7 +105,10 @@ public struct TripDetailView: View {
     private var detailContent: some View {
         let samples = trip.samplePoints.filter { $0.timestamp.timeIntervalSince1970.isFinite }
             .sorted { $0.timestamp < $1.timestamp }
-        let chartSamples = Self.displaySamples(samples.filter { $0.speedKmH.isFinite && $0.powerKW.isFinite }, limit: 500)
+        let chartSource = samples.filter { $0.speedKmH.isFinite && $0.powerKW.isFinite }
+        // Each curve keeps its own peaks; the route keeps uniform spacing for an even polyline.
+        let speedSamples = Self.displaySamples(chartSource, limit: 500) { $0.speedKmH }
+        let powerSamples = Self.displaySamples(chartSource, limit: 500) { $0.powerKW }
         let routeSamples = Self.displaySamples(trip.routeSamples, limit: 2_000)
         let topSpeedKmH = samples.lazy.map(\.speedKmH).filter(\.isFinite).max() ?? trip.averageSpeedKmH
 
@@ -267,7 +307,7 @@ public struct TripDetailView: View {
                     }
 
                     // Interactive Telemetry Charts (Speed & Power over Time)
-                    if !chartSamples.isEmpty {
+                    if !speedSamples.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("SPEED & POWER CURVES")
                                 .font(.caption.weight(.semibold))
@@ -278,7 +318,7 @@ public struct TripDetailView: View {
                                 Text("Speed Profile (\(UnitPreferences.shared.distanceUnit.perHourSymbol))")
                                     .font(.caption).fontWeight(.bold).foregroundStyle(Theme.electricCyan)
 
-                                Chart(chartSamples, id: \.persistentModelID) { sample in
+                                Chart(speedSamples, id: \.persistentModelID) { sample in
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Speed", UnitPreferences.shared.speedValue(fromKilometersPerHour: sample.speedKmH))
@@ -305,7 +345,7 @@ public struct TripDetailView: View {
                                 Text("Power Draw & Regen (\(UnitPreferences.shared.powerUnit.symbol))")
                                     .font(.caption).fontWeight(.bold).foregroundStyle(Theme.regenGreen)
 
-                                Chart(chartSamples, id: \.persistentModelID) { sample in
+                                Chart(powerSamples, id: \.persistentModelID) { sample in
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Power", UnitPreferences.shared.powerValue(fromKilowatts: sample.powerKW))

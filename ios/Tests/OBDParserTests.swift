@@ -683,8 +683,8 @@ final class OBDParserTests: XCTestCase {
         XCTAssertEqual(pct, 75.0, accuracy: 0.01)
     }
 
-    /// Genuinely malformed equations must still be rejected, not handed to
-    /// `NSExpression(format:)` where they raise an uncatchable ObjC exception.
+    /// Genuinely malformed equations must still be rejected. They used to reach
+    /// `NSExpression(format:)`, which raises an uncatchable ObjC exception.
     func testABRPStillRejectsMalformedEquations() throws {
         let json = """
             {

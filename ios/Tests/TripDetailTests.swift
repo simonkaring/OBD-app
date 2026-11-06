@@ -25,6 +25,27 @@ final class TripDetailTests: XCTestCase {
         XCTAssertTrue(TripDetailView.displaySamples(samples, limit: 0).isEmpty)
     }
 
+    /// A lone peak that uniform spacing steps over must survive extrema sampling.
+    @MainActor
+    func testExtremaSamplingKeepsPeaksThatUniformSpacingDrops() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let trip = TripModel(startTime: start)
+        trip.samples = (0..<10_000).map {
+            TelemetryPointModel(timestamp: start.addingTimeInterval(Double($0)), speedKmH: $0 == 5_001 ? 250.0 : Double($0 % 100))
+        }
+        let samples = trip.samplePoints
+
+        XCTAssertFalse(TripDetailView.displaySamples(samples, limit: 500).contains { $0.speedKmH == 250.0 })
+        let peaks = TripDetailView.displaySamples(samples, limit: 500) { $0.speedKmH }
+        XCTAssertEqual(peaks.count, 500)
+        XCTAssertTrue(peaks.contains { $0.speedKmH == 250.0 })
+        XCTAssertEqual(Set(peaks.map(\.persistentModelID)).count, 500)
+        XCTAssertTrue(zip(peaks, peaks.dropFirst()).allSatisfy { $0.timestamp < $1.timestamp })
+        XCTAssertTrue(peaks.first === samples.first)
+        XCTAssertTrue(peaks.last === samples.last)
+        XCTAssertEqual(TripDetailView.displaySamples(samples, limit: 3) { $0.speedKmH }.count, 3)
+    }
+
     func testComputedAverageSpeedAndAveragePower() {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let trip = TripModel(startTime: start, distanceKm: 50.0)

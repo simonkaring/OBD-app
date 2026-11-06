@@ -126,6 +126,17 @@ successful scan into an error. The decoded values are attached to every code as
   reference offset at presentation time only. Recordings, charging estimates,
   and `displayedSOC(fromRaw:)` derive from the same raw readings.
 
+# Trip display
+
+`TripDetailView` reduces stored `TelemetryPointModel` samples for rendering and
+never mutates or deletes recorded telemetry. `displaySamples(_:limit:extremaOf:)`
+always keeps both endpoints; given a metric it also keeps each bucket's lowest
+and highest sample, so a brief top speed or regen-power spike survives the
+downsample instead of falling between two kept points. The speed and power
+charts each pass their own series metric (500 points); without a metric the
+samples are spaced evenly, which is what the route polyline needs for an even
+map path (2,000 points).
+
 # Extending the flow
 
 - New decoder output: add a `TelemetryUpdate` case, decode it in the profile,
