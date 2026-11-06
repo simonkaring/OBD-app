@@ -146,8 +146,9 @@ class VehicleDataManager(
 
     /** Picking a profile directly drops the catalog row so the two never disagree. */
     fun selectProfile(id: VehicleProfileId, keepVehicle: Boolean = false) {
-        if (!keepVehicle) settings.setSelectedModel(null, null)
+        // Re-picking the current profile must not forget the catalog row that names the car.
         if (id == _selectedProfileId.value) return
+        if (!keepVehicle) settings.setSelectedModel(null, null)
         _selectedProfileId.value = id
         settings.setProfile(id)
         selectedProfile = id.makeProfile()

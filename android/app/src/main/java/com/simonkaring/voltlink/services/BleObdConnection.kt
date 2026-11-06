@@ -175,10 +175,13 @@ class BleObdConnection(
             finishResponse()
         } else {
             // Multi-frame replies arrive as several notifications; complete on a short quiet gap.
+            // The timer is tied to the command that started it, so a reply that completed on its
+            // terminator cannot leave a timer behind to truncate the next command's response.
             quietJob?.cancel()
+            val expected = pending
             quietJob = scope.launch {
                 delay(120)
-                finishResponse()
+                if (expected != null && expected === pending) finishResponse()
             }
         }
     }
@@ -192,6 +195,8 @@ class BleObdConnection(
     }
 
     private fun finishResponse() {
+        quietJob?.cancel()
+        quietJob = null
         val text: String
         synchronized(bufferLock) {
             text = responseBuffer.toString()
@@ -304,6 +309,8 @@ class BleObdConnection(
 
         return commandMutex.withLock {
             val deferred = CompletableDeferred<String>()
+            quietJob?.cancel()
+            quietJob = null
             synchronized(bufferLock) {
                 responseBuffer.setLength(0)
                 pending = deferred
@@ -330,6 +337,8 @@ class BleObdConnection(
     }
 
     private fun clearPending() {
+        quietJob?.cancel()
+        quietJob = null
         synchronized(bufferLock) {
             pending = null
             responseBuffer.setLength(0)

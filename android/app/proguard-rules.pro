@@ -14,9 +14,6 @@
     *;
 }
 
-# Android Auto templates are reflectively instantiated by the car host.
--keep class com.simonkaring.voltlink.car.VoltLinkCarAppService { *; }
-
 # Enum names are persisted in SharedPreferences (profile selection, unit choices).
 -keepclassmembers enum com.simonkaring.voltlink.** {
     public static **[] values();

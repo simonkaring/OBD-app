@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
@@ -177,19 +179,53 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
     private val _batteryHealth = MutableStateFlow<List<BatteryHealthRecord>>(emptyList())
     val batteryHealth: StateFlow<List<BatteryHealthRecord>> = _batteryHealth.asStateFlow()
 
+    /** Serialises row writes so the periodic progress save and the final save cannot interleave. */
+    private val tripWrites = Mutex()
+
     init {
         refreshAll()
     }
 
     fun refreshAll() {
-        scope.launch {
-            _trips.value = loadTrips()
-            _chargingSessions.value = loadChargingSessions()
-            _batteryHealth.value = loadBatteryHealth()
-        }
+        refreshTrips()
+        refreshChargingSessions()
+        refreshBatteryHealth()
     }
 
-    suspend fun saveTrip(trip: TripRecord, samples: List<TripSample> = trip.samples) = withContext(Dispatchers.IO) {
+    /** Reloads only the trip list, so a trip write does not re-read the whole database. */
+    fun refreshTrips() {
+        scope.launch { _trips.value = loadTrips() }
+    }
+
+    fun refreshChargingSessions() {
+        scope.launch { _chargingSessions.value = loadChargingSessions() }
+    }
+
+    fun refreshBatteryHealth() {
+        scope.launch { _batteryHealth.value = loadBatteryHealth() }
+    }
+
+    suspend fun saveTrip(trip: TripRecord, samples: List<TripSample> = trip.samples) =
+        tripWrites.withLock {
+            withContext(Dispatchers.IO) {
+                upsertTrip(trip)
+                db.writableDatabase.delete("trip_samples", "trip_id = ?", arrayOf(trip.id))
+                if (samples.isNotEmpty()) insertTripSamples(trip.id, samples)
+                refreshTrips()
+            }
+        }
+
+    /** Saves the in-progress trip row and appends only the samples recorded since the last save. */
+    suspend fun saveTripProgress(trip: TripRecord, newSamples: List<TripSample> = emptyList()) =
+        tripWrites.withLock {
+            withContext(Dispatchers.IO) {
+                upsertTrip(trip)
+                if (newSamples.isNotEmpty()) insertTripSamples(trip.id, newSamples)
+                refreshTrips()
+            }
+        }
+
+    private fun upsertTrip(trip: TripRecord) {
         val values = ContentValues().apply {
             put("id", trip.id)
             put("start_time", trip.startTime.toEpochMilli())
@@ -205,44 +241,43 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
             put("vehicle_name", trip.vehicleName)
         }
         db.writableDatabase.insertWithOnConflict("trips", null, values, SQLiteDatabase.CONFLICT_REPLACE)
-        if (samples.isNotEmpty()) {
-            db.writableDatabase.delete("trip_samples", "trip_id = ?", arrayOf(trip.id))
-            db.writableDatabase.beginTransaction()
-            try {
-                samples.forEach { sample ->
-                    db.writableDatabase.insert(
-                        "trip_samples",
-                        null,
-                        ContentValues().apply {
-                            put("trip_id", trip.id)
-                            put("timestamp", sample.timestamp.toEpochMilli())
-                            put("latitude", sample.latitude)
-                            put("longitude", sample.longitude)
-                            put("speed", sample.speedKmH)
-                            put("power", sample.powerKW)
-                            put("soc", sample.socPct)
-                            put("battery_temp", sample.batteryTempC)
-                        },
-                    )
-                }
-                db.writableDatabase.setTransactionSuccessful()
-            } finally {
-                db.writableDatabase.endTransaction()
+    }
+
+    private fun insertTripSamples(tripId: String, samples: List<TripSample>) {
+        db.writableDatabase.beginTransaction()
+        try {
+            samples.forEach { sample ->
+                db.writableDatabase.insert(
+                    "trip_samples",
+                    null,
+                    ContentValues().apply {
+                        put("trip_id", tripId)
+                        put("timestamp", sample.timestamp.toEpochMilli())
+                        put("latitude", sample.latitude)
+                        put("longitude", sample.longitude)
+                        put("speed", sample.speedKmH)
+                        put("power", sample.powerKW)
+                        put("soc", sample.socPct)
+                        put("battery_temp", sample.batteryTempC)
+                    },
+                )
             }
+            db.writableDatabase.setTransactionSuccessful()
+        } finally {
+            db.writableDatabase.endTransaction()
         }
-        refreshAll()
     }
 
     suspend fun deleteTrip(id: String) = withContext(Dispatchers.IO) {
         db.writableDatabase.delete("trip_samples", "trip_id = ?", arrayOf(id))
         db.writableDatabase.delete("trips", "id = ?", arrayOf(id))
-        refreshAll()
+        refreshTrips()
     }
 
     suspend fun clearAllTrips() = withContext(Dispatchers.IO) {
         db.writableDatabase.delete("trip_samples", null, null)
         db.writableDatabase.delete("trips", null, null)
-        refreshAll()
+        refreshTrips()
     }
 
     suspend fun loadTripSamples(tripId: String): List<TripSample> = withContext(Dispatchers.IO) {
@@ -336,13 +371,13 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
                 },
             )
         }
-        refreshAll()
+        refreshChargingSessions()
     }
 
     suspend fun deleteChargingSession(id: String) = withContext(Dispatchers.IO) {
         db.writableDatabase.delete("charging_samples", "session_id = ?", arrayOf(id))
         db.writableDatabase.delete("charging_sessions", "id = ?", arrayOf(id))
-        refreshAll()
+        refreshChargingSessions()
     }
 
     /** One reading per day per vehicle; a second reading on the same day updates the first. */
@@ -369,7 +404,7 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
             } else {
                 db.writableDatabase.insert("battery_health", null, values)
             }
-            refreshAll()
+            refreshBatteryHealth()
         }
 
     private fun ContentValues.putNullable(key: String, value: Double?) {
@@ -433,9 +468,28 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
                 )
             }
         }
-        // Archived sessions keep their curve: both the card and the detail sheet draw it, and
-        // without this every stored session looked like it had no samples at all.
-        sessions.map { session -> session.copy(samples = loadChargingSamples(session.id)) }
+        // Archived sessions keep their curve: both the card and the detail sheet draw it.
+        // One grouped query replaces a per-session query, which cost hundreds of statements
+        // per refresh once the history was a few months old.
+        val curves = loadAllChargingSamples()
+        sessions.map { session -> session.copy(samples = curves[session.id].orEmpty()) }
+    }
+
+    private suspend fun loadAllChargingSamples(): Map<String, List<ChargingSample>> = withContext(Dispatchers.IO) {
+        val grouped = mutableMapOf<String, MutableList<ChargingSample>>()
+        db.readableDatabase.rawQuery(
+            "SELECT session_id, timestamp, soc, power FROM charging_samples ORDER BY session_id, timestamp",
+            null,
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                grouped.getOrPut(cursor.getString(0)) { mutableListOf() } += ChargingSample(
+                    timestamp = Instant.ofEpochMilli(cursor.getLong(1)),
+                    socPct = cursor.getDouble(2),
+                    powerKW = cursor.getDouble(3),
+                )
+            }
+        }
+        grouped
     }
 
     private suspend fun loadBatteryHealth(): List<BatteryHealthRecord> = withContext(Dispatchers.IO) {

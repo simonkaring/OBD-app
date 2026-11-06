@@ -44,6 +44,11 @@ object TelemetryWidgetStore {
     ) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
+        val lastPush = prefs.getLong(KEY_UPDATED_AT, 0L)
+        // Writing the snapshot is only worth anything while a widget is on a home screen, and
+        // only between broadcasts: the launcher cannot show more than one push per interval.
+        if (now - lastPush < MIN_UPDATE_INTERVAL_MS) return
+        if (placedWidgets(context).isEmpty()) return
         prefs.edit()
             .putLong("time", now)
             .putString("vehicle", vehicleName)
@@ -54,22 +59,24 @@ object TelemetryWidgetStore {
             .putBoolean("connected", isConnected)
             .putBoolean("charging", isCharging)
             .putBoolean("demo", isDemoMode)
+            .putLong(KEY_UPDATED_AT, now)
             .apply()
-
-        val lastPush = prefs.getLong(KEY_UPDATED_AT, 0L)
-        if (now - lastPush < MIN_UPDATE_INTERVAL_MS) return
-        prefs.edit().putLong(KEY_UPDATED_AT, now).apply()
         refresh(context)
     }
 
     /** Repaints every widget instance; a no-op when none are placed. */
     fun refresh(context: Context) {
         val manager = AppWidgetManager.getInstance(context) ?: return
-        val ids = manager.getAppWidgetIds(ComponentName(context, TelemetryWidgetProvider::class.java))
+        val ids = placedWidgets(context)
         if (ids.isEmpty()) return
         val views = views(context)
         ids.forEach { id -> manager.updateAppWidget(id, views) }
     }
+
+    private fun placedWidgets(context: Context): IntArray =
+        AppWidgetManager.getInstance(context)?.getAppWidgetIds(
+            ComponentName(context, TelemetryWidgetProvider::class.java),
+        ) ?: IntArray(0)
 
     fun views(context: Context): RemoteViews {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

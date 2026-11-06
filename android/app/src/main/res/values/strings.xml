@@ -372,4 +372,14 @@
     <string name="chart_battery">Battery</string>
     <string name="chart_scrub_hint">Drag across the curve to inspect a moment</string>
     <string name="charging_speed_over_time">Charging speed over time</string>
+
+    <!-- Launcher shortcuts. -->
+    <string name="shortcut_trip_start">Start trip</string>
+    <string name="shortcut_trip_start_long">Start recording a trip</string>
+    <string name="shortcut_trip_stop">Stop trip</string>
+    <string name="shortcut_trip_stop_long">Stop recording the current trip</string>
+    <string name="shortcut_scan_short">Scan codes</string>
+    <string name="shortcut_scan_long">Scan the vehicle for fault codes</string>
+    <string name="shortcut_charging_short">Charging</string>
+    <string name="shortcut_charging_long">Open the live charging screen</string>
 </resources>

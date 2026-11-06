@@ -25,7 +25,12 @@ class NotificationService(private val context: Context) {
         const val CHANNEL_ALERTS = "voltlink_alerts"
         const val CHANNEL_CHARGING = "voltlink_charging"
         const val ONGOING_ID = 1001
-        private const val ALERT_ID = 1002
+        /** One id per alert kind so a later alert does not replace an earlier one in the shade. */
+        private const val ALERT_ID_CHARGING_FINISHED = 1002
+        private const val ALERT_ID_TARGET = 1003
+        private const val ALERT_ID_FAULTS = 1004
+        private const val ALERT_ID_ADAPTER = 1005
+        private const val ALERT_ID_SERVICE = 1006
         /** Matches `Theme.regenGreen`; the notification layer must not depend on the UI package. */
         private const val COLOR_CHARGED = 0xFF30D158.toInt()
         private const val COLOR_TRACK = 0x33FFFFFF
@@ -161,6 +166,7 @@ class NotificationService(private val context: Context) {
 
     fun notifyChargingFinished(startSocPct: Double, endSocPct: Double, energyKWh: Double) {
         notify(
+            ALERT_ID_CHARGING_FINISHED,
             context.getString(R.string.notif_finished_title),
             context.getString(R.string.notif_finished_body, startSocPct, endSocPct, energyKWh),
         )
@@ -168,6 +174,7 @@ class NotificationService(private val context: Context) {
 
     fun notifyChargeTargetReached(targetPct: Int, socPct: Double) {
         notify(
+            ALERT_ID_TARGET,
             context.getString(R.string.notif_target_title),
             context.getString(R.string.notif_target_body, socPct, targetPct),
         )
@@ -176,6 +183,7 @@ class NotificationService(private val context: Context) {
     fun notifyFaultCodes(count: Int) {
         if (count <= 0) return
         notify(
+            ALERT_ID_FAULTS,
             if (count == 1) {
                 context.getString(R.string.notif_faults_one)
             } else {
@@ -187,6 +195,7 @@ class NotificationService(private val context: Context) {
 
     fun notifyAdapterLost(tripInProgress: Boolean) {
         notify(
+            ALERT_ID_ADAPTER,
             context.getString(R.string.notif_adapter_title),
             context.getString(if (tripInProgress) R.string.notif_adapter_trip else R.string.notif_adapter_idle),
         )
@@ -194,12 +203,13 @@ class NotificationService(private val context: Context) {
 
     fun notifyServiceDue(distanceKm: Double) {
         notify(
+            ALERT_ID_SERVICE,
             context.getString(R.string.notif_service_title),
             context.getString(R.string.notif_service_body, distanceKm),
         )
     }
 
-    private fun notify(title: String, text: String) {
+    private fun notify(id: Int, title: String, text: String) {
         if (!enabled) return
         ensureChannels()
         val notification = NotificationCompat.Builder(context, CHANNEL_ALERTS)
@@ -209,6 +219,6 @@ class NotificationService(private val context: Context) {
             .setAutoCancel(true)
             .setContentIntent(contentIntent())
             .build()
-        post(ALERT_ID, notification)
+        post(id, notification)
     }
 }

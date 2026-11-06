@@ -7,6 +7,9 @@ import com.simonkaring.voltlink.data.PowerUnit
 import com.simonkaring.voltlink.data.TemperatureUnit
 import com.simonkaring.voltlink.data.UnitFormatter
 
+/** 1 km expressed in miles, the reciprocal of the 0.621371 factor used above. */
+private const val KILOMETRES_PER_MILE = 1.609344
+
 /** Display-unit bundle: telemetry stays SI, conversion happens only at render time. */
 data class UnitPrefs(
     val distance: DistanceUnit = DistanceUnit.KILOMETERS,
@@ -16,6 +19,7 @@ data class UnitPrefs(
     fun value(metric: TelemetryMetric, snapshot: TelemetrySnapshot): Double {
         val raw = metric.value(snapshot)
         return when {
+            metric.isEfficiency -> efficiencyValue(raw)
             metric == TelemetryMetric.SPEED -> if (distance == DistanceUnit.MILES) raw * 0.621371 else raw
             metric.isDistance -> if (distance == DistanceUnit.MILES) raw * 0.621371 else raw
             metric.isTemperature -> if (temperature == TemperatureUnit.FAHRENHEIT) raw * 9.0 / 5.0 + 32.0 else raw
@@ -25,6 +29,7 @@ data class UnitPrefs(
     }
 
     fun unit(metric: TelemetryMetric): String = when {
+        metric.isEfficiency -> efficiencyUnitLabel
         metric == TelemetryMetric.SPEED -> if (distance == DistanceUnit.MILES) "mph" else "km/h"
         metric.isDistance -> if (distance == DistanceUnit.MILES) "mi" else "km"
         metric.isTemperature -> temperature.label
@@ -43,6 +48,13 @@ data class UnitPrefs(
     /** Converts an already-decoded distance reading (km) for render-only surfaces. */
     fun distanceValue(km: Double): Double = UnitFormatter.distance(km, distance)
 
+    /** Consumption is stated per 100 km; a miles reader expects it per 100 miles. */
+    fun efficiencyValue(kWhPer100Km: Double): Double =
+        if (distance == DistanceUnit.MILES) kWhPer100Km * KILOMETRES_PER_MILE else kWhPer100Km
+
+    val efficiencyUnitLabel: String
+        get() = if (distance == DistanceUnit.MILES) "kWh/100mi" else "kWh/100km"
+
     val powerUnitLabel: String get() = power.label
 
     val temperatureUnitLabel: String get() = temperature.label
@@ -56,6 +68,10 @@ data class UnitPrefs(
         var start = metric.rangeStart
         var end = metric.rangeEnd
         when {
+            metric.isEfficiency -> if (distance == DistanceUnit.MILES) {
+                start *= KILOMETRES_PER_MILE
+                end *= KILOMETRES_PER_MILE
+            }
             metric == TelemetryMetric.SPEED || metric.isDistance -> if (distance == DistanceUnit.MILES) {
                 start *= 0.621371
                 end *= 0.621371

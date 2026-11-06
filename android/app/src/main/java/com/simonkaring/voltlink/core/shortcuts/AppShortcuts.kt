@@ -31,8 +31,16 @@ object AppShortcuts {
         val shortcuts = buildList {
             add(
                 ShortcutInfo.Builder(context, TRIP_ID)
-                    .setShortLabel(if (isRecordingTrip) "Stop trip" else "Start trip")
-                    .setLongLabel(if (isRecordingTrip) "Stop recording the current trip" else "Start recording a trip")
+                    .setShortLabel(
+                        context.getString(
+                            if (isRecordingTrip) R.string.shortcut_trip_stop else R.string.shortcut_trip_start,
+                        ),
+                    )
+                    .setLongLabel(
+                        context.getString(
+                            if (isRecordingTrip) R.string.shortcut_trip_stop_long else R.string.shortcut_trip_start_long,
+                        ),
+                    )
                     .setIcon(icon)
                     .setRank(0)
                     .setIntent(intent(context, ACTION_TOGGLE_TRIP))
@@ -40,8 +48,8 @@ object AppShortcuts {
             )
             add(
                 ShortcutInfo.Builder(context, SCAN_ID)
-                    .setShortLabel("Scan codes")
-                    .setLongLabel("Scan the vehicle for fault codes")
+                    .setShortLabel(context.getString(R.string.shortcut_scan_short))
+                    .setLongLabel(context.getString(R.string.shortcut_scan_long))
                     .setIcon(icon)
                     .setRank(1)
                     .setIntent(intent(context, ACTION_SCAN_DTCS))
@@ -49,8 +57,8 @@ object AppShortcuts {
             )
             add(
                 ShortcutInfo.Builder(context, CHARGING_ID)
-                    .setShortLabel("Charging")
-                    .setLongLabel("Open the live charging screen")
+                    .setShortLabel(context.getString(R.string.shortcut_charging_short))
+                    .setLongLabel(context.getString(R.string.shortcut_charging_long))
                     .setIcon(icon)
                     .setRank(2)
                     .setIntent(intent(context, ACTION_OPEN_CHARGING))

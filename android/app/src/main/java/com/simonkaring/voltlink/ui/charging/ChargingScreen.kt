@@ -74,6 +74,7 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.text.NumberFormat
 import java.util.Locale
 
 private val sessionDateFormatter = DateTimeFormatter.ofPattern("d MMM HH:mm").withZone(ZoneId.systemDefault())
@@ -238,7 +239,7 @@ fun ChargingScreen(
                         Modifier.weight(1f),
                     )
                     ChargeStat(
-                        if (charging) formatDuration(elapsedSeconds ?: 0.0) else "—",
+                        if (charging) formatElapsed(elapsedSeconds ?: 0.0) else "—",
                         stringResource(R.string.charging_elapsed),
                         Modifier.weight(1f),
                     )
@@ -413,7 +414,7 @@ private fun ChargeStat(value: String, label: String, modifier: Modifier = Modifi
 private fun etaValue(seconds: Double?): String = when {
     seconds == null -> "—"
     seconds <= 0.0 -> stringResource(R.string.charging_reached)
-    else -> formatDuration(seconds)
+    else -> formatElapsed(seconds)
 }
 
 private fun formatPower(kilowatts: Double, units: UnitPrefs): String =
@@ -557,7 +558,7 @@ private fun ChargingMonthCard(insights: ChargingHistoryInsights) {
             )
             if (insights.hasCost) {
                 ChargeStat(
-                    String.format(Locale.US, "%.2f", insights.cost),
+                    NumberFormat.getCurrencyInstance().format(insights.cost),
                     stringResource(R.string.charging_stat_cost),
                     Modifier.weight(1f),
                 )
@@ -624,7 +625,7 @@ private fun SessionCard(
                 Modifier.weight(1f),
             )
             ChargeStat(
-                formatDuration(session.duration.seconds.toDouble()),
+                formatElapsed(session.duration.seconds.toDouble()),
                 stringResource(R.string.charging_stat_duration),
                 Modifier.weight(1f),
             )
@@ -737,13 +738,13 @@ private fun SessionDetailSheet(
                     Modifier.weight(1f),
                 )
                 ChargeStat(
-                    formatDuration(session.duration.seconds.toDouble()),
+                    formatElapsed(session.duration.seconds.toDouble()),
                     stringResource(R.string.charging_stat_duration),
                     Modifier.weight(1f),
                 )
                 if (pricePerKWh > 0) {
                     ChargeStat(
-                        String.format(Locale.US, "%.2f", session.totalKWhDelivered * pricePerKWh),
+                        NumberFormat.getCurrencyInstance().format(session.totalKWhDelivered * pricePerKWh),
                         stringResource(R.string.charging_stat_cost),
                         Modifier.weight(1f),
                     )
@@ -939,10 +940,3 @@ private fun BatteryHealthCard(health: List<BatteryHealthRecord>) {
     }
 }
 
-private fun formatDuration(seconds: Double): String {
-    if (!seconds.isFinite() || seconds <= 0) return "—"
-    val totalMinutes = (seconds / 60).toInt()
-    val hours = totalMinutes / 60
-    val minutes = totalMinutes % 60
-    return if (hours > 0) "${hours} h ${minutes} min" else "$minutes min"
-}

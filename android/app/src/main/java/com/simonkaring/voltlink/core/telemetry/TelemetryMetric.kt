@@ -78,6 +78,10 @@ enum class TelemetryMetric(
     val isDistance: Boolean
         get() = this == VEHICLE_RANGE || this == SERVICE_DISTANCE
 
+    /** Consumption metrics are stated per 100 km and follow the distance unit. */
+    val isEfficiency: Boolean
+        get() = this == INSTANT_EFFICIENCY || this == TRIP_AVERAGE_CONSUMPTION
+
     /** Current value in SI units. Missing community values read as 0, like the iOS app. */
     fun value(snapshot: TelemetrySnapshot): Double = when (this) {
         SPEED -> snapshot.speedKmH

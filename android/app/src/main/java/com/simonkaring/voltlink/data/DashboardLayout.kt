@@ -91,11 +91,6 @@ data class DashboardLayout(val widgets: List<DashboardWidgetConfig>) {
                 DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.SOC), WidgetStyle.BAR, WidgetSize.LARGE),
                 DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.AUX_12V), WidgetStyle.NUMERIC, WidgetSize.MEDIUM),
                 DashboardWidgetConfig(
-                    DashboardWidgetKind.Metric(TelemetryMetric.TRIP_AVERAGE_CONSUMPTION),
-                    WidgetStyle.NUMERIC,
-                    WidgetSize.MEDIUM,
-                ),
-                DashboardWidgetConfig(
                     DashboardWidgetKind.Chart(listOf(TelemetryMetric.POWER, TelemetryMetric.SPEED)),
                     WidgetStyle.NUMERIC,
                     WidgetSize.LARGE,

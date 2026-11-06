@@ -1,6 +1,7 @@
 package com.simonkaring.voltlink.services
 
 import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
+import com.simonkaring.voltlink.core.telemetry.TripMath
 import com.simonkaring.voltlink.data.HistoryStore
 import com.simonkaring.voltlink.data.TripRecord
 import com.simonkaring.voltlink.data.TripSample
@@ -50,6 +51,12 @@ class TripTracker(
     private var stationarySince: Instant? = null
     private var hasCompleteEnergyData = true
 
+    /** Samples already written to the database for the current trip. */
+    private var persistedSamples = 0
+
+    /** A downsample invalidated the stored rows; the next save replaces them instead of appending. */
+    private var rewriteSamples = false
+
     private val trips get() = store.trips
 
     val history: StateFlow<List<TripRecord>> get() = store.trips
@@ -81,6 +88,8 @@ class TripTracker(
             vehicleName = vehicleName,
         )
         samples = mutableListOf()
+        persistedSamples = 0
+        rewriteSamples = false
         lastSampleTime = null
         lastStoredSampleAt = null
         lastSaveAt = Instant.now()
@@ -131,7 +140,9 @@ class TripTracker(
         if (state.isRecording) {
             record(snapshot, hasPowerData)
             if (state.isAutoTripEnabled) {
-                if (snapshot.speedKmH < 1.0 || snapshot.isCharging) {
+                // No fresh speed means the car is not demonstrably moving: close the recording
+                // instead of letting a dropped speed PID keep the trip open forever.
+                if (!snapshot.hasFreshSpeed || snapshot.speedKmH < 1.0 || snapshot.isCharging) {
                     startStationaryCountdown(snapshot)
                 } else {
                     resetStationary()
@@ -139,7 +150,7 @@ class TripTracker(
             }
         } else if (state.isAutoTripEnabled) {
             resetStationary()
-            if (snapshot.speedKmH >= 5.0) {
+            if (snapshot.hasFreshSpeed && snapshot.speedKmH >= 5.0) {
                 start(snapshot.stateOfChargePct, vehicleName)
                 record(snapshot, hasPowerData)
             }
@@ -177,51 +188,47 @@ class TripTracker(
     private fun record(snapshot: TelemetrySnapshot, hasPowerData: Boolean) {
         val trip = _state.value.current ?: return
         val now = Instant.now()
-        var distance = trip.distanceKm
-        var used = trip.totalKWhUsed
-        var recovered = trip.totalKWhRecovered
-
-        lastSampleTime?.let { last ->
-            val intervalSeconds = Duration.between(last, now).toMillis() / 1000.0
-            if (intervalSeconds > 0 && intervalSeconds < 300) {
-                if (!snapshot.isCharging) {
-                    if (!hasPowerData) hasCompleteEnergyData = false
-                    if (hasPowerData && snapshot.powerKW > 0) {
-                        used += snapshot.powerKW * intervalSeconds / 3600.0
-                    } else if (hasPowerData && snapshot.powerKW < 0 && snapshot.hasFreshSpeed && snapshot.speedKmH >= 1) {
-                        recovered = (recovered ?: 0.0) - snapshot.powerKW * intervalSeconds / 3600.0
-                    }
-                }
-                distance += snapshot.speedKmH * intervalSeconds / 3600.0
-            } else if (intervalSeconds >= 300) {
-                hasCompleteEnergyData = false
-            }
-        }
+        val interval = lastSampleTime?.let { Duration.between(it, now).toMillis() / 1000.0 }
         lastSampleTime = now
 
+        val progress = if (interval == null) {
+            TripMath.Progress(trip.distanceKm, trip.totalKWhUsed, trip.totalKWhRecovered ?: 0.0, hasCompleteEnergyData)
+        } else {
+            TripMath.advance(
+                distanceKm = trip.distanceKm,
+                kWhUsed = trip.totalKWhUsed,
+                kWhRecovered = trip.totalKWhRecovered ?: 0.0,
+                energyComplete = hasCompleteEnergyData,
+                intervalSeconds = interval,
+                speedKmH = snapshot.speedKmH,
+                powerKW = snapshot.powerKW,
+                hasFreshSpeed = snapshot.hasFreshSpeed,
+                hasFreshPower = snapshot.hasFreshPower,
+                hasPowerData = hasPowerData,
+                isCharging = snapshot.isCharging,
+            )
+        }
+        hasCompleteEnergyData = progress.energyComplete
+
         val updated = trip.copy(
-            distanceKm = distance,
-            totalKWhUsed = used,
-            totalKWhRecovered = recovered,
+            distanceKm = progress.distanceKm,
+            totalKWhUsed = progress.kWhUsed,
+            totalKWhRecovered = progress.kWhRecovered,
             endSocPct = snapshot.stateOfChargePct,
             maxPowerKW = maxOf(trip.maxPowerKW, snapshot.powerKW),
             maxRegenKW = minOf(trip.maxRegenKW, snapshot.powerKW),
             averageSpeedKmH = trip.computedAverageSpeedKmH,
         )
-        val consumption = if (hasCompleteEnergyData && hasPowerData && distance > 0.1) {
+        val consumption = if (hasCompleteEnergyData && hasPowerData && updated.distanceKm > 0.1) {
             updated.efficiencyKWhPer100Km
         } else {
             null
         }
         _state.value = _state.value.copy(current = updated, averageConsumption = consumption)
 
-        val persistSnapshot = !isDemoMode
-        lastSaveAt?.let { last ->
-            if (persistSnapshot && Duration.between(last, now).seconds >= 30) {
-                lastSaveAt = now
-                val snapshotTrip = updated
-                val sampleCopy = samples.toList()
-                scope.launch { store.saveTrip(snapshotTrip, sampleCopy) }
+        if (!isDemoMode) {
+            lastSaveAt?.let { last ->
+                if (Duration.between(last, now).seconds >= 30) persist(updated, now)
             }
         }
 
@@ -230,6 +237,13 @@ class TripTracker(
             // A recent fix gives the sample its route coordinate; without one it stays 0/0 and
             // the CSV column is blank, exactly like the iOS recorder before a fix arrives.
             val fix = TripLocation.fixFor(now)
+            if (samples.size >= MAX_SAMPLES) {
+                // Four hours at 1 Hz. Thinning the route in place keeps the whole drive in the
+                // export at half the density, and forces one full rewrite of the stored rows.
+                samples = samples.filterIndexed { index, _ -> index % 2 == 0 }.toMutableList()
+                persistedSamples = 0
+                rewriteSamples = true
+            }
             samples += TripSample(
                 timestamp = now,
                 latitude = fix?.latitude ?: 0.0,
@@ -239,7 +253,29 @@ class TripTracker(
                 socPct = snapshot.stateOfChargePct,
                 batteryTempC = snapshot.batteryTempC,
             )
-            if (samples.size > 14_400) samples = samples.takeLast(14_400).toMutableList()
         }
+    }
+
+    /**
+     * Saves the in-progress trip and only the samples recorded since the last save. Rewriting
+     * the whole list every 30 s meant re-inserting every sample already in the database.
+     */
+    private fun persist(trip: TripRecord, now: Instant) {
+        lastSaveAt = now
+        if (rewriteSamples) {
+            val all = samples.toList()
+            persistedSamples = all.size
+            rewriteSamples = false
+            scope.launch { store.saveTrip(trip, all) }
+            return
+        }
+        val pending = samples.drop(persistedSamples)
+        persistedSamples = samples.size
+        scope.launch { store.saveTripProgress(trip, pending) }
+    }
+
+    private companion object {
+        /** One sample per second for four hours; past that the route is thinned in place. */
+        const val MAX_SAMPLES = 14_400
     }
 }

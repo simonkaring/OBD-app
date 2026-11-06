@@ -37,29 +37,11 @@ sources:
 
 # Car screen
 
-**Platform correction:** The older implementation described below is retained unused work.
-The debug build now registers a separate IoT experiment using native Drive/Charging grids and a Vehicle pane,
-not these bitmap layouts/fallbacks. Its shared read-only projection, standalone preview
-and category-review caveats are in [Automotive companion preview](/architecture/companion.md).
-
-Android Auto and AAOS cannot host Compose, so `car` serves a `TabTemplate` with two tabs —
-live telemetry and charging — and each tab is a `PaneTemplate`. The pane's picture is the phone's
-live dashboard drawn by `CarDashboardRenderer`: the state-of-charge bar over `MetricDial`-style
-dials (252° track, gradient fill, ticks, value, unit and a status chip) on dark cards. It is one
-square bitmap on purpose: a host shows a pane's image in a fixed square slot (about 290 px on the
-Desktop Head Unit) and centre-crops anything else, grid and row images shrink to icon size, and a
-sectioned template is rejected inside tabs. Number readouts therefore stay host-rendered rows,
-which keeps them crisp at whatever size the host chooses. The telemetry tab leads with a trip row
-from `TripTracker.State` (green "Recording trip" with distance and time, or the idle line), then
-lists the number metrics (trip average, 12 V) and diagnostics in `CarTileLayout` order; SoC, speed
-and power are the bar and dials. The charging tab leads with a charging row from
-`ChargingTracker.State` (green with start → current charge, or "Plug in to start a session"),
-then energy delivered and peak power, over a bar that marks the charge target and dials for charge
-power and time to target. A host silently drops rows past the fourth, so a pane never builds more.
-Row glyphs are rasterised to bitmaps because the host caches resource icons by id. Both tabs are
-invalidated from the same flows the phone collects — conflated and paced to one push a second,
-because every push makes the host re-decode the dashboard bitmap. Availability uses the phone's
-`metricAvailable` rule, so an unsupported or stale metric shows `--` instead of a plausible zero.
+The phone app ships no car app of its own: the release manifest registers none, and the old
+`car` package (templates, dials, bitmap dashboard) was removed instead of being left to
+compile unused. The debug build still registers the separate IoT experiment; its shared
+read-only projection, standalone preview and category-review caveats are in
+[Automotive companion preview](/architecture/companion.md).
 
 Nothing flows backwards: a screen never writes to a profile or to the adapter. User actions go
 through the manager (`setDemoMode`, `selectProfile`, `selectVehicle`) or a tracker, and the new
@@ -95,6 +77,14 @@ but simulated rows never reach the history database. See [Demo mode](/architectu
   estimator's DC threshold, and records a last-known position at start when location was
   already granted. That lookup never prompts or starts location updates; without a recent
   fix the session has no coordinates and the CSV leaves them blank.
+- `TripTracker` integrates distance and energy through `core/telemetry/TripMath`, which
+  ignores a reading whose freshness stamp is older than 15 s. A dropped speed PID therefore
+  closes the recording through the stationary countdown instead of counting kilometres while
+  the car is parked.
+- Trip rows are written when the recording stops; while it runs, a save every 30 s appends
+  only the samples recorded since the previous one (`HistoryStore.saveTripProgress`). Past
+  four hours the in-memory route is thinned by half so the export keeps the whole drive, and
+  `HistoryStore` reloads only the table it just wrote instead of the whole database.
 - `HistoryStore` loads each archived session's curve together with its row, so the history
   card and the detail sheet draw the same scrubbable chart the live session uses. The
   monthly summary (`ChargingHistoryInsights`) sums completed sessions in the local month

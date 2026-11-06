@@ -301,7 +301,7 @@ private fun MonthlySummaryCard(insights: TripHistoryInsights, units: UnitPrefs) 
                 stringResource(R.string.trips_stat_energy),
             )
             InsightStat(
-                String.format(Locale.US, "%.1f kWh/100km", insights.efficiencyKWhPer100Km),
+                String.format(Locale.US, "%.1f %s", units.efficiencyValue(insights.efficiencyKWhPer100Km), units.efficiencyUnitLabel),
                 stringResource(R.string.trips_stat_efficiency),
             )
             if (insights.hasCost) {
@@ -354,7 +354,7 @@ private fun TripCard(trip: TripRecord, units: UnitPrefs, onClick: () -> Unit) {
                 stringResource(R.string.trips_stat_distance),
             )
             Stat(
-                String.format(Locale.US, "%.1f kWh/100km", trip.efficiencyKWhPer100Km),
+                String.format(Locale.US, "%.1f %s", units.efficiencyValue(trip.efficiencyKWhPer100Km), units.efficiencyUnitLabel),
                 stringResource(R.string.trips_stat_efficiency),
             )
             Stat(
@@ -452,7 +452,7 @@ private fun TripDetail(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 Stat(
-                    String.format(Locale.US, "%.1f kWh/100km", trip.efficiencyKWhPer100Km),
+                    String.format(Locale.US, "%.1f %s", units.efficiencyValue(trip.efficiencyKWhPer100Km), units.efficiencyUnitLabel),
                     stringResource(R.string.trips_stat_efficiency),
                 )
                 Stat(

@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.Duration
+import java.time.Instant
 
 /** Composition root: one long-lived scope owns the adapter, poller, trackers and scanner. */
 class VoltLinkApplication : Application() {
@@ -45,6 +47,10 @@ class VoltLinkApplication : Application() {
     private var targetNotified = false
     private var lastSessionId: String? = null
     private var lastScanDate: java.time.Instant? = null
+
+    /** Last stored battery-health reading, so a 1 Hz SOH does not rewrite the database. */
+    private var lastBatteryHealthSoh: Double? = null
+    private var lastBatteryHealthAt: Instant? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -150,6 +156,9 @@ class VoltLinkApplication : Application() {
     private fun observeServiceInterval() {
         appScope.launch {
             vehicleData.selectedProfileId.collect {
+                // The tracker caches the pack size for its time-to-target estimate, so a profile
+                // switch has to move it too; it used to be read once at startup.
+                chargingTracker.updateCapacity(vehicleData.selectedProfile.batteryUsableCapacityKWh)
                 serviceReminder.refresh(vehicleData.vehicleDisplayName)
             }
         }
@@ -211,8 +220,13 @@ class VoltLinkApplication : Application() {
                     tripTracker.process(feed.snapshot, vehicleData.vehicleDisplayName, hasPowerData = hasPower)
                     chargingTracker.onTelemetry(feed.snapshot, feed.targetPercent.toDouble())
                 }
-                // Battery health is a measured SOH reading, never a simulated one.
-                if (!feed.isDemoMode && TelemetryMetric.SOH in feed.liveMetrics) {
+                // Battery health is a measured SOH reading, never a simulated one. SOH arrives on
+                // every poll, so a reading is stored only when it moved or an hour has passed.
+                if (!feed.isDemoMode && TelemetryMetric.SOH in feed.liveMetrics &&
+                    shouldRecordBatteryHealth(feed.snapshot.stateOfHealthPct)
+                ) {
+                    lastBatteryHealthSoh = feed.snapshot.stateOfHealthPct
+                    lastBatteryHealthAt = Instant.now()
                     historyStore.recordBatteryHealth(
                         sohPct = feed.snapshot.stateOfHealthPct,
                         vehicleName = vehicleData.vehicleDisplayName,
@@ -232,6 +246,14 @@ class VoltLinkApplication : Application() {
             }
         }
         chargingTracker.updateCapacity(vehicleData.selectedProfile.batteryUsableCapacityKWh)
+    }
+
+    /** True when the reading is worth a database round trip: a new value, or an hour later. */
+    private fun shouldRecordBatteryHealth(sohPct: Double): Boolean {
+        val previousSoh = lastBatteryHealthSoh ?: return true
+        val previousAt = lastBatteryHealthAt ?: return true
+        if (Duration.between(previousAt, Instant.now()).toHours() >= 1) return true
+        return kotlin.math.abs(sohPct - previousSoh) >= 0.5
     }
 
     private data class TelemetryFeed(

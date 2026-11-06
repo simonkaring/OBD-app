@@ -92,8 +92,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
 
-    // Android Auto / AAOS templates: the CarPlay dashboard counterpart.
-    implementation("androidx.car.app:app:1.7.0")
+    // Android Auto templates are compiled into the debug build only: the release manifest
+    // registers no car service, and the old phone-app `car` package was removed.
+    debugImplementation("androidx.car.app:app:1.7.0")
 
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
