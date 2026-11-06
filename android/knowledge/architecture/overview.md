@@ -36,7 +36,7 @@ Everything is in the single `:app` module under `com.simonkaring.voltlink`:
 | `ui` | Compose screens (`dashboard`, `trips`, `charging`, `diagnostics`, `settings`), shared components and the design tokens in `ui/theme/Theme.kt` |
 | `car` | Retained legacy experimental templates, unregistered; the debug IoT service lives in `companion` and Play approval remains unverified |
 | `companion` | Read-only projection; `src/debug` contains the standalone preview and experimental native Android Auto IoT service |
-| `core/widget`, `core/shortcuts`, `core/notifications`, `core/ai`, `core/backup`, `core/export` | platform integrations |
+| `core/widget`, `core/shortcuts`, `core/notifications`, `core/backup`, `core/export` | platform integrations |
 
 # Where to change what
 

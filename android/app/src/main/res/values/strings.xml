@@ -160,6 +160,23 @@
     <string name="tab_settings">Settings</string>
 
     <!-- Settings. -->
+    <string name="settings_back">Settings</string>
+    <string name="settings_category_vehicle">Vehicle</string>
+    <string name="settings_category_vehicle_subtitle">Active vehicle, metric status and service reminders</string>
+    <string name="settings_category_units">Units</string>
+    <string name="settings_category_units_subtitle">Distance, temperature and power display</string>
+    <string name="settings_category_charging">Charging &amp; costs</string>
+    <string name="settings_category_charging_subtitle">Charge target and electricity price</string>
+    <string name="settings_category_alerts">Alerts</string>
+    <string name="settings_category_alerts_subtitle">Vehicle notifications</string>
+    <string name="settings_category_integrations">Integrations</string>
+    <string name="settings_category_integrations_subtitle">Android Auto layout and home screen widget</string>
+    <string name="settings_category_data">Data</string>
+    <string name="settings_category_data_subtitle">Cloud backup and restore</string>
+    <string name="settings_category_advanced">Advanced</string>
+    <string name="settings_category_advanced_subtitle">OBD terminal and PID contribution export</string>
+    <string name="settings_category_about">About</string>
+    <string name="settings_category_about_subtitle">Version and credits</string>
     <string name="settings_connection">Connection</string>
     <string name="settings_demo_title">Demo / Simulation mode</string>
     <string name="settings_demo_subtitle">Stream simulated telemetry without an adapter</string>
@@ -192,11 +209,21 @@
     <string name="settings_next_service">Next service in %1$.0f %2$s</string>
     <string name="settings_no_service_interval">No service interval reported by this vehicle yet.</string>
     <string name="settings_remind_below">Remind me below</string>
-    <string name="settings_reminder_hint">One reminder a week at most, and only while vehicle notifications are enabled above.</string>
+    <string name="settings_service_reminder_toggle">Service due reminder</string>
+    <string name="settings_service_reminder_subtitle">At most once a week when the reported distance is below the threshold.</string>
+    <string name="settings_reminder_hint">One reminder a week at most, per vehicle. Works independently of the alerts.</string>
     <string name="settings_alerts">Alerts</string>
-    <string name="settings_notifications_title">Vehicle notifications</string>
-    <string name="settings_notifications_subtitle">Charging finished, charge target, fault codes and adapter loss</string>
-    <string name="settings_notifications_hint">An ongoing notification mirrors charging progress on the lock screen while the car is plugged in.</string>
+    <string name="settings_alerts_status_title">Charging status notification</string>
+    <string name="settings_alerts_status_subtitle">Ongoing lock-screen card while the car is charging.</string>
+    <string name="settings_alerts_target_title">Charge target reached</string>
+    <string name="settings_alerts_target_subtitle">Once per session when the battery passes your charge target.</string>
+    <string name="settings_alerts_finished_title">Charging finished</string>
+    <string name="settings_alerts_finished_subtitle">When a charging session ends.</string>
+    <string name="settings_alerts_adapter_title">Adapter disconnected</string>
+    <string name="settings_alerts_adapter_subtitle">When the adapter drops out during a trip.</string>
+    <string name="settings_alerts_faults_title">Fault codes found</string>
+    <string name="settings_alerts_faults_subtitle">After a scan finds trouble codes.</string>
+    <string name="settings_alerts_hint">Permission is requested the first time one of these is enabled. Notifications never include raw vehicle data.</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_android_auto">Android Auto</string>
     <string name="settings_car_rows">Dials shown on the car pane, in order: %1$s</string>
@@ -205,7 +232,6 @@
     <string name="settings_widget_hint">State of charge, power and speed on the home screen, refreshed from the live snapshot.</string>
     <string name="settings_add_widget">Add widget</string>
     <string name="settings_widget_pin_unsupported">This launcher does not support pinning. Add the widget from the launcher\'s widget picker.</string>
-    <string name="settings_ai_analyzer">AI log analyzer</string>
     <string name="settings_obd_terminal">OBD terminal</string>
     <string name="settings_recent_commands">%1$d recent commands</string>
     <string name="settings_obd_contribution_hint">Fields every command the active profile decoded, with the response it came from, so a maintainer can review or contribute the decoding.</string>
@@ -213,6 +239,7 @@
     <string name="settings_about">About</string>
     <string name="settings_about_app">VoltLink for Android</string>
     <string name="settings_about_body">Native Compose companion to VoltLink iOS. OBD-II / UDS telemetry, diagnostics and demo simulation.</string>
+    <string name="settings_about_version">Version %1$s</string>
     <string name="settings_about_credits">EQA OBDb signals adapted from OBDb/Mercedes-Benz-EQA (CC BY-SA 4.0); DTC descriptions from Wal33D (MIT).</string>
     <string name="settings_device_rssi">%1$d dBm</string>
 
@@ -235,18 +262,6 @@
     <string name="backup_last">Last backup: %1$s</string>
     <string name="backup_none">No backup written yet</string>
     <string name="backup_footer">Files are named voltlink-backup-&lt;date&gt;.json. Restore merges the newest file and never deletes local rows.</string>
-
-    <!-- AI log analyzer card. -->
-    <string name="ai_hint">Send the captured OBD trace to Gemini or OpenAI for PID/DID decoding help. The key is stored encrypted on this device only.</string>
-    <string name="ai_key_label">API key · Gemini (AIza…) or OpenAI (sk-…)</string>
-    <string name="ai_hide_key">Hide key</string>
-    <string name="ai_show_key">Show key</string>
-    <string name="ai_save_key">Save key</string>
-    <string name="ai_analyzing">Analyzing…</string>
-    <string name="ai_analyze">Analyze log</string>
-    <string name="ai_failed">Analysis failed: %1$s</string>
-    <string name="ai_captured">%1$d commands captured</string>
-    <string name="ai_need_key">Save a key to enable analysis. The last 120 commands are sent.</string>
 
     <!-- Vehicle catalog. -->
     <string name="catalog_title">Choose vehicle</string>

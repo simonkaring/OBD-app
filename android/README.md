@@ -24,17 +24,16 @@ Compose and the Android Bluetooth LE stack, with no shared build tooling with `i
   telemetry widget, launcher shortcuts for trip control and DTC scanning, and service
   reminders — the platform equivalents of the iOS share sheets, WidgetKit widget and
   App Intents.
-- **Companion, AI and sync**: experimental debug Android Auto IoT tabs plus a standalone preview, an opt-in
-  Gemini/OpenAI OBD log analyzer with a Keystore-encrypted key, an opt-in history mirror to a
-  user-chosen folder (Drive, OneDrive, local), a 69-brand / 599-model vehicle catalog, and an
-  Android 16 Live Update charging card.
+- **Companion and sync**: experimental debug Android Auto IoT tabs plus a standalone preview, an opt-in
+  history mirror to a user-chosen folder (Drive, OneDrive, local), a 69-brand / 599-model
+  vehicle catalog, and an Android 16 Live Update charging card.
 - **Trip GPS**: a foreground location recorder fills the route samples while a trip records,
   which enables the GPX export; the permission is requested from the Start Trip action only.
 - **Customizable UI**: dashboard widgets persist their metric, style, width and order, the
   car dashboard has its own persisted dial layout, and Settings lists which profile metrics are
   live. Charging sessions plot speed over time with a scrubbable readout.
-- **Localized copy**: every user-visible string lives in `res/values/strings.xml` (253 keys),
-  so a translation only needs another `values-<lang>` folder.
+- **Localized copy**: every user-visible string lives in `res/values/strings.xml`, so a
+  translation only needs another `values-<lang>` folder.
 
 ## Build & run
 
@@ -130,7 +129,6 @@ Implemented in this pass:
 | Service reminder | Last vehicle-reported distance to service with 500/1000/2000/5000 km thresholds and a weekly alert |
 | Vehicle catalog | `assets/vehicle_catalog.json` (69 brands, 599 models) browsed brand → model family → model year → variant, with an EV/All filter and one search field that matches brand, model, family or model year. The picked row selects its profile and remembers the model name for trips, the widget and reminders |
 | Android Auto | Debug-only IoT experiment: native Drive GridTemplate (six tiles), Charging GridTemplate (six tiles, leading with the same battery and range as Drive, with separate ETA and elapsed-session tiles) and a Vehicle ListTemplate listing every metric the selected profile advertises, all from shared companion state. Drive power/speed and charging power use thick, needle-free dial images with exact values in native text; the battery tiles use eight discrete level icons. Grid titles are single short words because the library has no title variant and the host ellipsizes longer labels. Release registration stays disabled pending review; the old phone-app `car/` package was removed rather than left compiling unused. |
-| AI log analyzer | Gemini (`AIza…`) or OpenAI (`sk-…`) decoding of the captured OBD trace; the key is AES-GCM encrypted under an Android Keystore key |
 | Cloud backup | Opt-in mirror of trips, charging sessions and battery health to a folder picked with the system picker; restore merges the newest file by id and never deletes local rows |
 | Live Update | Charging notification promoted (`setRequestPromotedOngoing`) with a `ProgressStyle` bar, target point and short critical SoC text on Android 16+ |
 | Trip GPS | Foreground location service (`foregroundServiceType="location"`) during recordings, stale/imprecise fixes rejected, coordinates written into the trip samples |
@@ -195,7 +193,6 @@ app/src/main/java/com/simonkaring/voltlink/
 ├── core/
 │   ├── bluetooth/BleConstants.kt      # GATT profiles per adapter family
 │   ├── demo/                          # MockDrivingSimulation, MockObdAdapter, DemoProfile
-│   ├── ai/                            # Gemini/OpenAI log analyzer + Keystore-backed key store
 │   ├── backup/                        # portable history document, merge plan, SAF folder mirror
 │   ├── notifications/                 # opt-in alerts + promoted (Live Update) charging card
 │   ├── export/                        # Trip/charging CSV + GPX and the share-sheet bridge

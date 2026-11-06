@@ -44,6 +44,7 @@ class VoltLinkApplication : Application() {
     /** Demo state the trackers were last told about; they never persist simulated rows. */
     private var trackersDemoMode = false
     private var chargingStatusShown = false
+    private var chargingActive = false
     private var targetNotified = false
     private var lastSessionId: String? = null
     private var lastScanDate: java.time.Instant? = null
@@ -104,21 +105,24 @@ class VoltLinkApplication : Application() {
     }
 
     private fun observeChargingState() {
+        val chargingFeed = combine(
+            chargingTracker.state,
+            vehicleData.telemetry,
+            vehicleData.settings.chargeTargetPercent,
+        ) { tracker, snapshot, target -> Triple(tracker, snapshot, target) }
+        val alertPreferences = combine(
+            vehicleData.settings.chargingStatusEnabled,
+            vehicleData.settings.alertChargeTargetReached,
+            vehicleData.settings.alertChargingFinished,
+        ) { status, target, finished -> Triple(status, target, finished) }
+
         appScope.launch {
-            combine(
-                chargingTracker.state,
-                vehicleData.telemetry,
-                vehicleData.settings.chargeTargetPercent,
-                vehicleData.settings.notificationsEnabled,
-            ) { tracker, snapshot, target, enabled -> Triple(tracker, snapshot, target to enabled) }
-                .collect { (tracker, snapshot, config) ->
-                    val (target, enabled) = config
-                    if (!enabled) {
-                        notifications.cancelChargingStatus()
-                        chargingStatusShown = false
-                        return@collect
-                    }
-                    if (tracker.isCharging) {
+            combine(chargingFeed, alertPreferences) { feed, alerts -> feed to alerts }
+                .collect { (feed, alerts) ->
+                    val (tracker, snapshot, target) = feed
+                    val (statusEnabled, targetEnabled, finishedEnabled) = alerts
+
+                    if (statusEnabled && tracker.isCharging) {
                         notifications.showChargingStatus(
                             socPct = snapshot.stateOfChargePct,
                             powerKW = snapshot.chargePowerKW,
@@ -126,22 +130,30 @@ class VoltLinkApplication : Application() {
                             secondsToTarget = tracker.secondsToTarget,
                         )
                         chargingStatusShown = true
-                        if (!targetNotified && snapshot.stateOfChargePct >= target) {
-                            targetNotified = true
-                            notifications.notifyChargeTargetReached(target, snapshot.stateOfChargePct)
-                        }
                     } else if (chargingStatusShown) {
                         notifications.cancelChargingStatus()
                         chargingStatusShown = false
+                    }
+
+                    if (tracker.isCharging) {
+                        chargingActive = true
+                        if (targetEnabled && !targetNotified && snapshot.stateOfChargePct >= target) {
+                            targetNotified = true
+                            notifications.notifyChargeTargetReached(target, snapshot.stateOfChargePct)
+                        }
+                    } else if (chargingActive) {
+                        chargingActive = false
                         targetNotified = false
-                        historyStore.chargingSessions.value.firstOrNull()?.let { session ->
-                            if (session.id != lastSessionId && session.endTime != null) {
-                                lastSessionId = session.id
-                                notifications.notifyChargingFinished(
-                                    session.startSocPct,
-                                    session.endSocPct,
-                                    session.totalKWhDelivered,
-                                )
+                        if (finishedEnabled) {
+                            historyStore.chargingSessions.value.firstOrNull()?.let { session ->
+                                if (session.id != lastSessionId && session.endTime != null) {
+                                    lastSessionId = session.id
+                                    notifications.notifyChargingFinished(
+                                        session.startSocPct,
+                                        session.endSocPct,
+                                        session.totalKWhDelivered,
+                                    )
+                                }
                             }
                         }
                     }
@@ -166,7 +178,7 @@ class VoltLinkApplication : Application() {
 
     private fun observeDiagnostics() {
         appScope.launch {
-            combine(dtcScanner.state, vehicleData.settings.notificationsEnabled) { state, enabled -> state to enabled }
+            combine(dtcScanner.state, vehicleData.settings.alertFaultCodes) { state, enabled -> state to enabled }
                 .collect { (state, enabled) ->
                     if (!enabled || state.isScanning || state.lastScanDate == null) return@collect
                     if (state.lastScanDate != lastScanDate) {
@@ -181,7 +193,7 @@ class VoltLinkApplication : Application() {
         appScope.launch {
             vehicleData.connectionState.collect { state ->
                 if (state is com.simonkaring.voltlink.core.obd.BleConnectionState.Error &&
-                    vehicleData.settings.notificationsEnabled.value
+                    vehicleData.settings.alertAdapterDisconnected.value
                 ) {
                     notifications.notifyAdapterLost(tripTracker.state.value.isRecording)
                 }
@@ -238,7 +250,7 @@ class VoltLinkApplication : Application() {
                         val outcome = serviceReminder.observe(
                             distanceKm = serviceKm,
                             vehicleName = vehicleData.vehicleDisplayName,
-                            enabled = vehicleData.settings.notificationsEnabled.value,
+                            enabled = vehicleData.settings.serviceRemindersEnabled.value,
                         )
                         if (outcome?.reminderDue == true) notifications.notifyServiceDue(serviceKm)
                     }

@@ -53,8 +53,24 @@ class SettingsStore(context: Context) {
     private val _tripCostPerKWh = MutableStateFlow(prefs.getFloat(KEY_TRIP_COST, 0f).toDouble())
     val tripCostPerKWh: StateFlow<Double> = _tripCostPerKWh.asStateFlow()
 
-    private val _notificationsEnabled = MutableStateFlow(prefs.getBoolean(KEY_NOTIFICATIONS, false))
-    val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
+    // The charging status card kept the old key so existing installs keep their choice.
+    private val _chargingStatusEnabled = MutableStateFlow(prefs.getBoolean(KEY_CHARGING_STATUS, false))
+    val chargingStatusEnabled: StateFlow<Boolean> = _chargingStatusEnabled.asStateFlow()
+
+    private val _alertChargeTargetReached = MutableStateFlow(prefs.getBoolean(KEY_ALERT_TARGET, false))
+    val alertChargeTargetReached: StateFlow<Boolean> = _alertChargeTargetReached.asStateFlow()
+
+    private val _alertChargingFinished = MutableStateFlow(prefs.getBoolean(KEY_ALERT_FINISHED, false))
+    val alertChargingFinished: StateFlow<Boolean> = _alertChargingFinished.asStateFlow()
+
+    private val _alertAdapterDisconnected = MutableStateFlow(prefs.getBoolean(KEY_ALERT_ADAPTER, false))
+    val alertAdapterDisconnected: StateFlow<Boolean> = _alertAdapterDisconnected.asStateFlow()
+
+    private val _alertFaultCodes = MutableStateFlow(prefs.getBoolean(KEY_ALERT_FAULTS, false))
+    val alertFaultCodes: StateFlow<Boolean> = _alertFaultCodes.asStateFlow()
+
+    private val _serviceRemindersEnabled = MutableStateFlow(prefs.getBoolean(KEY_SERVICE_REMINDER, false))
+    val serviceRemindersEnabled: StateFlow<Boolean> = _serviceRemindersEnabled.asStateFlow()
 
     private val _dashboardLayout = MutableStateFlow(
         DashboardLayout.decode(prefs.getString(KEY_DASHBOARD_LAYOUT, null)),
@@ -107,9 +123,34 @@ class SettingsStore(context: Context) {
         prefs.edit().putFloat(KEY_TRIP_COST, value.toFloat()).apply()
     }
 
-    fun setNotificationsEnabled(enabled: Boolean) {
-        _notificationsEnabled.value = enabled
-        prefs.edit().putBoolean(KEY_NOTIFICATIONS, enabled).apply()
+    fun setChargingStatusEnabled(enabled: Boolean) {
+        _chargingStatusEnabled.value = enabled
+        prefs.edit().putBoolean(KEY_CHARGING_STATUS, enabled).apply()
+    }
+
+    fun setAlertChargeTargetReached(enabled: Boolean) {
+        _alertChargeTargetReached.value = enabled
+        prefs.edit().putBoolean(KEY_ALERT_TARGET, enabled).apply()
+    }
+
+    fun setAlertChargingFinished(enabled: Boolean) {
+        _alertChargingFinished.value = enabled
+        prefs.edit().putBoolean(KEY_ALERT_FINISHED, enabled).apply()
+    }
+
+    fun setAlertAdapterDisconnected(enabled: Boolean) {
+        _alertAdapterDisconnected.value = enabled
+        prefs.edit().putBoolean(KEY_ALERT_ADAPTER, enabled).apply()
+    }
+
+    fun setAlertFaultCodes(enabled: Boolean) {
+        _alertFaultCodes.value = enabled
+        prefs.edit().putBoolean(KEY_ALERT_FAULTS, enabled).apply()
+    }
+
+    fun setServiceRemindersEnabled(enabled: Boolean) {
+        _serviceRemindersEnabled.value = enabled
+        prefs.edit().putBoolean(KEY_SERVICE_REMINDER, enabled).apply()
     }
 
     fun setDashboardLayout(layout: DashboardLayout) {
@@ -131,7 +172,12 @@ class SettingsStore(context: Context) {
         private const val KEY_POWER = "power_unit"
         private const val KEY_CHARGE_TARGET = "charge_target"
         private const val KEY_TRIP_COST = "trip_cost_per_kwh"
-        private const val KEY_NOTIFICATIONS = "notifications_enabled"
+        private const val KEY_CHARGING_STATUS = "notifications_enabled"
+        private const val KEY_ALERT_TARGET = "alert_charge_target"
+        private const val KEY_ALERT_FINISHED = "alert_charging_finished"
+        private const val KEY_ALERT_ADAPTER = "alert_adapter_disconnected"
+        private const val KEY_ALERT_FAULTS = "alert_fault_codes"
+        private const val KEY_SERVICE_REMINDER = "service_reminder_enabled"
         private const val KEY_DASHBOARD_LAYOUT = "dashboard_layout"
         private const val KEY_CAR_LAYOUT = "car_tile_layout"
         private const val KEY_LAST_ADAPTER = "last_adapter"

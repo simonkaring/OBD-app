@@ -161,6 +161,7 @@
       }
     },
     "1.0.0" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -313,46 +314,6 @@
         }
       }
     },
-    "AI analysis and AI export use only these recent entries, not the capture file. Clear does not erase the capture file." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI analysis and AI export use only these recent entries, not the capture file. Clear does not erase the capture file."
-          }
-        }
-      }
-    },
-    "AI Analyze Recent (500 max)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Analyze Recent (500 max)"
-          }
-        }
-      }
-    },
-    "AI API Key (Optional)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI API Key (Optional)"
-          }
-        }
-      }
-    },
-    "AI Recent Log Analysis" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Recent Log Analysis"
-          }
-        }
-      }
-    },
     "All" : {
       "localizations" : {
         "en" : {
@@ -384,6 +345,7 @@
       }
     },
     "Analysis Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -394,6 +356,7 @@
       }
     },
     "Analyzing CAN bus responses with AI..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -404,6 +367,7 @@
       }
     },
     "API keys are stored in the device Keychain. Save an empty key to remove it. You can also export traces without an API key." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -596,6 +560,9 @@
         }
       }
     },
+    "Bluetooth" : {
+
+    },
     "Bluetooth Adapter" : {
       "localizations" : {
         "en" : {
@@ -645,6 +612,9 @@
           }
         }
       }
+    },
+    "Calibration" : {
+
     },
     "Cancel" : {
       "localizations" : {
@@ -788,6 +758,9 @@
           }
         }
       }
+    },
+    "Charging & Trips" : {
+
     },
     "Charging Finished" : {
 
@@ -1063,6 +1036,9 @@
         }
       }
     },
+    "Connection" : {
+
+    },
     "Connection Status" : {
       "localizations" : {
         "en" : {
@@ -1074,6 +1050,7 @@
       }
     },
     "Copy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1122,6 +1099,9 @@
           }
         }
       }
+    },
+    "Data & Privacy" : {
+
     },
     "Date" : {
 
@@ -1219,6 +1199,9 @@
         }
       }
     },
+    "Demo mode streams simulated telemetry without an adapter. VoltLink reconnects to the last adapter when Bluetooth becomes available." : {
+
+    },
     "Demo simulates a vehicle without an adapter. Generic EV reads standard OBD data where available; battery and charging telemetry are not guaranteed." : {
       "localizations" : {
         "en" : {
@@ -1228,6 +1211,9 @@
           }
         }
       }
+    },
+    "Demo Simulation" : {
+
     },
     "Demo Simulation Controls" : {
       "localizations" : {
@@ -1249,7 +1235,11 @@
         }
       }
     },
+    "Developer" : {
+
+    },
     "Developer & Reverse Engineering" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1349,6 +1339,9 @@
         }
       }
     },
+    "Display & Units" : {
+
+    },
     "Distance" : {
       "localizations" : {
         "en" : {
@@ -1445,6 +1438,9 @@
 
     },
     "Electricity Price" : {
+
+    },
+    "Enable Demo / Simulation Mode to use these controls." : {
 
     },
     "Enable GPS Route Recording" : {
@@ -1625,6 +1621,7 @@
       }
     },
     "Export Recent for AI (500 max)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1633,6 +1630,9 @@
           }
         }
       }
+    },
+    "Export Recent Log (500 max)" : {
+
     },
     "Export the previous capture first if you want to keep it. Starting a new capture replaces that file." : {
       "localizations" : {
@@ -1654,7 +1654,13 @@
         }
       }
     },
+    "Export uses only these recent entries, not the capture file. Clear does not erase the capture file." : {
+
+    },
     "Fault Codes Found" : {
+
+    },
+    "Fault Injection" : {
 
     },
     "File capture is available outside demo mode. Recent manual logs are shown below." : {
@@ -1686,16 +1692,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Full Width"
-          }
-        }
-      }
-    },
-    "Gemini or OpenAI API Key" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gemini or OpenAI API Key"
           }
         }
       }
@@ -1996,6 +1992,7 @@
 
     },
     "Mode Selection" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2242,6 +2239,7 @@
       }
     },
     "OBD Terminal & AI Discovery" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2402,6 +2400,9 @@
           }
         }
       }
+    },
+    "Preferences" : {
+
     },
     "Prepare PID Contribution" : {
 
@@ -2591,7 +2592,11 @@
         }
       }
     },
+    "Routes & iCloud" : {
+
+    },
     "Save API Key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2867,6 +2872,9 @@
         }
       }
     },
+    "Simulation" : {
+
+    },
     "Size" : {
       "localizations" : {
         "en" : {
@@ -3132,7 +3140,7 @@
     "Temperature" : {
 
     },
-    "The Charging tab estimates the remaining time to this target and to 100% from the session's charging curve, including the taper above 80%. The notification fires once per session when the pack passes the target." : {
+    "The Charging tab estimates the remaining time to this target and to 100% from the session's charging curve, including the taper above 80%." : {
 
     },
     "The vehicle did not confirm the codes were cleared. Try again with the ignition on and the vehicle stationary." : {
@@ -3167,16 +3175,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Time Range: %1$@ - %2$@"
-          }
-        }
-      }
-    },
-    "Tip: Go to Settings > Developer Tools and enter a Gemini or OpenAI API Key to enable in-app AI analysis." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tip: Go to Settings > Developer Tools and enter a Gemini or OpenAI API Key to enable in-app AI analysis."
           }
         }
       }
@@ -3225,6 +3223,7 @@
       }
     },
     "Trip Recording Automation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3253,6 +3252,9 @@
           }
         }
       }
+    },
+    "Trips" : {
+
     },
     "Trips, charging sessions, and battery health are mirrored to your private iCloud database so they survive a device change. Off by default. Takes effect the next time VoltLink starts, and needs a build signed with the iCloud capability." : {
 

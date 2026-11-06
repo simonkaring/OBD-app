@@ -58,7 +58,7 @@
 		7E68CA1155FBA4DE5D28B4D6 /* TripModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BE5798B924F7E3F39D26E2 /* TripModel.swift */; };
 		F8AF7A24B93E1D4A93C9BBF6 /* VoltLinkSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AF67076EE2FA4391B81BC60 /* VoltLinkSchema.swift */; };
 		4B09AAF9AB8FD11539B75171 /* DTCLocalDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4646CD18FBEC7765E4AAF338 /* DTCLocalDatabase.swift */; };
-		B79E3CBBF4E931DD77E1CF4A /* AILogAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DA4FCDE466E48ABAA3EA2F /* AILogAnalyzer.swift */; };
+		B79E3CBBF4E931DD77E1CF4A /* OBDTraceExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DA4FCDE466E48ABAA3EA2F /* OBDTraceExporter.swift */; };
 		D83D2F7E6A9008A9123344D4 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C28BA4DEC955953248EA413 /* AppIntents.swift */; };
 		7712EBE728F3D36510C7723C /* BatteryHealthRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E5195B08C60512B7069AB8 /* BatteryHealthRecorder.swift */; };
 		CAD7E23DEFBBBC88B1C0736E /* ChargingTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621241359FA03325A2EB4794 /* ChargingTrackingManager.swift */; };
@@ -200,7 +200,7 @@
 		79BE5798B924F7E3F39D26E2 /* TripModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TripModel.swift"; sourceTree = "<group>"; };
 		3AF67076EE2FA4391B81BC60 /* VoltLinkSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VoltLinkSchema.swift"; sourceTree = "<group>"; };
 		4646CD18FBEC7765E4AAF338 /* DTCLocalDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DTCLocalDatabase.swift"; sourceTree = "<group>"; };
-		27DA4FCDE466E48ABAA3EA2F /* AILogAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AILogAnalyzer.swift"; sourceTree = "<group>"; };
+		27DA4FCDE466E48ABAA3EA2F /* OBDTraceExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OBDTraceExporter.swift"; sourceTree = "<group>"; };
 		5C28BA4DEC955953248EA413 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppIntents.swift"; sourceTree = "<group>"; };
 		13E5195B08C60512B7069AB8 /* BatteryHealthRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatteryHealthRecorder.swift"; sourceTree = "<group>"; };
 		621241359FA03325A2EB4794 /* ChargingTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChargingTrackingManager.swift"; sourceTree = "<group>"; };
@@ -906,7 +906,7 @@
 				7E68CA1155FBA4DE5D28B4D6 /* TripModel.swift in Sources */,
 				F8AF7A24B93E1D4A93C9BBF6 /* VoltLinkSchema.swift in Sources */,
 				4B09AAF9AB8FD11539B75171 /* DTCLocalDatabase.swift in Sources */,
-				B79E3CBBF4E931DD77E1CF4A /* AILogAnalyzer.swift in Sources */,
+				B79E3CBBF4E931DD77E1CF4A /* OBDTraceExporter.swift in Sources */,
 				D83D2F7E6A9008A9123344D4 /* AppIntents.swift in Sources */,
 				7712EBE728F3D36510C7723C /* BatteryHealthRecorder.swift in Sources */,
 				CAD7E23DEFBBBC88B1C0736E /* ChargingTrackingManager.swift in Sources */,

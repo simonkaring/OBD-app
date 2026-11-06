@@ -30,7 +30,6 @@ private struct OBDTerminalContent: View {
     var vehicleData: VehicleDataManager
     let bluetoothManager: BluetoothManager?
     let bluetoothLogs: [OBDLogEntry]
-    @ObservedObject private var keyStore = AIAPIKeyStore.shared
 
     @State private var commandText = ""
     @State private var commandError: String?
@@ -45,7 +44,6 @@ private struct OBDTerminalContent: View {
     @State private var probeProgress: Double = 0
 
     @State private var manualLogs: [OBDLogEntry] = []
-    @State private var showAISheet = false
     @State private var preparedContribution: CommunityPIDContribution?
     @State private var contributionError: String?
 
@@ -60,49 +58,27 @@ private struct OBDTerminalContent: View {
             .toolbar {
                 #if os(iOS)
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        showAISheet = true
-                    } label: {
-                        Label("AI Analyze Recent (500 max)", systemImage: "sparkles")
-                            .foregroundStyle(Theme.electricCyan)
-                    }
-                    .disabled(combinedLogs.isEmpty)
-
                     ShareLink(
-                        item: AILogAnalyzer.buildAnalysisPrompt(log: combinedLogs, vehicleContext: vehicleData.vehicleName),
+                        item: OBDTraceExporter.buildAnalysisPrompt(log: combinedLogs, vehicleContext: vehicleData.vehicleName),
                         subject: Text("OBD CAN Trace - \(vehicleData.vehicleName)"),
                         message: Text("Help me decode this CAN trace for VoltLink")
                     ) {
-                        Label("Export Recent for AI (500 max)", systemImage: "square.and.arrow.up")
+                        Label("Export Recent Log (500 max)", systemImage: "square.and.arrow.up")
                     }
                     .disabled(combinedLogs.isEmpty)
                 }
                 #else
                 ToolbarItemGroup(placement: .automatic) {
-                    Button {
-                        showAISheet = true
-                    } label: {
-                        Label("AI Analyze Recent (500 max)", systemImage: "sparkles")
-                    }
-                    .disabled(combinedLogs.isEmpty)
-
                     ShareLink(
-                        item: AILogAnalyzer.buildAnalysisPrompt(log: combinedLogs, vehicleContext: vehicleData.vehicleName),
+                        item: OBDTraceExporter.buildAnalysisPrompt(log: combinedLogs, vehicleContext: vehicleData.vehicleName),
                         subject: Text("OBD CAN Trace - \(vehicleData.vehicleName)"),
                         message: Text("Help me decode this CAN trace for VoltLink")
                     ) {
-                        Label("Export Recent for AI (500 max)", systemImage: "square.and.arrow.up")
+                        Label("Export Recent Log (500 max)", systemImage: "square.and.arrow.up")
                     }
                     .disabled(combinedLogs.isEmpty)
                 }
                 #endif
-            }
-            .sheet(isPresented: $showAISheet) {
-                AIAnalysisSheet(
-                    logs: combinedLogs,
-                    vehicleContext: vehicleData.vehicleName,
-                    apiKey: keyStore.value
-                )
             }
             .sheet(
                 isPresented: Binding(
@@ -228,7 +204,7 @@ private struct OBDTerminalContent: View {
                         .foregroundStyle(Theme.textSecondary)
                     }
                 }
-                Text("AI analysis and AI export use only these recent entries, not the capture file. Clear does not erase the capture file.")
+                Text("Export uses only these recent entries, not the capture file. Clear does not erase the capture file.")
                     .font(.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
@@ -569,108 +545,6 @@ private struct CaptureExportDocument: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: data)
-    }
-}
-
-public struct AIAnalysisSheet: View {
-    public let logs: [OBDLogEntry]
-    public let vehicleContext: String
-    public let apiKey: String
-
-    @State private var analysisResult: String?
-    @State private var errorMessage: String?
-    @State private var isLoading = false
-    @Environment(\.dismiss) private var dismiss
-
-    public var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if isLoading {
-                        VStack(spacing: 12) {
-                            ProgressView()
-                                .scaleEffect(1.2)
-                            Text("Analyzing CAN bus responses with AI...")
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                    } else if let error = errorMessage {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Label("Analysis Failed", systemImage: "exclamationmark.triangle.fill")
-                                .font(.headline)
-                                .foregroundStyle(Theme.criticalRed)
-                            Text(error)
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.textSecondary)
-
-                            if apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                Text("Tip: Go to Settings > Developer Tools and enter a Gemini or OpenAI API Key to enable in-app AI analysis.")
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.electricCyan)
-                                    .padding(.top, 4)
-                            }
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassCard()
-                    } else if let result = analysisResult {
-                        Text(result)
-                            .font(.body)
-                            .textSelection(.enabled)
-                            .padding()
-                            .glassCard()
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle("AI Recent Log Analysis")
-            .inlineTitleDisplayMode()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-                if let result = analysisResult {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button {
-                            #if canImport(UIKit)
-                            UIPasteboard.general.string = result
-                            #endif
-                        } label: {
-                            Label("Copy", systemImage: "doc.on.doc")
-                        }
-                    }
-                }
-            }
-            .task {
-                await runAnalysis()
-            }
-        }
-    }
-
-    private func runAnalysis() async {
-        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "No API Key configured. Please add an API Key under Settings > Developer Tools."
-            return
-        }
-
-        isLoading = true
-        errorMessage = nil
-        analysisResult = nil
-
-        do {
-            let result = try await AILogAnalyzer.analyze(
-                log: logs,
-                vehicleContext: vehicleContext,
-                apiKey: apiKey
-            )
-            analysisResult = result
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoading = false
     }
 }
 
