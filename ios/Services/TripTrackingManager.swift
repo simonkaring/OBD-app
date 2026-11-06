@@ -41,6 +41,18 @@ public final class TripTrackingManager {
     /// eligible for merging; the merge itself is user-triggered, never automatic.
     public static let mergeWindow: TimeInterval = 30 * 60
 
+    /// Route/chart points are stored at 1 Hz until this many exist, then every
+    /// `coarseSampleInterval` seconds. Energy and distance are integrated from every
+    /// snapshot, so the coarser tail costs only map resolution on a long drive.
+    static let detailedSampleLimit = 3_600
+    static let coarseSampleInterval: TimeInterval = 5
+    /// Backstop for a recording left running for days; the oldest points are shed.
+    static let maximumStoredSamples = 20_000
+
+    static func storageInterval(forStoredSampleCount count: Int) -> TimeInterval {
+        count < detailedSampleLimit ? 1 : coarseSampleInterval
+    }
+
     @ObservationIgnored private var cancellables = Set<AnyCancellable>()
     @ObservationIgnored public let locationManager: TripLocationManager
     @ObservationIgnored private var stationaryStartDate: Date? = nil
@@ -198,7 +210,12 @@ public final class TripTrackingManager {
         }
         demoTrips.removeAll { $0.id == tripID }
         context?.delete(trip)
-        guard save() else { return }
+        guard save() else {
+            // The row is only marked deleted; leaving it that way lets a later autosave
+            // commit the deletion after the UI already told the user the save failed.
+            context?.rollback()
+            return
+        }
         NotificationCenter.default.post(name: Notification.Name("DeleteTripNotification"), object: tripID)
     }
 
@@ -217,7 +234,7 @@ public final class TripTrackingManager {
                 for trip in allTrips {
                     context.delete(trip)
                 }
-                save()
+                if !save() { context.rollback() }
             } catch {
                 persistenceError = "Could not load trips for deletion: \(error.localizedDescription)"
             }
@@ -342,9 +359,13 @@ public final class TripTrackingManager {
             recordSnapshot(telemetry, hasPowerData: hasPowerData)
 
             if isAutoTripEnabled {
-                if telemetry.speedKmH < 1.0 || telemetry.isCharging {
+                // A missing speed reading is not "parked": the adapter or GPS can drop
+                // mid-drive, and the manager publishes an empty snapshot when that happens.
+                // An armed countdown keeps running (the car was last seen stationary), but
+                // an unarmed one is not started, so a Bluetooth drop cannot end a drive.
+                if telemetry.isCharging || (telemetry.hasFreshSpeed && telemetry.speedKmH < 1.0) {
                     startStationaryCountdownIfNeeded()
-                } else {
+                } else if telemetry.hasFreshSpeed {
                     resetStationaryTimer()
                 }
             }
@@ -392,7 +413,8 @@ public final class TripTrackingManager {
             save()
             self.lastSaveTime = now
         }
-        guard lastStoredSampleTime.map({ now.timeIntervalSince($0) >= 1 }) ?? true else { return }
+        let minimumInterval = Self.storageInterval(forStoredSampleCount: trip.samples?.count ?? 0)
+        guard lastStoredSampleTime.map({ now.timeIntervalSince($0) >= minimumInterval }) ?? true else { return }
         lastStoredSampleTime = now
         // `TelemetryPointModel` stores non-optional coordinates (making them optional is a
         // SwiftData schema change), so (0, 0) stays the "no fix" sentinel — but only write
@@ -414,6 +436,18 @@ public final class TripTrackingManager {
             batteryTempC: telemetry.batteryTempC
         )
         trip.samples?.append(sample)
+        trimStoredSamples(on: trip)
+    }
+
+    /// Keeps a very long recording bounded. Totals were integrated as the points arrived,
+    /// so shed points cost only the oldest map detail.
+    private func trimStoredSamples(on trip: TripModel) {
+        guard let samples = trip.samples, samples.count > Self.maximumStoredSamples else { return }
+        let overflow = samples.count - Self.maximumStoredSamples
+        for sample in samples.prefix(overflow) {
+            context?.delete(sample)
+        }
+        trip.samples?.removeFirst(overflow)
     }
 
     public func telemetryForDisplay(_ snapshot: TelemetrySnapshot) -> TelemetrySnapshot {

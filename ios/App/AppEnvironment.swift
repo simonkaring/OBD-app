@@ -156,7 +156,7 @@ public final class AppEnvironment: ObservableObject {
                 tTracker?.processTelemetrySnapshot(
                     snapshot, vehicleName: vData?.vehicleName ?? "Vehicle", hasPowerData: hasPower,
                     requiresPowerForAutoStart: vData?.supportedMetrics.contains(.power) == true)
-                cTracker?.processTelemetrySnapshot(snapshot)
+                cTracker?.processTelemetrySnapshot(snapshot, displayedSoc: vData?.displayedTelemetry.stateOfChargePct)
                 guard let self, let vData else { return }
                 self.publishSharedState(snapshot: snapshot, vehicleData: vData, tripTracker: tTracker)
                 self.recordBatteryHealthIfNeeded(snapshot: snapshot, vehicleData: vData)

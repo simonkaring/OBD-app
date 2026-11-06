@@ -99,7 +99,8 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
    `VehicleDataManager` via `onUnexpectedDisconnect` (adapter lost while a trip
    is recording), `DTCScannerService` (fault codes found), and
    `ServiceReminderMonitor` (service due). `NotificationService` gates each on
-   its Settings preference.
+   its opt-in Settings preference: a key with no stored value reads as off, so the
+   toggles start off and permission is requested only when one is enabled.
 
 # Fault scans
 

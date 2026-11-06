@@ -7,6 +7,9 @@ import CoreLocation
 public final class ChargingTrackingManager: ObservableObject {
     @Published public private(set) var currentSession: ChargingSessionModel?
     @Published public private(set) var isRecordingSession: Bool = false
+    /// Live total for the active session. The SwiftData model is not observable, so this
+    /// mirrors it for the Charging tab, which must show the same energy the Log persists.
+    @Published public private(set) var liveEnergyKWh: Double = 0
     @Published public private(set) var demoSessions: [ChargingSessionModel] = []
     @Published public private(set) var persistenceError: String?
     public private(set) var isDemoMode = false
@@ -72,6 +75,7 @@ public final class ChargingTrackingManager: ObservableObject {
         self.lastSaveTime = Date()
         self.hasNotifiedChargeTarget = false
         self.nonChargingSnapshotCount = 0
+        self.liveEnergyKWh = 0
 
         context?.insert(session)
         save()
@@ -154,7 +158,9 @@ public final class ChargingTrackingManager: ObservableObject {
 
     private func discardTrivialSession(_ session: ChargingSessionModel) -> Bool {
         context?.delete(session)
-        return save()
+        if save() { return true }
+        context?.rollback()
+        return false
     }
 
     private func finishSessionState() {
@@ -165,6 +171,7 @@ public final class ChargingTrackingManager: ObservableObject {
         self.hasNotifiedChargeTarget = false
         self.nonChargingSnapshotCount = 0
         self.pendingChargeStart = nil
+        self.liveEnergyKWh = 0
     }
 
     @discardableResult
@@ -227,7 +234,11 @@ public final class ChargingTrackingManager: ObservableObject {
         }
         demoSessions.removeAll { $0.id == sessionID }
         context?.delete(session)
-        guard save() else { return }
+        guard save() else {
+            // Same as trips: do not leave the deletion queued for the next autosave.
+            context?.rollback()
+            return
+        }
         NotificationCenter.default.post(name: Notification.Name("DeleteChargingSessionNotification"), object: sessionID)
     }
 
@@ -246,7 +257,7 @@ public final class ChargingTrackingManager: ObservableObject {
                 for s in allSessions {
                     context.delete(s)
                 }
-                save()
+                if !save() { context.rollback() }
             } catch {
                 persistenceError = "Could not load charging sessions for deletion: \(error.localizedDescription)"
             }
@@ -254,7 +265,7 @@ public final class ChargingTrackingManager: ObservableObject {
         NotificationCenter.default.post(name: Notification.Name("ClearSampleChargingSessions"), object: nil)
     }
 
-    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, now: Date = .now) {
+    public func processTelemetrySnapshot(_ telemetry: TelemetrySnapshot, displayedSoc: Double? = nil, now: Date = .now) {
         // The vehicle manager resolves explicit status and speed validity once for all consumers.
         let chargingPower = max(0, telemetry.chargePowerKW)
         let isActivelyCharging = telemetry.isCharging && (!telemetry.hasFreshSpeed || telemetry.speedKmH < 1.0)
@@ -262,7 +273,7 @@ public final class ChargingTrackingManager: ObservableObject {
         if isRecordingSession {
             if isActivelyCharging {
                 nonChargingSnapshotCount = 0
-                recordSnapshot(telemetry, chargingPower: chargingPower, at: now)
+                recordSnapshot(telemetry, chargingPower: chargingPower, displayedSoc: displayedSoc, at: now)
             } else {
                 lastSnapshotTime = nil
                 // Hysteresis: a single dropout (a missed poll, a CP handshake pause, the
@@ -294,10 +305,10 @@ public final class ChargingTrackingManager: ObservableObject {
         nonChargingSnapshotCount = 0
         startSession(startSoc: pending.soc, startedAt: pending.time)
         pendingChargeStart = nil
-        recordSnapshot(telemetry, chargingPower: chargingPower, at: now)
+        recordSnapshot(telemetry, chargingPower: chargingPower, displayedSoc: displayedSoc, at: now)
     }
 
-    public func recordSnapshot(_ telemetry: TelemetrySnapshot, chargingPower: Double, at now: Date = .now) {
+    public func recordSnapshot(_ telemetry: TelemetrySnapshot, chargingPower: Double, displayedSoc: Double? = nil, at now: Date = .now) {
         guard let session = currentSession, session.endTime == nil else { return }
         let dtHours: Double
         if let last = lastSnapshotTime {
@@ -314,11 +325,15 @@ public final class ChargingTrackingManager: ObservableObject {
 
         if dtHours > 0 && chargingPower > 0 {
             session.totalKWhDelivered += chargingPower * dtHours
+            liveEnergyKWh = session.totalKWhDelivered
         }
 
         if telemetry.stateOfChargePct > 0 {
             session.endSocPct = telemetry.stateOfChargePct
-            checkChargeTarget(soc: telemetry.stateOfChargePct, startSoc: session.startSocPct)
+            checkChargeTarget(
+                soc: displayedSoc ?? telemetry.stateOfChargePct,
+                rawSoc: telemetry.stateOfChargePct,
+                startSoc: session.startSocPct)
         }
         appendCurveSample(socPct: telemetry.stateOfChargePct, powerKW: chargingPower, at: now)
         if let lastSaveTime, now.timeIntervalSince(lastSaveTime) >= 30 {
@@ -329,10 +344,14 @@ public final class ChargingTrackingManager: ObservableObject {
 
     /// Notifies once when the pack passes the driver's target, including when the session
     /// started above a lower target (nothing to announce) or demo mode is running.
-    private func checkChargeTarget(soc: Double, startSoc: Double) {
+    private func checkChargeTarget(soc: Double, rawSoc: Double, startSoc: Double) {
         guard !isDemoMode, !hasNotifiedChargeTarget, soc.isFinite else { return }
         let target = ChargingTarget.value()
-        guard startSoc < target, soc >= target else { return }
+        // Compare on the scale the dashboard shows: a saved SOC reference can display 85%
+        // while the ECU reports 80%, and the alert used to announce the raw value. Shift
+        // the stored raw start by the same offset so the start-above-target guard agrees.
+        let offset = (soc - rawSoc).isFinite ? soc - rawSoc : 0
+        guard startSoc + offset < target, soc >= target else { return }
         hasNotifiedChargeTarget = true
         #if os(iOS)
         NotificationService.shared.notifyChargeTargetReached(targetSOC: target, socPct: soc)

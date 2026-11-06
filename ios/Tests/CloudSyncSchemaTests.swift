@@ -14,7 +14,7 @@ final class CloudSyncSchemaTests: XCTestCase {
         XCTAssertTrue(names.contains("TelemetryPointModel"))
         XCTAssertTrue(names.contains("ChargingSessionModel"))
         XCTAssertTrue(names.contains("ChargingSampleModel"))
-        XCTAssertTrue(names.contains("SavedDTCModel"))
+        XCTAssertFalse(names.contains("SavedDTCModel"), "The never-written DTC entity was dropped from the active schema")
         XCTAssertTrue(names.contains("BatteryHealthSampleModel"))
     }
 

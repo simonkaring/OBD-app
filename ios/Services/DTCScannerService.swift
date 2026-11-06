@@ -196,7 +196,7 @@ public final class DTCScannerService: ObservableObject {
                 return
             }
             // The raw adapter text still carries the `>` prompt, CAN IDs and ISO-TP PCI
-            // bytes; feeding it straight to `hexStringToBytes` yields an odd-length string
+            // bytes; feeding it straight to `ISO15765Parser.hexBytes` yields an odd-length string
             // and therefore an empty byte array, so success was never detected.
             guard let self = self else {
                 completion(false)
@@ -213,7 +213,7 @@ public final class DTCScannerService: ObservableObject {
     /// Returns decoded codes, or nil if the adapter/ECU reported a failure (as opposed to a clean "0 codes").
     private func codes(from result: Result<String, Error>, serviceByte: UInt8) -> [DTCCode]? {
         guard case .success(let hex) = result, !Self.isNegativeOrEmpty(hex) else { return nil }
-        let payloads = isoParser.assembleISOTPPayloads(hex).map { Self.hexStringToBytes($0.payload) }
+        let payloads = isoParser.assembleISOTPPayloads(hex).map { ISO15765Parser.hexBytes($0.payload) }
         let responses = payloads.filter { $0.first == serviceByte }
         guard !responses.isEmpty, responses.allSatisfy({ $0.count >= 2 && $0.count >= 2 + Int($0[1]) * 2 }) else { return nil }
         return parseDTCResponse(hex, serviceByte: serviceByte, manufacturer: scanManufacturer)
@@ -241,7 +241,7 @@ public final class DTCScannerService: ObservableObject {
     }
 
     private func decodeDTCs(fromPayload payload: String, serviceByte: UInt8, manufacturer: String?) -> [DTCCode] {
-        let bytes = Self.hexStringToBytes(payload)
+        let bytes = ISO15765Parser.hexBytes(payload)
 
         guard let serviceIndex = bytes.firstIndex(of: serviceByte), serviceIndex + 1 < bytes.count else { return [] }
 
@@ -276,21 +276,4 @@ public final class DTCScannerService: ObservableObject {
         return results
     }
 
-    private static func hexStringToBytes(_ hex: String) -> [UInt8] {
-        let clean = hex.replacingOccurrences(of: " ", with: "")
-            .replacingOccurrences(of: "\r", with: "")
-            .replacingOccurrences(of: "\n", with: "")
-        guard clean.count % 2 == 0 else { return [] }
-
-        var bytes: [UInt8] = []
-        var index = clean.startIndex
-        while index < clean.endIndex {
-            let nextIndex = clean.index(index, offsetBy: 2)
-            if let byte = UInt8(clean[index..<nextIndex], radix: 16) {
-                bytes.append(byte)
-            }
-            index = nextIndex
-        }
-        return bytes
-    }
 }

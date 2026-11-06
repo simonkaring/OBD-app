@@ -8,6 +8,9 @@ import SwiftData
 /// SwiftData's inferred lightweight migration: the container opens the current version
 /// without an explicit `SchemaMigrationPlan`.
 ///
+/// V3 also drops `SavedDTCModel`, which never received a row. Removing an entity is a
+/// lightweight change too, so stores written by earlier versions still open without a plan.
+///
 /// Do not add a plan whose versions share the same `@Model` classes — Core Data aborts
 /// (`NSPersistentStoreCoordinator addPersistentStore`) instead of migrating, which crashes
 /// the app before the in-memory fallback can run. A future destructive rename needs
@@ -16,7 +19,7 @@ public enum VoltLinkSchemaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
     public static var models: [any PersistentModel.Type] {
-        [TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, SavedDTCModel.self]
+        [TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self]
     }
 }
 
@@ -25,7 +28,7 @@ public enum VoltLinkSchemaV2: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
 
     public static var models: [any PersistentModel.Type] {
-        [TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, ChargingSampleModel.self, SavedDTCModel.self]
+        [TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, ChargingSampleModel.self]
     }
 }
 
@@ -36,7 +39,7 @@ public enum VoltLinkSchemaV3: VersionedSchema {
 
     public static var models: [any PersistentModel.Type] {
         [
-            TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, ChargingSampleModel.self, SavedDTCModel.self,
+            TripModel.self, TelemetryPointModel.self, ChargingSessionModel.self, ChargingSampleModel.self,
             BatteryHealthSampleModel.self,
         ]
     }

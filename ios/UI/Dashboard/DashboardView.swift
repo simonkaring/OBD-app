@@ -10,7 +10,10 @@ public struct DashboardView: View {
     @State private var isEditMode = false
     @State private var showAddWidgetSheet = false
     @State private var draggedWidget: DashboardWidgetConfig?
-    @AppStorage("dashboardLayout") private var layout: DashboardLayout = .default
+    /// The stored JSON is decoded once in `onAppear`/on edit, not on every body read while
+    /// telemetry streams in several times a second.
+    @AppStorage("dashboardLayout") private var storedLayout = DashboardLayout.default.rawValue
+    @State private var layout: DashboardLayout = .default
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(vehicleData: VehicleDataManager, tripTracker: TripTrackingManager) {
@@ -18,7 +21,8 @@ public struct DashboardView: View {
         self.tripTracker = tripTracker
         // Only used the first time this key is read (no saved layout yet), so a fresh
         // install starts from widgets the active profile can actually populate.
-        self._layout = AppStorage(wrappedValue: .adaptedDefault(for: vehicleData.supportedMetrics), "dashboardLayout")
+        self._storedLayout = AppStorage(
+            wrappedValue: DashboardLayout.adaptedDefault(for: vehicleData.supportedMetrics).rawValue, "dashboardLayout")
     }
 
     private var widgetLiveMetrics: Set<TelemetryMetric> {
@@ -281,6 +285,7 @@ public struct DashboardView: View {
                 }
             }
             .onAppear {
+                layout = DashboardLayout(rawValue: storedLayout) ?? .default
                 let previous = DashboardLayout.adaptedPreviousDefault(for: vehicleData.supportedMetrics)
                 if layout.widgets.count == previous.widgets.count
                     && zip(layout.widgets, previous.widgets).allSatisfy({
@@ -289,6 +294,9 @@ public struct DashboardView: View {
                 {
                     layout = .adaptedDefault(for: vehicleData.supportedMetrics)
                 }
+            }
+            .onChange(of: layout) { _, newValue in
+                storedLayout = newValue.rawValue
             }
             .onChange(of: vehicleData.selectedVehicle.id) { _, _ in
                 telemetryHistory.removeAll()

@@ -2,7 +2,7 @@ import Foundation
 import UserNotifications
 
 /// Local notifications for events the user cares about while VoltLink is in the
-/// background. All events are opt-out via Settings and never contain raw vehicle data.
+/// background. All events are opt-in via Settings and never contain raw vehicle data.
 @MainActor
 public final class NotificationService {
     public static let shared = NotificationService()
@@ -23,8 +23,10 @@ public final class NotificationService {
         self.defaults = defaults
     }
 
+    /// Opt-in: a key that was never written is off, matching the Settings toggles. Permission
+    /// is requested only when the user enables one, so a missing value must not read as on.
     public func isEnabled(_ key: String) -> Bool {
-        (defaults.object(forKey: key) as? Bool) ?? true
+        (defaults.object(forKey: key) as? Bool) ?? false
     }
 
     /// Requests permission the first time any notification toggle is enabled.

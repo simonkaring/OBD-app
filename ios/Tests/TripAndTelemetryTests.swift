@@ -81,13 +81,54 @@ final class TripAndTelemetryTests: XCTestCase {
         tracker.isAutoTripEnabled = true
         tracker.autoStopDelaySeconds = 30
         tracker.startTrip()
-        tracker.processTelemetrySnapshot(TelemetrySnapshot())
+        var parked = TelemetrySnapshot()
+        parked.speedUpdatedAt = parked.timestamp
+        tracker.processTelemetrySnapshot(parked)
         XCTAssertNotNil(tracker.stationarySecondsRemaining)
         tracker.isAutoTripEnabled = false
         XCTAssertNil(tracker.stationarySecondsRemaining)
-        tracker.processTelemetrySnapshot(TelemetrySnapshot())
+        tracker.processTelemetrySnapshot(parked)
         XCTAssertTrue(tracker.isRecordingTrip)
         tracker.stopTrip()
+    }
+
+    func testLostSpeedReadingDoesNotArmAutoStopCountdown() {
+        let tracker = TripTrackingManager()
+        tracker.isAutoTripEnabled = true
+        tracker.autoStopDelaySeconds = 30
+        tracker.startTrip()
+        var driving = TelemetrySnapshot()
+        driving.speedKmH = 100
+        driving.speedUpdatedAt = driving.timestamp
+        tracker.processTelemetrySnapshot(driving)
+        // The adapter/GPS dropped: the manager publishes an empty snapshot with no speed
+        // timestamp. That must not count down and close the trip while the car is moving.
+        tracker.processTelemetrySnapshot(TelemetrySnapshot())
+        XCTAssertNil(tracker.stationarySecondsRemaining)
+        XCTAssertTrue(tracker.isRecordingTrip)
+        tracker.stopTrip()
+    }
+
+    func testArmedAutoStopCountdownSurvivesLostSpeedReading() {
+        let tracker = TripTrackingManager()
+        tracker.isAutoTripEnabled = true
+        tracker.autoStopDelaySeconds = 30
+        tracker.startTrip()
+        var parked = TelemetrySnapshot()
+        parked.speedUpdatedAt = parked.timestamp
+        tracker.processTelemetrySnapshot(parked)
+        XCTAssertNotNil(tracker.stationarySecondsRemaining)
+        // Ignition off also cuts adapter power; the car was already seen parked, so the
+        // countdown should still be allowed to close the trip.
+        tracker.processTelemetrySnapshot(TelemetrySnapshot())
+        XCTAssertNotNil(tracker.stationarySecondsRemaining)
+        tracker.stopTrip()
+    }
+
+    func testLongTripsStoreACoarserTail() {
+        XCTAssertEqual(TripTrackingManager.storageInterval(forStoredSampleCount: 0), 1)
+        XCTAssertEqual(TripTrackingManager.storageInterval(forStoredSampleCount: TripTrackingManager.detailedSampleLimit - 1), 1)
+        XCTAssertEqual(TripTrackingManager.storageInterval(forStoredSampleCount: TripTrackingManager.detailedSampleLimit), 5)
     }
 
     func testSimulationStepPublishesOneTelemetrySnapshot() {
@@ -178,8 +219,9 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertTrue(tracker.isRecordingTrip)
         XCTAssertNotNil(tracker.currentTrip)
 
-        // Vehicle stops
+        // Vehicle stops; the speed PID still answers, so the reading is fresh.
         snap.speedKmH = 0.0
+        snap.speedUpdatedAt = Date()
         tracker.processTelemetrySnapshot(snap)
         XCTAssertTrue(tracker.isRecordingTrip)
 

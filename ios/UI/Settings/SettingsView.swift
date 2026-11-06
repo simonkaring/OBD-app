@@ -14,11 +14,11 @@ public struct SettingsView: View {
     @AppStorage("keepScreenAwake") private var keepScreenAwake = false
     @AppStorage("electricityPricePerKWh") private var electricityPricePerKWh: Double = 0
     @AppStorage(ChargingTarget.socKey) private var chargeTargetSOC = ChargingTarget.defaultSOC
-    @AppStorage(NotificationService.PreferenceKey.chargeTargetReached) private var notifyChargeTarget = true
+    @AppStorage(NotificationService.PreferenceKey.chargeTargetReached) private var notifyChargeTarget = false
     @AppStorage(BluetoothManager.autoReconnectKey) private var autoReconnectToAdapter = true
-    @AppStorage(NotificationService.PreferenceKey.chargingFinished) private var notifyChargingFinished = true
-    @AppStorage(NotificationService.PreferenceKey.adapterDisconnected) private var notifyAdapterDisconnected = true
-    @AppStorage(NotificationService.PreferenceKey.faultCodes) private var notifyFaultCodes = true
+    @AppStorage(NotificationService.PreferenceKey.chargingFinished) private var notifyChargingFinished = false
+    @AppStorage(NotificationService.PreferenceKey.adapterDisconnected) private var notifyAdapterDisconnected = false
+    @AppStorage(NotificationService.PreferenceKey.faultCodes) private var notifyFaultCodes = false
     @AppStorage(CloudSyncPreference.enabledKey) private var iCloudSyncEnabled = false
 
     private var units: UnitPreferences { .shared }
@@ -467,7 +467,7 @@ public struct SettingsView: View {
 private struct MaintenanceSection: View {
     var vehicleData: VehicleDataManager
     @AppStorage(ServiceReminderMonitor.Key.thresholdKm) private var thresholdKm = ServiceReminderMonitor.defaultThresholdKm
-    @AppStorage(NotificationService.PreferenceKey.serviceDue) private var notifyServiceDue = true
+    @AppStorage(NotificationService.PreferenceKey.serviceDue) private var notifyServiceDue = false
 
     private var stored: ServiceIntervalSnapshot? {
         ServiceReminderMonitor().snapshot(for: vehicleData.vehicleName)

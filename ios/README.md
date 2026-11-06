@@ -239,7 +239,7 @@ Don't have an OBD-II adapter nearby? No problem!
 - **CarPlay**: `CPTemplateApplicationSceneDelegate` + `CPGridTemplate`
 - **Widgets & Live Activities**: WidgetKit extension (`Widgets/`) with a Home Screen status widget and ActivityKit Lock Screen/Dynamic Island presentations, fed by an app-group snapshot
 - **Siri & Shortcuts**: App Intents for charge status, start trip, and stop trip
-- **Persistence**: Versioned SwiftData schema V3 (`TripModel`, `ChargingSessionModel` with curve samples, `SavedDTCModel`, `BatteryHealthSampleModel`) using inferred lightweight migration; optional CloudKit mirroring (`cloudKitDatabase: .automatic`) with a local-store fallback
+- **Persistence**: Versioned SwiftData schema V3 (`TripModel`, `ChargingSessionModel` with curve samples, `BatteryHealthSampleModel`) using inferred lightweight migration; optional CloudKit mirroring (`cloudKitDatabase: .automatic`) with a local-store fallback
 - **Units**: User-selectable metric/imperial distance, °C/°F, and kW/hp through `Core/Units/UnitPreferences`
 - **Notifications**: Optional local alerts for charging finished, adapter disconnects during a trip, and newly found fault codes
 - **Export**: Trip GPX/CSV and charging-session CSV via `Transferable` share sheets

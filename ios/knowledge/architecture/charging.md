@@ -41,7 +41,9 @@ sources:
    instead of persisted and never raise a notification; demo mode starts
    recording immediately. A row stores start/end SOC, delivered kWh,
    peak/average power, a reverse-geocoded location, and a timestamped power
-   curve (`ChargingSampleModel`, schema V2).
+   curve (`ChargingSampleModel`, schema V2). `liveEnergyKWh` mirrors the active
+   session's total so the Charging tab's average power uses the same integration
+   that the Log persists, rather than a second kWh counter.
 
 # Curve capture
 
@@ -101,7 +103,10 @@ fills.
   estimator.
 - `ChargingTrackingManager.checkChargeTarget` raises the opt-in
   "Charge Target Reached" notification once per session, only when the session
-  started below the target and the pack crosses it while recording.
+  started below the target and the pack crosses it while recording. The
+  comparison and the announced percentage use the displayed SOC (the saved SOC
+  reference applied), so the alert agrees with the dashboard; the stored session
+  keeps the raw reading.
 
 # Battery health history
 

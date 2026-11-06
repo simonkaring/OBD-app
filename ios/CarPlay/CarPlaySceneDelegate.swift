@@ -180,15 +180,30 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             statusStr = snapshot.chargePowerSource == .socEstimate ? "CHARGING (ESTIMATED)" : "CHARGING ACTIVE"
         }
 
-        let remainingPct = max(0.0, 80.0 - snapshot.stateOfChargePct)
+        // Same target and taper-aware projection as the phone's Charging tab, so CarPlay
+        // cannot promise a different time (or a hard-coded 80%) than the dashboard.
+        let targetPct = ChargingTarget.value()
         let capacityKWh = vehicleData.usableBatteryCapacityKWh
         let timeMin: String
         // Generic/unrecognized vehicles report a 0 kWh capacity — can't estimate a time
         // from an unknown pack size, so fall back to "--" instead of a bogus "0 min".
         if hasSOC && isCharging && capacityKWh > 0 {
-            let neededKWh = (remainingPct / 100.0) * capacityKWh
-            let mins = remainingPct > 0 && powerKW > 0 ? Int(ceil(neededKWh / powerKW * 60.0)) : 0
-            timeMin = "\(mins) min to 80%"
+            if snapshot.stateOfChargePct >= targetPct {
+                timeMin = "Target reached"
+            } else if let seconds = ChargingTimeEstimator.secondsToTarget(
+                currentSOC: snapshot.stateOfChargePct,
+                targetSOC: targetPct,
+                currentPowerKW: powerKW,
+                capacityKWh: capacityKWh,
+                observedCurve: vehicleData.chargingSession.history.map {
+                    ChargingCurveSample(socPct: $0.soc, powerKW: $0.powerKW)
+                })
+            {
+                let minutes = max(1, Int((seconds / 60).rounded()))
+                timeMin = "\(minutes) min to \(Int(targetPct.rounded()))%"
+            } else {
+                timeMin = "-- min"
+            }
         } else {
             timeMin = "-- min"
         }
@@ -200,7 +215,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             CPInformationItem(title: "STATUS", detail: statusStr),
             CPInformationItem(title: "CHARGE RATE", detail: powerStr),
             CPInformationItem(title: "BATTERY SOC", detail: socStr),
-            CPInformationItem(title: "EST. TIME TO 80%", detail: timeMin),
+            CPInformationItem(title: "EST. TIME TO \(Int(targetPct.rounded()))%", detail: timeMin),
             CPInformationItem(title: "BATTERY TEMP", detail: tempStr),
         ]
     }

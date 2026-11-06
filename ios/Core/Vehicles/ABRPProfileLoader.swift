@@ -10,8 +10,9 @@ public struct ABRPMetricDefinition: Codable, Sendable {
     public let ecu: String?
 }
 
-/// Models the JSON file format from `iternio/ev-obd-pids`.
-public struct ABRPProfileDefinition: Codable, Sendable {
+/// Models the JSON file format from `iternio/ev-obd-pids`. Decode-only: the app never
+/// writes these files, and the old empty `encode(to:)` silently produced `{}`.
+public struct ABRPProfileDefinition: Decodable, Sendable {
     public let initCommands: [String]
     public let dataCommands: [String]
     public let obdProtocol: String?
@@ -74,7 +75,6 @@ public struct ABRPProfileDefinition: Codable, Sendable {
         self.isCharging = try? container.decode(ABRPMetricDefinition.self, forKey: .isCharging)
     }
 
-    public func encode(to encoder: Encoder) throws {}
 }
 
 /// Generic vehicle profile executing ABRP JSON formulas dynamically.
@@ -119,66 +119,17 @@ public struct ABRPGenericVehicleProfile: VehicleProfile {
         return set
     }
 
+    /// Protocol requirement; the full decode lives in `parseResponses` so the two cannot
+    /// drift apart on the next metric change.
     public func parseResponse(command: String, rawResponse: String) -> TelemetryUpdate? {
-        // ABRP equations address bytes positionally (A = byte 0 after the DID echo), so the
-        // response must be reassembled first: on a multi-frame reply the raw text still
-        // carries CAN IDs and ISO-TP PCI bytes interleaved between the data bytes.
-        let hex = isoParser.assembleISOTPPayload(rawResponse)
-        guard !hex.isEmpty else { return nil }
-
-        let bytes = extractBytes(from: hex, command: command)
-        guard !bytes.isEmpty else { return nil }
-
-        // Check if command matches SOC
-        if let socDef = definition.soc, matchesCommand(socDef.command, currentCommand: command) {
-            if let val = evaluate(equation: socDef.equation, bytes: bytes) {
-                return .soc(min(100.0, max(0.0, val)))
-            }
-        }
-
-        // Check if command matches Voltage
-        if let voltDef = definition.voltage, matchesCommand(voltDef.command, currentCommand: command) {
-            if let v = evaluate(equation: voltDef.equation, bytes: bytes) {
-                return .packVoltage(v)
-            }
-        }
-
-        // Check if command matches Current
-        if let currDef = definition.current, matchesCommand(currDef.command, currentCommand: command) {
-            if let a = evaluate(equation: currDef.equation, bytes: bytes) {
-                // Emit standalone current; the manager multiplies it by the last
-                // parsed pack voltage rather than a fabricated nominal one.
-                return .packCurrent(a)
-            }
-        }
-
-        // Check if command matches State of Health
-        if let sohDef = definition.soh, matchesCommand(sohDef.command, currentCommand: command) {
-            if let v = evaluate(equation: sohDef.equation, bytes: bytes) {
-                return .soh(min(100.0, max(0.0, v)))
-            }
-        }
-
-        // Check if command matches Battery Temp
-        if let tempDef = definition.battTemp, matchesCommand(tempDef.command, currentCommand: command) {
-            if let t = evaluate(equation: tempDef.equation, bytes: bytes) {
-                return .batteryTemp(min: t, max: t, avg: t)
-            }
-        }
-
-        // Check if command matches Speed
-        if let spdDef = definition.speed, matchesCommand(spdDef.command, currentCommand: command) {
-            if let s = evaluate(equation: spdDef.equation, bytes: bytes) {
-                return .speed(max(0.0, s))
-            }
-        }
-
-        return nil
+        parseResponses(command: command, rawResponse: rawResponse).first
     }
 
-    /// Unlike `parseResponse` (first-matching-metric priority, kept for existing callers),
-    /// this evaluates EVERY metric definition whose `command` matches the current response —
+    /// Evaluates EVERY metric definition whose `command` matches the current response —
     /// e.g. one E-GMP `220101` reply carries current, voltage, and the charging-status bit.
+    /// ABRP equations address bytes positionally (A = byte 0 after the DID echo), so the
+    /// response is reassembled first; on a multi-frame reply the raw text still carries CAN
+    /// IDs and ISO-TP PCI bytes between the data bytes.
     public func parseResponses(command: String, rawResponse: String) -> [TelemetryUpdate] {
         let buckets = isoParser.assembleISOTPPayloads(rawResponse)
         guard !buckets.isEmpty else { return [] }

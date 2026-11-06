@@ -2,13 +2,17 @@ import SwiftUI
 
 public struct ChargingLiveView: View {
     public var vehicleData: VehicleDataManager
+    /// The recorder owns the persisted energy total; observing it keeps the live average
+    /// power identical to the saved session instead of a second kWh integration.
+    @ObservedObject private var chargingTracker: ChargingTrackingManager
 
     /// Scales the headline kW readout with the user's Dynamic Type setting.
     @ScaledMetric(relativeTo: .largeTitle) private var powerFontSize: CGFloat = 48
     @AppStorage(ChargingTarget.socKey) private var storedChargeTarget = ChargingTarget.defaultSOC
 
-    public init(vehicleData: VehicleDataManager) {
+    public init(vehicleData: VehicleDataManager, chargingTracker: ChargingTrackingManager? = nil) {
         self.vehicleData = vehicleData
+        self.chargingTracker = chargingTracker ?? AppEnvironment.shared.chargingTracker
     }
 
     private var isConnected: Bool {
@@ -99,7 +103,13 @@ public struct ChargingLiveView: View {
 
     /// Start of the live charging session, which drives the elapsed and average readouts.
     private var chargingStartedAt: Date? {
-        vehicleData.chargingSession.startTime
+        chargingTracker.currentSession?.startTime ?? vehicleData.chargingSession.startTime
+    }
+
+    /// Energy integrated by the recorder once a session is saved; the live tracker's total
+    /// only covers the minutes before confirmation creates the session.
+    private var sessionEnergyKWh: Double {
+        chargingTracker.isRecordingSession ? chargingTracker.liveEnergyKWh : vehicleData.chargingSession.totalEnergyKWh
     }
 
     public var body: some View {
@@ -149,7 +159,7 @@ public struct ChargingLiveView: View {
                                                 .foregroundStyle(Theme.textSecondary)
                                             Text(
                                                 ChargingSessionSummary.averagePowerKW(
-                                                    energyKWh: vehicleData.chargingSession.totalEnergyKWh,
+                                                    energyKWh: sessionEnergyKWh,
                                                     over: elapsed
                                                 ).map { UnitPreferences.shared.power(kilowatts: $0) } ?? "—"
                                             )

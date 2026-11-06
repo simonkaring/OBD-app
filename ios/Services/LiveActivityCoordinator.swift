@@ -17,6 +17,9 @@ public final class LiveActivityCoordinator {
 
     private var activity: Activity<VoltLinkActivityAttributes>?
     private var activeMode: VoltLinkActivityAttributes.Mode?
+    /// A previous process can leave an activity running (app killed mid-session). Adopt it
+    /// once per launch instead of requesting a second one.
+    private var didAttemptAdoption = false
     /// Fallback elapsed origin for a session whose recorder has no start time yet.
     private var activityStartedAt = Date()
     private var lastUpdate = Date.distantPast
@@ -68,18 +71,44 @@ public final class LiveActivityCoordinator {
     }
 
     public func end() {
-        guard let activity else { return }
+        didAttemptAdoption = true
         self.activity = nil
         activeMode = nil
         lastUpdate = .distantPast
-        Task { @MainActor in
-            await activity.end(nil, dismissalPolicy: .immediate)
+        // End every activity, not just one held in memory: after a relaunch the previous
+        // process's activity is still on the Lock Screen and would otherwise linger until
+        // its stale date.
+        for running in Activity<VoltLinkActivityAttributes>.activities {
+            Task { @MainActor in
+                await running.end(nil, dismissalPolicy: .immediate)
+            }
         }
     }
 
     private func start(mode: VoltLinkActivityAttributes.Mode, state: VoltLinkActivityAttributes.ContentState, vehicleName: String) {
         let attributes = VoltLinkActivityAttributes(vehicleName: vehicleName)
         let content = content(for: state)
+
+        if !didAttemptAdoption {
+            didAttemptAdoption = true
+            let running = Activity<VoltLinkActivityAttributes>.activities
+            if let existing = running.first {
+                // Take over the activity instead of stacking a duplicate on the Lock Screen.
+                activity = existing
+                activeMode = mode
+                lastUpdate = Date()
+                for extra in running.dropFirst() {
+                    Task { @MainActor in
+                        await extra.end(nil, dismissalPolicy: .immediate)
+                    }
+                }
+                Task { @MainActor in
+                    await existing.update(content)
+                }
+                return
+            }
+        }
+
         do {
             activity = try Activity.request(attributes: attributes, content: content, pushType: nil)
             activeMode = mode
