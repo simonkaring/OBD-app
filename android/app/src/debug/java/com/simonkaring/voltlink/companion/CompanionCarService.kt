@@ -12,9 +12,9 @@ import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarText
 import androidx.car.app.model.GridItem
 import androidx.car.app.model.GridTemplate
+import androidx.car.app.model.Header
 import androidx.car.app.model.ItemList
-import androidx.car.app.model.Pane
-import androidx.car.app.model.PaneTemplate
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Tab
 import androidx.car.app.model.TabContents
@@ -98,26 +98,7 @@ internal fun companionCarTemplate(
     carAppApiLevel: Int = 7,
     darkMode: Boolean = false,
 ): TabTemplate {
-    fun value(metric: TelemetryMetric) = number(state.metrics[metric], metric.decimalPlaces, metric.unitSymbol)
     fun text(id: Int) = context.getString(id)
-    val status = text(when (state.connection) {
-        CompanionConnection.DISCONNECTED -> R.string.companion_car_disconnected
-        CompanionConnection.CONNECTING -> R.string.companion_connecting
-        CompanionConnection.STALE -> R.string.companion_stale
-        CompanionConnection.LIVE -> R.string.companion_live
-        CompanionConnection.DEMO -> R.string.companion_demo
-    })
-    val rows = when (active) {
-        "vehicle" -> listOf(
-            R.string.companion_soc to "${value(TelemetryMetric.SOC)} · $status",
-            R.string.companion_car_pack to "${value(TelemetryMetric.PACK_VOLTAGE)} · ${value(TelemetryMetric.BATTERY_TEMP)}",
-            R.string.companion_power to value(TelemetryMetric.POWER),
-            R.string.companion_car_health to "${value(TelemetryMetric.SOH)} · ${number(state.capacityKWh, 1, "kWh")}",
-        )
-        else -> emptyList()
-    }
-    val pane = Pane.Builder()
-    rows.forEach { (title, content) -> pane.addRow(Row.Builder().setTitle(text(title)).addText(content).build()) }
     val template = TabTemplate.Builder(callback)
     listOf(
         Triple("drive", R.string.companion_drive, R.drawable.ic_car_telemetry),
@@ -131,12 +112,12 @@ internal fun companionCarTemplate(
         .setTabContents(TabContents.Builder(
             when (active) {
                 "drive", "charging" -> companionGrid(context, state, active == "charging", carAppApiLevel, darkMode)
-                else -> PaneTemplate.Builder(pane.build()).build()
+                else -> companionVehicleList(context, state)
             },
         ).build()).build()
 }
 
-/** Fixed native tiles with debug-only coarse images; Vehicle keeps its native pane. */
+/** Fixed native tiles with debug-only coarse images. */
 @androidx.annotation.OptIn(ExperimentalCarApi::class)
 private fun companionGrid(context: Context, state: CompanionState, charging: Boolean, carAppApiLevel: Int, darkMode: Boolean): GridTemplate {
     val items = ItemList.Builder()
@@ -177,13 +158,7 @@ private fun companionGrid(context: Context, state: CompanionState, charging: Boo
                 number(state.energyAddedKWh, 2, "kWh"), number(state.costDKK, 2, "DKK", true)),
             R.drawable.ic_car_charging)
     } else {
-        val status = context.getString(when (state.connection) {
-            CompanionConnection.DISCONNECTED -> R.string.companion_grid_offline
-            CompanionConnection.CONNECTING -> R.string.companion_grid_connecting
-            CompanionConnection.STALE -> R.string.companion_grid_stale
-            CompanionConnection.LIVE -> R.string.companion_grid_live
-            CompanionConnection.DEMO -> R.string.companion_grid_demo
-        })
+        val status = shortStatus(context, state)
         tile(R.string.companion_soc,
             context.getString(R.string.companion_grid_battery_value, number(state.metrics[TelemetryMetric.SOC], 0, "%"), status),
             batteryLevelIcon(state.metrics[TelemetryMetric.SOC]))
@@ -205,6 +180,46 @@ private fun companionGrid(context: Context, state: CompanionState, charging: Boo
     if (carAppApiLevel >= 8) grid.setItemSize(GridTemplate.ITEM_SIZE_LARGE)
     return grid.build()
 }
+
+/**
+ * Vehicle lists every metric the selected profile advertises, so switching vehicle changes the
+ * rows once and live telemetry only ever changes values. A missing reading keeps its row.
+ */
+private fun companionVehicleList(context: Context, state: CompanionState): ListTemplate {
+    val items = ItemList.Builder()
+    val soc = TelemetryMetric.SOC
+    // Battery carries the connection status, exactly as the Drive and Charging tiles do.
+    items.addItem(Row.Builder()
+        .setTitle(context.getString(R.string.companion_soc))
+        .addText("${number(state.metrics[soc], soc.decimalPlaces, soc.unitSymbol)} · ${shortStatus(context, state)}")
+        .build())
+    state.supportedMetrics.filter { it != soc }.sortedBy { it.ordinal }.forEach { metric ->
+        items.addItem(Row.Builder()
+            .setTitle(metric.displayName)
+            .addText(number(state.metrics[metric], metric.decimalPlaces, metric.unitSymbol))
+            .build())
+    }
+    items.addItem(Row.Builder()
+        .setTitle(context.getString(R.string.companion_capacity))
+        .addText(number(state.capacityKWh, 1, "kWh"))
+        .build())
+    // A tab's embedded header is ignored by the host; only the tab bar names this page.
+    return ListTemplate.Builder()
+        .setHeader(Header.Builder().setTitle(context.getString(R.string.companion_vehicle)).build())
+        .setSingleList(items.build())
+        .build()
+}
+
+/** One-word connection label for grid tiles and the Vehicle list. */
+private fun shortStatus(context: Context, state: CompanionState): String = context.getString(
+    when (state.connection) {
+        CompanionConnection.DISCONNECTED -> R.string.companion_grid_offline
+        CompanionConnection.CONNECTING -> R.string.companion_grid_connecting
+        CompanionConnection.STALE -> R.string.companion_grid_stale
+        CompanionConnection.LIVE -> R.string.companion_grid_live
+        CompanionConnection.DEMO -> R.string.companion_grid_demo
+    },
+)
 
 /** Discrete Material battery icons, not a continuously drawn gauge; missing SOC is never empty. */
 internal fun batteryLevelIcon(soc: Double?): Int {

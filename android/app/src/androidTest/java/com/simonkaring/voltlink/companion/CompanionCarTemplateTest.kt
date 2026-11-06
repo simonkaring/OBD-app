@@ -8,9 +8,10 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import androidx.compose.ui.graphics.toArgb
-import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.GridItem
 import androidx.car.app.model.GridTemplate
+import androidx.car.app.model.ListTemplate
+import androidx.car.app.model.Row
 import androidx.car.app.model.CarColor
 import androidx.core.graphics.drawable.IconCompat
 import androidx.car.app.model.TabTemplate
@@ -28,19 +29,37 @@ class CompanionCarTemplateTest {
     private val app = ApplicationProvider.getApplicationContext<VoltLinkApplication>()
     private val callback = object : TabTemplate.TabCallback {}
 
-    @Test fun vehicleHasFourStableRowsWithoutBitmapWidgets() {
-        val state = readState(app)
-        for (tab in listOf("vehicle")) {
-            val first = companionCarTemplate(app, state, tab, callback)
-            val updated = companionCarTemplate(app, state.copy(metrics = mapOf(TelemetryMetric.SOC to 72.0)), tab, callback)
-            assertEquals(3, first.tabs.size)
-            assertEquals(tab, first.activeTabContentId)
-            val pane = (first.tabContents.template as PaneTemplate).pane
-            val refreshed = (updated.tabContents.template as PaneTemplate).pane
-            assertEquals(4, pane.rows.size)
-            assertEquals(pane.rows.map { it.title.toString() }, refreshed.rows.map { it.title.toString() })
-            assertNull(pane.image)
-        }
+    @Test fun vehicleListsEveryMetricTheProfileAdvertisesAndKeepsMissingOnes() {
+        val supported = setOf(TelemetryMetric.SOC, TelemetryMetric.PACK_VOLTAGE,
+            TelemetryMetric.PACK_CURRENT, TelemetryMetric.POWER, TelemetryMetric.SOH)
+        val state = readState(app).copy(
+            supportedMetrics = supported,
+            metrics = mapOf(TelemetryMetric.SOC to 72.0, TelemetryMetric.PACK_VOLTAGE to 398.2),
+        )
+        val template = companionCarTemplate(app, state, "vehicle", callback)
+        assertEquals(3, template.tabs.size)
+        assertEquals("vehicle", template.activeTabContentId)
+        fun rows(state: CompanionState) = (companionCarTemplate(app, state, "vehicle", callback)
+            .tabContents.template as ListTemplate).singleList!!.items.map { it as Row }
+        fun Row.value() = texts.single().toString()
+        val first = rows(state)
+        // Battery first (with the connection status), then the remaining metrics in enum order,
+        // then the profile capacity, which is a specification rather than a measured signal.
+        assertEquals(listOf(app.getString(R.string.companion_soc), "Power", "State of Health",
+            "Pack Voltage", "Pack Current", app.getString(R.string.companion_capacity)),
+            first.map { it.title.toString() })
+        assertTrue(first[0].value().startsWith("72 % · "))
+        assertEquals("—", first[1].value())
+        assertEquals("398.2 V", first[3].value())
+        assertEquals(number(state.capacityKWh, 1, "kWh"), first.last().value())
+        assertTrue(first.all { it.image == null && it.onClickDelegate == null })
+        // A reading that never arrives keeps its row; only the value text changes.
+        val next = rows(state.copy(metrics = emptyMap()))
+        assertEquals(first.map { it.title.toString() }, next.map { it.title.toString() })
+        assertEquals("—", next[3].value())
+        // Metrics the selected profile does not advertise are never listed.
+        assertEquals(listOf(app.getString(R.string.companion_soc), app.getString(R.string.companion_capacity)),
+            rows(state.copy(supportedMetrics = setOf(TelemetryMetric.SOC))).map { it.title.toString() })
     }
 
     @Test fun chargingUsesSixStableTilesLeadingWithBatteryAndRange() {

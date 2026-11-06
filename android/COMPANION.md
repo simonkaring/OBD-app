@@ -10,8 +10,9 @@ The earlier conclusion that telemetry categorically could not qualify was too st
 This is a plausible experimental category, **not a guarantee of Play approval**.
 
 `src/debug/.../CompanionCarService.kt` declares IoT through the debug manifest, requests
-Car App API 7, and serves native `GridTemplate`s for Drive and Charging, plus a four-row
-`PaneTemplate` for Vehicle. Drive has six tiles: battery (with connection status),
+Car App API 7, and serves native `GridTemplate`s for Drive and Charging, plus a
+`ListTemplate` for Vehicle listing every metric the selected profile advertises (battery with
+the connection status, then the remaining metrics, then the profile capacity). Drive has six tiles: battery (with connection status),
 range, speed, signed battery power, trip consumption, and trip distance/time. Charging leads
 with the same battery/status and range tiles as Drive, then charging power, ETA to 80%, the
 elapsed session clock and session energy/estimated cost (six tiles; the ETA and the clock are
@@ -44,7 +45,7 @@ shared state. The host owns colors, typography and row layout, in day and night 
 
 Verified after this change: debug/test APK builds and JVM suite pass. The updated APK was
 installed on phone `R5CWA0093XN`; all twelve `CompanionCarTemplateTest` cases pass there, checking
-native pane/grid payloads, stable refresh titles, API 7 sizing fallback, API 8+ large sizing,
+native grid/list payloads, stable refresh titles, API 7 sizing fallback, API 8+ large sizing,
 resource-only icons, battery levels/unknown state, draw/regen/charge/idle transitions,
 host-default icon tint, compact readouts, custom-image bucket boundaries, cached resource
 identity, speed/charging steps and unknown states, charging estimates/statuses, needle-free

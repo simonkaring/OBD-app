@@ -15,8 +15,11 @@ The debug service creates a Session and lifecycle-bound Screen with three native
 (Car App API 7): Drive uses six GridTemplate tiles (battery/status, range,
 speed, signed power, consumption, trip/time); Charging uses six grid tiles, leading with the
 same battery/status and range tiles as Drive, then charge power, ETA to 80%, the elapsed
-session clock and energy/estimated DKK cost; Vehicle retains a four-row
-PaneTemplate. Stable item/row titles carry changing values in secondary text. Drive Power/Speed
+session clock and energy/estimated DKK cost; Vehicle is a `ListTemplate` whose rows are every
+metric the selected profile advertises — battery with the connection status first, then the
+remaining metrics in catalogue order, then the profile capacity — so choosing another vehicle
+changes the rows once and live telemetry only changes values. Stable item/row titles carry
+changing values in secondary text. Drive Power/Speed
 and Charging power run the debug-only image experiment below; the Charging battery tile reuses
 Drive's discrete battery level icon and every other icon is a vector.
 The host controls layout/size.

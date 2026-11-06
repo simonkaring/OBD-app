@@ -17,6 +17,8 @@ enum class CompanionCharging { DISCONNECTED, UNAVAILABLE, INACTIVE, ACTIVE, COMP
 data class CompanionState(
     val connection: CompanionConnection,
     val metrics: Map<TelemetryMetric, Double>,
+    /** Every metric the selected profile advertises, so a page can list them before they arrive. */
+    val supportedMetrics: Set<TelemetryMetric>,
     val rangeKm: Double?,
     val rangeEstimated: Boolean,
     val capacityKWh: Double?,
@@ -93,6 +95,7 @@ fun companionState(
     fun elapsed(start: Instant, end: Instant?) = Duration.between(start, end ?: now).seconds.coerceAtLeast(0)
     return CompanionState(
         connection = status, metrics = metrics,
+        supportedMetrics = TelemetryMetric.includingDerivedMetrics(supportedMetrics),
         rangeKm = reportedRange ?: estimatedRange, rangeEstimated = reportedRange == null,
         capacityKWh = capacity,
         tripDistanceKm = trip.current?.distanceKm, tripSeconds = trip.current?.let { elapsed(it.startTime, it.endTime) },
