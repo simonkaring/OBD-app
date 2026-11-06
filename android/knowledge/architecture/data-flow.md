@@ -49,10 +49,14 @@ state comes back out of the flows.
 
 # Freshness
 
-A metric counts as live only while it arrived in the current poll cycle; `TelemetryMetric
-.isAvailable` also drops derived values (instant efficiency, regen power) when their inputs go
-stale. Tiles render `--` rather than a stale number, and a value that is unknown is never
-rendered as a plausible zero.
+A metric counts as live only while it arrived in the current poll cycle. `TelemetrySnapshot
+.updatedAt(metric)` exposes the domain stamp the reducer writes for each timestamped value —
+speed, power, SoC, SOH, pack voltage/current, range, every temperature field (battery, coolant,
+intake, ambient, oil) and each community metric — and `TelemetryMetric.isAvailable` drops any
+stamped reading older than 15 s, along with derived values (instant efficiency, regen power)
+whose inputs went stale. Fields without a domain stamp (aux voltage, rpm, torque) are still
+covered by the live-metric set alone. Tiles render `--` rather than a stale number, and a value
+that is unknown is never rendered as a plausible zero.
 
 # Threading
 

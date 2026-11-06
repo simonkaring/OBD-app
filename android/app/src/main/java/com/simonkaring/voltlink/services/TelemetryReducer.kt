@@ -105,11 +105,12 @@ class TelemetryReducer(private var capacityKWh: Double) {
                     snapshot = snap,
                 )
             }
-            is TelemetryUpdate.Soh -> snap = snap.copy(stateOfHealthPct = update.percent)
+            is TelemetryUpdate.Soh -> snap = snap.copy(stateOfHealthPct = update.percent, sohUpdatedAt = timestamp)
             is TelemetryUpdate.BatteryTemp -> snap = snap.copy(
                 batteryTempC = update.avg,
                 batteryTempMinC = update.min,
                 batteryTempMaxC = update.max,
+                batteryTempUpdatedAt = timestamp,
             )
             is TelemetryUpdate.Aux12V -> snap = snap.copy(aux12VVolts = update.volts)
             is TelemetryUpdate.MotorStats -> snap = snap.copy(motorRpm = update.rpm, motorTorqueNm = update.torqueNm)
@@ -135,12 +136,12 @@ class TelemetryReducer(private var capacityKWh: Double) {
             is TelemetryUpdate.FuelLevel -> snap = snap.copy(fuelLevelPct = update.percent)
             is TelemetryUpdate.ThrottlePosition -> snap = snap.copy(throttlePositionPct = update.percent)
             is TelemetryUpdate.EngineLoad -> snap = snap.copy(engineLoadPct = update.percent)
-            is TelemetryUpdate.CoolantTemp -> snap = snap.copy(coolantTempC = update.celsius)
-            is TelemetryUpdate.IntakeAirTemp -> snap = snap.copy(intakeAirTempC = update.celsius)
-            is TelemetryUpdate.AmbientAirTemp -> snap = snap.copy(ambientAirTempC = update.celsius)
+            is TelemetryUpdate.CoolantTemp -> snap = snap.copy(coolantTempC = update.celsius, coolantTempUpdatedAt = timestamp)
+            is TelemetryUpdate.IntakeAirTemp -> snap = snap.copy(intakeAirTempC = update.celsius, intakeAirTempUpdatedAt = timestamp)
+            is TelemetryUpdate.AmbientAirTemp -> snap = snap.copy(ambientAirTempC = update.celsius, ambientAirTempUpdatedAt = timestamp)
             is TelemetryUpdate.Maf -> snap = snap.copy(mafGramsPerSec = update.gramsPerSec)
             is TelemetryUpdate.ManifoldPressure -> snap = snap.copy(manifoldPressureKPa = update.kPa)
-            is TelemetryUpdate.OilTemp -> snap = snap.copy(oilTempC = update.celsius)
+            is TelemetryUpdate.OilTemp -> snap = snap.copy(oilTempC = update.celsius, oilTempUpdatedAt = timestamp)
             is TelemetryUpdate.TimingAdvance -> snap = snap.copy(timingAdvanceDeg = update.degrees)
             is TelemetryUpdate.BarometricPressure -> snap = snap.copy(barometricPressureKPa = update.kPa)
             is TelemetryUpdate.VehicleRange -> snap = snap.copy(
@@ -150,7 +151,10 @@ class TelemetryReducer(private var capacityKWh: Double) {
             is TelemetryUpdate.CommunityMetric -> {
                 val values = (snap.communityValues ?: emptyMap()).toMutableMap()
                 values[update.metric] = update.value
-                snap = snap.copy(communityValues = values)
+                snap = snap.copy(
+                    communityValues = values,
+                    communityUpdatedAt = snap.communityUpdatedAt + (update.metric to timestamp),
+                )
             }
             is TelemetryUpdate.GenericPid -> Unit
         }

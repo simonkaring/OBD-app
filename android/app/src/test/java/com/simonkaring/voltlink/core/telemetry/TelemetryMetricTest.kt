@@ -37,7 +37,44 @@ class TelemetryMetricTest {
         assertTrue(TelemetryMetric.INSTANT_EFFICIENCY.isAvailable(fresh, live))
         val stale = fresh.copy(speedUpdatedAt = now.minusSeconds(30))
         assertFalse(TelemetryMetric.INSTANT_EFFICIENCY.isAvailable(stale, live))
-        assertTrue(TelemetryMetric.SPEED.isAvailable(stale, setOf(TelemetryMetric.SPEED)))
+        assertTrue(TelemetryMetric.SPEED.isAvailable(fresh, setOf(TelemetryMetric.SPEED)))
+        assertFalse(TelemetryMetric.SPEED.isAvailable(stale, setOf(TelemetryMetric.SPEED)))
+    }
+
+    @Test
+    fun `temperature and soh expire on their own stamps`() {
+        val now = Instant.parse("2026-10-25T10:00:00Z")
+        val live = setOf(
+            TelemetryMetric.BATTERY_TEMP, TelemetryMetric.BATTERY_TEMP_MIN, TelemetryMetric.BATTERY_TEMP_MAX,
+            TelemetryMetric.COOLANT_TEMP, TelemetryMetric.SOH,
+        )
+        val fresh = TelemetrySnapshot(
+            timestamp = now,
+            batteryTempC = 28.0, batteryTempMinC = 26.0, batteryTempMaxC = 30.0, batteryTempUpdatedAt = now,
+            coolantTempC = 88.0, coolantTempUpdatedAt = now,
+            stateOfHealthPct = 98.0, sohUpdatedAt = now,
+        )
+        assertTrue(live.all { it.isAvailable(fresh, live) })
+        val stale = fresh.copy(batteryTempUpdatedAt = now.minusSeconds(16), sohUpdatedAt = now.minusSeconds(16))
+        assertFalse(TelemetryMetric.BATTERY_TEMP.isAvailable(stale, live))
+        assertFalse(TelemetryMetric.BATTERY_TEMP_MIN.isAvailable(stale, live))
+        assertFalse(TelemetryMetric.BATTERY_TEMP_MAX.isAvailable(stale, live))
+        assertFalse(TelemetryMetric.SOH.isAvailable(stale, live))
+        assertTrue(TelemetryMetric.COOLANT_TEMP.isAvailable(stale, live))
+    }
+
+    @Test
+    fun `community temperature expires on its stamp`() {
+        val now = Instant.parse("2026-10-25T10:00:00Z")
+        val live = setOf(TelemetryMetric.MOTOR_TEMP)
+        val fresh = TelemetrySnapshot(
+            timestamp = now,
+            communityValues = mapOf(TelemetryMetric.MOTOR_TEMP to 64.0),
+            communityUpdatedAt = mapOf(TelemetryMetric.MOTOR_TEMP to now),
+        )
+        assertTrue(TelemetryMetric.MOTOR_TEMP.isAvailable(fresh, live))
+        val stale = fresh.copy(communityUpdatedAt = mapOf(TelemetryMetric.MOTOR_TEMP to now.minusSeconds(16)))
+        assertFalse(TelemetryMetric.MOTOR_TEMP.isAvailable(stale, live))
     }
 
     @Test

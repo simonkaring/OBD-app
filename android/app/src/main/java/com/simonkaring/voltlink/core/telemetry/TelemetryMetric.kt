@@ -139,7 +139,9 @@ enum class TelemetryMetric(
                     snapshot.speedKmH >= 5 && !snapshot.isCharging
             REGEN_POWER -> fresh(snapshot.speedUpdatedAt) && fresh(snapshot.powerUpdatedAt)
             VEHICLE_RANGE -> snapshot.vehicleRangeKm != null && fresh(snapshot.vehicleRangeUpdatedAt)
-            else -> true
+            // Any value with its own domain stamp expires on that stamp; fields without one
+            // (aux voltage, rpm, torque) are covered by the live-metric set above.
+            else -> snapshot.updatedAt(this)?.let { fresh(it) } ?: true
         }
     }
 

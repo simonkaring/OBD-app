@@ -50,6 +50,18 @@ class CompanionStateTest {
         assertEquals(mapOf(TelemetryMetric.SPEED to 50.0), state.metrics)
     }
 
+    @Test fun `temperature and SOH expire on their own domain stamps`() {
+        val live = setOf(TelemetryMetric.BATTERY_TEMP, TelemetryMetric.SOH)
+        val readings = snapshot.copy(
+            batteryTempC = 28.0, batteryTempUpdatedAt = now,
+            stateOfHealthPct = 98.0, sohUpdatedAt = now.minusSeconds(16),
+        )
+        val state = frame(snapshot = readings, live = live, supported = live)
+        assertEquals(setOf(TelemetryMetric.BATTERY_TEMP), state.metrics.keys)
+        val allFresh = readings.copy(sohUpdatedAt = now)
+        assertEquals(live, frame(snapshot = allFresh, live = live, supported = live).metrics.keys)
+    }
+
     @Test fun `unsupported signals and never received defaults are hidden`() {
         assertFalse(TelemetryMetric.POWER in frame(supported = setOf(TelemetryMetric.SOC)).metrics)
         assertTrue(frame(live = emptySet()).metrics.isEmpty())

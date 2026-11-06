@@ -79,8 +79,8 @@ estimator and cost uses the existing tariff interpreted as DKK/kWh.
 while STARTED. A wall clock expires silent telemetry after 15 seconds. Navigation does not
 start/stop acquisition. Explicit scenario buttons use the existing simulation, cannot replace
 an active real connection, and do not persist demo history. The phone UI is unchanged.
-Temperature/SOH rely on existing live-metric invalidation because their domain values lack
-individual timestamps. The standalone Compose display is not sent to a Car App Library host.
+Temperature and SOH carry their own domain timestamps, so a dropped PID expires them exactly
+like speed or SoC. The standalone Compose display is not sent to a Car App Library host.
 
 # Verification
 

@@ -100,6 +100,10 @@ class MockDrivingSimulation(private val scope: CoroutineScope) {
             currentUpdatedAt = now,
             vehicleRangeKm = 426 * next.stateOfChargePct / 100,
             vehicleRangeUpdatedAt = now,
+            sohUpdatedAt = now,
+            batteryTempUpdatedAt = now,
+            coolantTempUpdatedAt = now,
+            intakeAirTempUpdatedAt = now,
         )
         _telemetry.value = next
     }

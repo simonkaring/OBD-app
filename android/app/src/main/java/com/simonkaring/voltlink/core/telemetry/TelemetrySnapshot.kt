@@ -22,14 +22,17 @@ data class TelemetrySnapshot(
     val vehicleRangeKm: Double? = null,
     val vehicleRangeUpdatedAt: Instant? = null,
     val communityValues: Map<TelemetryMetric, Double>? = null,
+    val communityUpdatedAt: Map<TelemetryMetric, Instant> = emptyMap(),
     /** Presentation-only value supplied by the active trip tracker. */
     val tripAverageConsumption: Double? = null,
     val stateOfChargePct: Double = 0.0,
     val socUpdatedAt: Instant? = null,
     val stateOfHealthPct: Double = 0.0,
+    val sohUpdatedAt: Instant? = null,
     val batteryTempC: Double = 0.0,
     val batteryTempMinC: Double = 0.0,
     val batteryTempMaxC: Double = 0.0,
+    val batteryTempUpdatedAt: Instant? = null,
     val aux12VVolts: Double = 0.0,
     val motorRpm: Double = 0.0,
     val motorTorqueNm: Double = 0.0,
@@ -42,11 +45,15 @@ data class TelemetrySnapshot(
     val throttlePositionPct: Double = 0.0,
     val engineLoadPct: Double = 0.0,
     val coolantTempC: Double = 20.0,
+    val coolantTempUpdatedAt: Instant? = null,
     val intakeAirTempC: Double = 20.0,
+    val intakeAirTempUpdatedAt: Instant? = null,
     val ambientAirTempC: Double = 20.0,
+    val ambientAirTempUpdatedAt: Instant? = null,
     val mafGramsPerSec: Double = 0.0,
     val manifoldPressureKPa: Double = 100.0,
     val oilTempC: Double = 90.0,
+    val oilTempUpdatedAt: Instant? = null,
     val timingAdvanceDeg: Double = 0.0,
     val barometricPressureKPa: Double = 100.0,
 ) {
@@ -56,6 +63,29 @@ data class TelemetrySnapshot(
 
     val hasFreshPower: Boolean
         get() = powerUpdatedAt?.let { secondsSince(it) in 0.0..15.0 } ?: false
+
+    /**
+     * When [metric] last arrived, for every value the reducer stamps individually; null for
+     * derived metrics and fields that carry no domain timestamp.
+     */
+    fun updatedAt(metric: TelemetryMetric): Instant? = when (metric) {
+        TelemetryMetric.SPEED -> speedUpdatedAt
+        TelemetryMetric.POWER -> powerUpdatedAt
+        TelemetryMetric.SOC -> socUpdatedAt
+        TelemetryMetric.SOH -> sohUpdatedAt
+        TelemetryMetric.PACK_VOLTAGE -> voltageUpdatedAt
+        TelemetryMetric.PACK_CURRENT -> currentUpdatedAt
+        TelemetryMetric.VEHICLE_RANGE -> vehicleRangeUpdatedAt
+        TelemetryMetric.BATTERY_TEMP,
+        TelemetryMetric.BATTERY_TEMP_MIN,
+        TelemetryMetric.BATTERY_TEMP_MAX,
+        -> batteryTempUpdatedAt
+        TelemetryMetric.COOLANT_TEMP -> coolantTempUpdatedAt
+        TelemetryMetric.INTAKE_AIR_TEMP -> intakeAirTempUpdatedAt
+        TelemetryMetric.AMBIENT_AIR_TEMP -> ambientAirTempUpdatedAt
+        TelemetryMetric.OIL_TEMP -> oilTempUpdatedAt
+        else -> communityUpdatedAt[metric]
+    }
 
     private fun secondsSince(then: Instant): Double = (timestamp.toEpochMilli() - then.toEpochMilli()) / 1000.0
 }

@@ -57,16 +57,8 @@ fun companionState(
     }
     val usable = status == CompanionConnection.LIVE || status == CompanionConnection.DEMO
     val metrics = liveMetrics.filter { metric ->
-        usable && (demo || metric in supportedMetrics) && when (metric) {
-            TelemetryMetric.SOC -> fresh(snapshot.socUpdatedAt)
-            TelemetryMetric.SPEED -> fresh(snapshot.speedUpdatedAt)
-            TelemetryMetric.POWER -> fresh(snapshot.powerUpdatedAt)
-            TelemetryMetric.PACK_VOLTAGE -> fresh(snapshot.voltageUpdatedAt)
-            TelemetryMetric.PACK_CURRENT -> fresh(snapshot.currentUpdatedAt)
-            TelemetryMetric.VEHICLE_RANGE -> fresh(snapshot.vehicleRangeUpdatedAt)
-            // shortcut: temperature/SOH lack timestamps; add domain stamps for individual expiry.
-            else -> metric.isAvailable(snapshot, liveMetrics, at = now)
-        }
+        usable && (demo || metric in supportedMetrics) &&
+            metric.isAvailable(snapshot, liveMetrics, at = now)
     }.mapNotNull { metric ->
         metric.value(snapshot).takeIf { it.isFinite() }?.let { metric to it }
     }.toMap()
