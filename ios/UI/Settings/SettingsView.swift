@@ -237,11 +237,56 @@ private struct DemoSimulationSettingsView: View {
     }
 }
 
+/// One selectable decoder for the active car, with the metrics it can actually read.
+private struct DecoderOption: Identifiable {
+    let profileID: VehicleProfileID
+    let label: String
+    let supportLabel: String
+    let metrics: [String]
+    /// Catalog row to apply, or nil for a decoder swap that has no row of its own.
+    let model: VehicleModelEntry?
+
+    var id: VehicleProfileID { profileID }
+}
+
+@MainActor
+private func makeDecoderOptions(for vehicleData: VehicleDataManager) -> [DecoderOption] {
+    func make(_ profileID: VehicleProfileID, label: String, support: String?, model: VehicleModelEntry?) -> DecoderOption {
+        DecoderOption(
+            profileID: profileID,
+            label: label,
+            supportLabel: support ?? profileID.supportLabel,
+            metrics: profileID.makeProfile().supportedMetrics
+                .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+                .map { "\($0.displayName) (\($0.unitSymbol))" },
+            model: model)
+    }
+
+    let rows = VehicleCatalog.profileOptions(
+        selectedModelID: vehicleData.selectedVehicle.id,
+        currentProfileID: vehicleData.selectedProfileID
+    ).map { model in
+        make(model.profileID, label: model.resolvedVariantDisplayName, support: model.telemetrySupport.displayName, model: model)
+    }
+    let alternatives = VehicleCatalog.profileAlternatives(for: vehicleData.selectedProfileID).map {
+        make($0, label: $0.displayName, support: nil, model: nil)
+    }
+    // Keep the active decoder visible even when it has no catalog row; otherwise an ABRP swap
+    // would leave a single option and hide the section that made the swap possible.
+    let current = make(
+        vehicleData.selectedProfileID, label: vehicleData.selectedProfileID.displayName, support: nil, model: nil)
+
+    var seen: Set<VehicleProfileID> = []
+    return (rows + alternatives + [current]).filter { seen.insert($0.profileID).inserted }
+}
+
 private struct VehicleSettingsView: View {
     var vehicleData: VehicleDataManager
     @State private var showVehiclePicker = false
+    @State private var expandedDecoder: VehicleProfileID?
 
     var body: some View {
+        let decoders = makeDecoderOptions(for: vehicleData)
         Form {
             Section {
                 Button {
@@ -266,12 +311,81 @@ private struct VehicleSettingsView: View {
                 Text("Profile")
             }
 
+            if decoders.count > 1 {
+                Section {
+                    ForEach(decoders) { option in
+                        decoderRow(option)
+                    }
+                } header: {
+                    Text("Decoder")
+                } footer: {
+                    Text(
+                        "Every decoder available for this car, with the metrics each one publishes. Choosing a decoder re-initialises the adapter."
+                    )
+                }
+            }
         }
         .navigationTitle("Vehicle")
         .inlineTitleDisplayMode()
         .sheet(isPresented: $showVehiclePicker) {
             VehicleProfilePickerSheet(vehicleData: vehicleData)
         }
+    }
+
+    @ViewBuilder
+    private func decoderRow(_ option: DecoderOption) -> some View {
+        let selected = option.profileID == vehicleData.selectedProfileID
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Button {
+                    if let model = option.model {
+                        vehicleData.selectVehicle(model)
+                    } else {
+                        vehicleData.selectProfile(option.profileID)
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(option.label)
+                                .font(.body)
+                                .foregroundStyle(selected ? Theme.electricCyan : Theme.textPrimary)
+                            Text("\(option.supportLabel) · \(option.metrics.count) metrics")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                        Spacer(minLength: 0)
+                        if selected {
+                            Image(systemName: "checkmark")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.electricCyan)
+                                .accessibilityLabel("Selected decoder")
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(vehicleData.isCommandSessionActive)
+
+                Button {
+                    expandedDecoder = expandedDecoder == option.profileID ? nil : option.profileID
+                } label: {
+                    Image(systemName: expandedDecoder == option.profileID ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(expandedDecoder == option.profileID ? "Hide metrics" : "Show metrics")
+            }
+
+            if expandedDecoder == option.profileID {
+                Text(option.metrics.joined(separator: ", "))
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -599,6 +713,14 @@ private struct BluetoothSettingsView: View {
                 Text("Bluetooth Adapter")
             } footer: {
                 Text("VoltLink reconnects to the adapter used last when Bluetooth becomes available, without scanning again.")
+            }
+
+            if let notice = vehicleData.adapterNotice {
+                Section("Adapter Notice") {
+                    Text(notice)
+                        .font(.caption)
+                        .foregroundStyle(Theme.highPowerAmber)
+                }
             }
         }
         .navigationTitle("Bluetooth")

@@ -6,11 +6,11 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
     case mercedesEQA250
     case mercedesEQAOBDb
     case hyundaiKiaEGMP
-    case hkmcIoniq5 = "hkmc_Ioniq5"
+    case hyundaiKiaEGMPABRP = "hkmc_Ioniq5_abrp"
     case hkmc2019 = "hkmc_hkmc2019"
     case hkmc2017 = "hkmc_hkmc2017"
     case volkswagenMEB
-    case volkswagenMEBABRP = "volkswagen_MEB"
+    case volkswagenMEBABRP = "volkswagen_MEB_abrp"
     case volkswagenEGolf = "volkswagen_eGolf"
     case volkswagenEUp = "volkswagen_eUP"
     case genericOBD2
@@ -33,14 +33,62 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
 
     public var id: String { rawValue }
 
+    /// Catalog rows carry the ABRP PID file name of the car they describe. Those names resolve
+    /// to the compiled-in decoder for that car, so the community table stays a selectable
+    /// alternative in Settings instead of silently replacing the row's default profile.
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        switch raw {
+        case "volkswagen_MEB": self = .volkswagenMEB
+        case "hkmc_Ioniq5": self = .hyundaiKiaEGMP
+        default:
+            guard let id = VehicleProfileID(rawValue: raw) else {
+                throw DecodingError.dataCorrupted(
+                    .init(codingPath: decoder.codingPath, debugDescription: "Unknown vehicle profile ID: \(raw)"))
+            }
+            self = id
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    /// True when decoding comes from a bundled community ABRP PID document.
+    public var isCommunityDecoder: Bool {
+        switch self {
+        case .mercedesEQAOBDb, .hyundaiKiaEGMPABRP,
+            .hkmc2019, .hkmc2017,
+            .volkswagenMEBABRP, .volkswagenEGolf, .volkswagenEUp,
+            .fordMachE, .miniCooperSE, .renaultZoe, .renaultZoeZE40, .mgZSEV,
+            .jaguarIPace, .jaguarIPace2019, .chevyBolt, .chevyBolt2017,
+            .hondaENy1, .aiwaysU5, .bydAtto3, .bmwI3, .deepalS05:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Support level shared by a Settings decoder row and a catalog row for the same profile.
+    public var supportLabel: String {
+        if isCommunityDecoder { return LiveTelemetrySupport.community.displayName }
+        switch self {
+        case .genericOBD2, .genericEV: return LiveTelemetrySupport.generic.displayName
+        default: return LiveTelemetrySupport.verified.displayName
+        }
+    }
+
     public var displayName: String {
         switch self {
         case .mercedesEQA250: return "Mercedes-Benz EQA 250 (2021)"
         case .mercedesEQAOBDb: return "Mercedes-Benz EQA 250 (OBDb community)"
-        case .hyundaiKiaEGMP, .hkmcIoniq5: return "Hyundai/Kia E-GMP (IONIQ 5 / EV6)"
+        case .hyundaiKiaEGMP: return "Hyundai/Kia E-GMP (IONIQ 5 / EV6)"
+        case .hyundaiKiaEGMPABRP: return "Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)"
         case .hkmc2019: return "Hyundai / Kia (Kona / Niro EV)"
         case .hkmc2017: return "Hyundai / Kia (IONIQ Electric / Soul EV 2017)"
-        case .volkswagenMEB, .volkswagenMEBABRP: return "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)"
+        case .volkswagenMEB: return "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)"
+        case .volkswagenMEBABRP: return "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)"
         case .volkswagenEGolf: return "Volkswagen e-Golf (ABRP)"
         case .volkswagenEUp: return "Volkswagen e-Up! (ABRP)"
         case .genericOBD2: return "Generic SAE J1979 OBD-II"
@@ -67,12 +115,16 @@ public enum VehicleProfileID: String, CaseIterable, Identifiable, Codable, Senda
         switch self {
         case .mercedesEQA250: return MercedesEQA250Profile()
         case .mercedesEQAOBDb: return MercedesEQAOBDbProfile()
-        case .hyundaiKiaEGMP, .hkmcIoniq5: return HyundaiKiaEGMPProfile()
+        case .hyundaiKiaEGMP: return HyundaiKiaEGMPProfile()
+        case .hyundaiKiaEGMPABRP:
+            return ABRPProfileLoader.loadProfile(filename: "hkmc_Ioniq5.json", name: "Hyundai/Kia E-GMP (ABRP)", capacityKWh: 77.4) ?? GenericEVProfile()
         case .hkmc2019:
             return ABRPProfileLoader.loadProfile(filename: "hkmc_hkmc2019.json", name: "Hyundai / Kia (2019+)", capacityKWh: 64.0) ?? GenericEVProfile()
         case .hkmc2017:
             return ABRPProfileLoader.loadProfile(filename: "hkmc_hkmc2017.json", name: "Hyundai / Kia (2017)", capacityKWh: 28.0) ?? GenericEVProfile()
-        case .volkswagenMEB, .volkswagenMEBABRP: return VolkswagenMEBProfile()
+        case .volkswagenMEB: return VolkswagenMEBProfile()
+        case .volkswagenMEBABRP:
+            return ABRPProfileLoader.loadProfile(filename: "volkswagen_MEB.json", name: "Volkswagen MEB (ABRP)", capacityKWh: 77.0) ?? GenericEVProfile()
         case .volkswagenEGolf:
             return ABRPProfileLoader.loadProfile(filename: "volkswagen_eGolf.json", name: "Volkswagen e-Golf", capacityKWh: 35.8) ?? GenericEVProfile()
         case .volkswagenEUp:

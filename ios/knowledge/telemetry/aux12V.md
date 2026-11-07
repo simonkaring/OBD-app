@@ -1,7 +1,7 @@
 ---
 type: "Telemetry Metric"
 title: "Auxiliary 12V"
-description: "Auxiliary 12V telemetry metric in V, produced by 5 vehicle profiles."
+description: "Auxiliary 12V telemetry metric in V, produced by 4 vehicle profiles."
 tags: ["telemetry-metric", "core"]
 sources:
 - id: "metric-catalog"
@@ -27,6 +27,5 @@ status: "stable"
 
 - [Generic EV (SAE J1979)](/vehicles/genericEV.md)
 - [Generic SAE J1979 OBD-II](/vehicles/genericOBD2.md)
-- [Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hkmc_Ioniq5)](/vehicles/hkmc_Ioniq5.md)
-- [Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP)](/vehicles/hyundaiKiaEGMP.md)
+- [Hyundai/Kia E-GMP (IONIQ 5 / EV6)](/vehicles/hyundaiKiaEGMP.md)
 - [Mercedes-Benz EQA 250 (OBDb community)](/vehicles/mercedesEQAOBDb.md)

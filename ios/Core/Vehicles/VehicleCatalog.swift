@@ -148,6 +148,48 @@ public struct VehicleCatalog {
         brands.flatMap { $0.models }
     }
 
+    /// The row the app starts with when nothing is saved: the EQA OBDb community signal set.
+    public static var defaultSelection: VehicleModelEntry { eqaOBDbModel }
+
+    /// Catalog rows that offer a decoder for the same car as `selectedModelID`, one row per
+    /// distinct profile, so Settings can compare them. Rows are grouped by `modelFamilyID`, so
+    /// the EQA's verified and OBDb entries come back together while a car with a single decoder
+    /// returns just itself. Rows bound to a generic fallback are only kept when the family has
+    /// no dedicated decoder: their variant labels describe other cars, not a decoder for this
+    /// one. Without a picked row the anchor is the row for `currentProfileID`.
+    public static func profileOptions(
+        selectedModelID: String?,
+        currentProfileID: VehicleProfileID
+    ) -> [VehicleModelEntry] {
+        let models = allModels
+        guard
+            let anchor = models.first(where: { $0.id == selectedModelID })
+                ?? models.first(where: { $0.profileID == currentProfileID }),
+            let familyID = anchor.modelFamilyID, !familyID.isEmpty
+        else { return [] }
+        let familyModels = models.filter { $0.modelFamilyID == familyID }
+        let dedicated = familyModels.filter { $0.profileID != .genericEV && $0.profileID != .genericOBD2 }
+        var seen: Set<VehicleProfileID> = []
+        return (dedicated.isEmpty ? familyModels : dedicated)
+            .filter { seen.insert($0.profileID).inserted }
+            .sorted {
+                $0.resolvedVariantDisplayName.localizedStandardCompare($1.resolvedVariantDisplayName) == .orderedAscending
+            }
+    }
+
+    /// ABRP tables that decode cars the catalog binds to a compiled-in profile, so they have no
+    /// catalog row of their own. Settings offers them next to the car's row for comparison.
+    public static func profileAlternatives(for profileID: VehicleProfileID) -> [VehicleProfileID] {
+        decoderAlternatives[profileID] ?? []
+    }
+
+    private static let decoderAlternatives: [VehicleProfileID: [VehicleProfileID]] = [
+        .volkswagenMEB: [.volkswagenMEBABRP],
+        .volkswagenMEBABRP: [.volkswagenMEB],
+        .hyundaiKiaEGMP: [.hyundaiKiaEGMPABRP],
+        .hyundaiKiaEGMPABRP: [.hyundaiKiaEGMP],
+    ]
+
     public static func modelFamilies(for models: [VehicleModelEntry]) -> [VehicleModelFamily] {
         struct FamilyKey: Hashable {
             let explicitID: String?

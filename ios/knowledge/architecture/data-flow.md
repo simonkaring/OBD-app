@@ -25,7 +25,12 @@ BLE adapter -> ISO-TP parser -> vehicle profile -> VehicleDataManager -> SwiftUI
 2. `Services/TelemetryPollingLoop` sends profile polling commands in round-robin
    order, awaiting each reply, and keeps a short settling delay. It is a
    `@MainActor` class whose work runs in a cancellable `Task`; `stopPolling()`
-   cancels it rather than relying on a generation counter.
+   cancels it rather than relying on a generation counter. An `AT` command is
+   retried once, then a command the adapter still refuses (a module the car may
+   not have, such as `AT CRA 5A4` on the EQA) is dropped for the session while
+   polling continues; `VehicleDataManager.adapterNotice` names the command and
+   the adapter's reply. Profile initialisation also retries once and stays
+   fatal, naming the command and its raw reply.
 3. `Core/OBD/ISO15765Parser` reassembles multi-frame UDS/OBD responses. Never parse
    raw multi-line adapter text directly. Payload extraction (`hexBytes(after:)`)
    matches a DID echo only on byte boundaries, so a marker that happens to appear

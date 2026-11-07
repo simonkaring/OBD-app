@@ -45,7 +45,7 @@ final class DashboardLayoutTests: XCTestCase {
             return metric
         }
 
-        XCTAssertEqual(metrics, [.speed, .power, .soc, .aux12V, .tripAverageConsumption])
+        XCTAssertEqual(metrics, [.speed, .power, .soc, .motorTemp, .driveUnitTemp, .aux12V, .tripAverageConsumption])
         XCTAssertFalse(metrics.contains(.batteryTemp))
     }
 

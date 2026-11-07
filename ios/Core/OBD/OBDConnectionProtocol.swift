@@ -140,7 +140,10 @@ extension OBDConnectionProtocol {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
             let accepted: Bool
             if request == "ATZ" {
-                accepted = lines.contains { $0.contains("ELM") || $0.contains("OBD") || $0.contains("STN") }
+                // Clones answer a reset with a bare `OK`, the echoed command plus a banner, or
+                // just the banner. Any non-empty line that is not the echo proves the adapter
+                // came back, so a missing "ELM"/"OBD"/"STN" marker must not fail setup.
+                accepted = lines.contains { !$0.isEmpty && $0.replacingOccurrences(of: " ", with: "") != request }
             } else if request.hasPrefix("AT") {
                 accepted = lines.contains("OK")
             } else {

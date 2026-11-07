@@ -22,7 +22,7 @@ final class TelemetryPollingLoop {
     var handleReadFailure: @MainActor (_ command: String) -> Void = { _ in }
     /// Returns `true` when an `AT` command was acknowledged by the adapter.
     var handleControl: @MainActor (_ command: String, _ result: Result<String, Error>) -> Bool = { _, _ in false }
-    var handleControlFailure: @MainActor (_ command: String) -> Void = { _ in }
+    var handleControlFailure: @MainActor (_ command: String, _ result: Result<String, Error>) -> Void = { _, _ in }
 
     var successDelay: Duration = .milliseconds(10)
     var missDelay: Duration = .milliseconds(50)
@@ -69,9 +69,15 @@ final class TelemetryPollingLoop {
             guard !Task.isCancelled else { return }
 
             if command.uppercased().hasPrefix("AT") {
-                guard handleControl(command, result) else {
-                    handleControlFailure(command)
-                    return
+                if !handleControl(command, result) {
+                    // One retry absorbs a dropped BLE notification or a busy ELM327. A route the
+                    // adapter keeps refusing is dropped by the manager; the cycle continues so a
+                    // module the car does not have cannot end the session.
+                    let retry = await send(command)
+                    guard !Task.isCancelled else { return }
+                    if !handleControl(command, retry) {
+                        handleControlFailure(command, retry)
+                    }
                 }
                 if await sleep(successDelay) { return }
                 continue

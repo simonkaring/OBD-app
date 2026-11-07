@@ -210,6 +210,66 @@ final class VehicleCatalogSelectionTests: XCTestCase {
         XCTAssertNil(manager.estimatedFullRangeKm)
     }
 
+    func testNewManagerStartsOnTheCommunityEQADecoder() throws {
+        let suiteName = "CommunityDefaultTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let manager = VehicleDataManager(userDefaults: defaults)
+
+        XCTAssertEqual(manager.selectedVehicle.id, VehicleCatalog.eqaOBDbModel.id)
+        XCTAssertEqual(manager.selectedProfileID, .mercedesEQAOBDb)
+        XCTAssertTrue(manager.selectedProfile is MercedesEQAOBDbProfile)
+        XCTAssertFalse(manager.hasSelectedVehicle, "A default is not a choice the user made")
+    }
+
+    func testDecoderOptionsListEveryDecoderForTheSelectedCar() {
+        let eqa = VehicleCatalog.profileOptions(
+            selectedModelID: VehicleCatalog.defaultModel.id,
+            currentProfileID: .mercedesEQAOBDb)
+        XCTAssertEqual(Set(eqa.map(\.profileID)), [.mercedesEQA250, .mercedesEQAOBDb])
+        XCTAssertEqual(eqa.count, 2, "Generic-bound EQA rows must not masquerade as decoders")
+
+        // Without a picked row the active profile anchors the comparison.
+        let anchored = VehicleCatalog.profileOptions(selectedModelID: nil, currentProfileID: .mercedesEQA250)
+        XCTAssertEqual(Set(anchored.map(\.profileID)), [.mercedesEQA250, .mercedesEQAOBDb])
+
+        // A generic-bound EQA variant still offers the two dedicated decoders.
+        let genericBound = VehicleCatalog.profileOptions(
+            selectedModelID: "mercedes_benz-eqa-300_4matic-6000", currentProfileID: .genericEV)
+        XCTAssertEqual(Set(genericBound.map(\.profileID)), [.mercedesEQA250, .mercedesEQAOBDb])
+
+        // A family with no dedicated decoder has nothing to compare.
+        let generic = VehicleCatalog.profileOptions(
+            selectedModelID: VehicleCatalog.genericEVModel.id, currentProfileID: .genericEV)
+        XCTAssertLessThanOrEqual(generic.count, 1)
+        XCTAssertTrue(VehicleCatalog.profileAlternatives(for: .bmwI3).isEmpty)
+    }
+
+    func testABRPAlternativesAreOfferedNextToTheCompiledInDecoder() {
+        XCTAssertEqual(VehicleCatalog.profileAlternatives(for: .volkswagenMEB), [.volkswagenMEBABRP])
+        XCTAssertEqual(VehicleCatalog.profileAlternatives(for: .volkswagenMEBABRP), [.volkswagenMEB])
+        XCTAssertEqual(VehicleCatalog.profileAlternatives(for: .hyundaiKiaEGMP), [.hyundaiKiaEGMPABRP])
+        XCTAssertEqual(VehicleCatalog.profileAlternatives(for: .hyundaiKiaEGMPABRP), [.hyundaiKiaEGMP])
+    }
+
+    func testCommunityTablesKeepTheirOwnRegistryIdentity() {
+        XCTAssertTrue(VehicleProfileID.volkswagenMEBABRP.makeProfile() is ABRPGenericVehicleProfile)
+        XCTAssertTrue(VehicleProfileID.hyundaiKiaEGMPABRP.makeProfile() is ABRPGenericVehicleProfile)
+        XCTAssertTrue(VehicleProfileID.volkswagenMEB.makeProfile() is VolkswagenMEBProfile)
+        XCTAssertTrue(VehicleProfileID.hyundaiKiaEGMP.makeProfile() is HyundaiKiaEGMPProfile)
+        XCTAssertEqual(VehicleProfileID.volkswagenMEBABRP.supportLabel, LiveTelemetrySupport.community.displayName)
+        XCTAssertEqual(VehicleProfileID.hyundaiKiaEGMPABRP.supportLabel, LiveTelemetrySupport.community.displayName)
+        XCTAssertEqual(VehicleProfileID.mercedesEQA250.supportLabel, LiveTelemetrySupport.verified.displayName)
+
+        // Catalog rows still resolve to the compiled-in decoder for their car.
+        let json = Data(#""volkswagen_MEB""#.utf8)
+        XCTAssertEqual(try? JSONDecoder().decode(VehicleProfileID.self, from: json), .volkswagenMEB)
+        let ioniq = Data(#""hkmc_Ioniq5""#.utf8)
+        XCTAssertEqual(try? JSONDecoder().decode(VehicleProfileID.self, from: ioniq), .hyundaiKiaEGMP)
+        XCTAssertFalse(VehicleCatalog.allModels.contains { $0.profileID == .volkswagenMEBABRP })
+    }
+
     private func makeVehicle(
         id: String,
         modelName: String,

@@ -1,7 +1,7 @@
 ---
 type: "Vehicle Profile"
-title: "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagenMEB)"
-description: "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagenMEB) vehicle profile with 4 polling commands and 4 telemetry metrics."
+title: "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)"
+description: "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) vehicle profile with 4 polling commands and 4 telemetry metrics."
 tags: ["vehicle-profile", "ev"]
 sources:
 - id: "registry"
@@ -19,10 +19,10 @@ status: "stable"
 | Attribute | Value |
 | --- | --- |
 | Registry ID | `volkswagenMEB` |
-| Display name | Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagenMEB) |
+| Display name | Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) |
 | Electric vehicle | Yes |
 | Usable battery capacity | 77 kWh |
-| Catalog models | 0 |
+| Catalog models | 37 |
 | Polling commands | 4 |
 
 # Supported Metrics
@@ -57,3 +57,15 @@ AT CAF 0
 AT CF 17FE7
 AT CRA 17FE007B
 ```
+
+# Catalog Coverage
+
+- Audi Q4 e-tron 40 · 2023-2025 · Community live telemetry
+- Audi Q4 e-tron 40 Sportback · 2023-2025 · Community live telemetry
+- Audi Q4 e-tron 50 · 2023-2025 · Community live telemetry
+- Audi Q4 e-tron 50 Sportback · 2023-2025 · Community live telemetry
+- Audi Q4 e-tron quattro · 2023-2025 · Community live telemetry
+- Audi Q4 e-tron quattro Sportback · 2023-2025 · Community live telemetry
+- Cupra Born · 2023-2025 · Community live telemetry
+- Cupra Born 77 kWh · 2023-2025 · Community live telemetry
+- …and 29 more catalog entries

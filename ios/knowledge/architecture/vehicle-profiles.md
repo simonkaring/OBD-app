@@ -39,7 +39,16 @@ implementation wraps the single-result `parseResponse`.
   ABRP JSON file.
 - `Core/Vehicles/VehicleCatalog.swift` loads `Data/Seed/vehicle_catalog.json`
   and maps catalog rows to profile IDs. A row without a registered profile
-  falls back to generic telemetry.
+  falls back to generic telemetry. Catalog rows carry the community PID file
+  name (`volkswagen_MEB`, `hkmc_Ioniq5`); `VehicleProfileID`'s decoder maps those
+  names to the car's compiled-in decoder, so a row keeps that decoder by default.
+- A car can have more than one decoder. `VehicleCatalog.profileOptions` returns
+  the catalog rows for the selected car's family (the EQA's verified and OBDb
+  entries), and `VehicleCatalog.profileAlternatives` returns the ABRP tables
+  that decode a car with no row of their own (`volkswagenMEBABRP`,
+  `hyundaiKiaEGMPABRP`). Settings lists them for comparison, and picking one
+  re-initialises the adapter. New installs start on the EQA OBDb community
+  decoder; the verified EQA decoder remains selectable alongside it.
 - `ABRPProfileLoader` reads `Data/Seed/abrp_pids/*.json` (iternio
   EV-OBD-PIDs) and evaluates byte equations.
 - `MercedesEQA250Profile` uses UDS Service `0x22` on CAN IDs `7E4` / `7E0`.

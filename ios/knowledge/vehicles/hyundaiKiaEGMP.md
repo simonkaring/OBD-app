@@ -1,7 +1,7 @@
 ---
 type: "Vehicle Profile"
-title: "Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP)"
-description: "Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP) vehicle profile with 3 polling commands and 6 telemetry metrics."
+title: "Hyundai/Kia E-GMP (IONIQ 5 / EV6)"
+description: "Hyundai/Kia E-GMP (IONIQ 5 / EV6) vehicle profile with 3 polling commands and 6 telemetry metrics."
 tags: ["vehicle-profile", "ev"]
 sources:
 - id: "registry"
@@ -19,10 +19,10 @@ status: "stable"
 | Attribute | Value |
 | --- | --- |
 | Registry ID | `hyundaiKiaEGMP` |
-| Display name | Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP) |
+| Display name | Hyundai/Kia E-GMP (IONIQ 5 / EV6) |
 | Electric vehicle | Yes |
 | Usable battery capacity | 77.4 kWh |
-| Catalog models | 0 |
+| Catalog models | 9 |
 | Polling commands | 3 |
 
 # Supported Metrics
@@ -53,3 +53,15 @@ AT H1
 AT ST FF
 AT SP 6
 ```
+
+# Catalog Coverage
+
+- Hyundai IONIQ 5 · 2023-2025 · Community live telemetry
+- Hyundai IONIQ 5 · 2024-2025 · Community live telemetry
+- Hyundai IONIQ 5 AWD · 2023-2025 · Community live telemetry
+- Hyundai IONIQ 6 AWD · 2023-2025 · Community live telemetry
+- Hyundai IONIQ 6 Long Range · 2023-2025 · Community live telemetry
+- Hyundai IONIQ 6 Standard Range · 2023-2025 · Community live telemetry
+- Hyundai IONIQ 9 Long Range AWD · 2025 · Community live telemetry
+- Kia EV6 Long Range · 2022+ · Community live telemetry
+- …and 1 more catalog entries

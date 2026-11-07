@@ -203,9 +203,11 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     @MainActor
     func testStartupWaitsForRequiredAcknowledgementsBeforePolling() async {
         let mock = CalibrationMockAdapter()
+        mock.state = .disconnected
         mock.deferredCommand = "AT SP 7"
         let manager = VehicleDataManager(connection: mock)
         defer { manager.stopPolling() }
+        manager.selectProfile(.mercedesEQA250)
         mock.connect(peripheralName: nil)
         XCTAssertEqual(manager.connectionState, .connecting(deviceName: "Calibration Mock"))
         XCTAssertEqual(mock.sentCommands.last, "AT SP 7")
@@ -222,36 +224,37 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     @MainActor
     func testFailedStartupDisconnectsAndAllowsReconnect() {
         let mock = CalibrationMockAdapter()
-        mock.responses["AT SP 7"] = .success("?\r>")
+        mock.responses["AT SP 6"] = .success("?\r>")
         let manager = VehicleDataManager(connection: mock)
         defer { manager.stopPolling() }
         mock.connect(peripheralName: nil)
         guard case .error(let message) = manager.connectionState else {
             return XCTFail("Failed setup must not report ready")
         }
-        XCTAssertTrue(message.contains("AT SP 7"))
+        XCTAssertTrue(message.contains("AT SP 6"))
+        XCTAssertTrue(message.contains("?"), "The adapter's own reply belongs in the error")
         XCTAssertEqual(mock.state, .disconnected)
-        XCTAssertFalse(mock.sentCommands.contains("22010A"))
+        XCTAssertFalse(mock.sentCommands.contains("222001"))
 
-        mock.responses["AT SP 7"] = .success("OK\r>")
+        mock.responses["AT SP 6"] = .success("OK\r>")
         mock.connect(peripheralName: nil)
         XCTAssertEqual(manager.connectionState, .ready(deviceName: "Calibration Mock"))
     }
 
     @MainActor
-    func testRoutingFailureStopsRequestsAndDisconnects() async {
+    func testRefusedRouteIsSkippedAndPollingContinues() async {
         let mock = CalibrationMockAdapter()
-        mock.responses["AT SH 18DA59F1"] = .failure(NSError(domain: "Test", code: -2))
+        mock.responses["AT CRA 7EA"] = .failure(NSError(domain: "Test", code: -2))
         let manager = VehicleDataManager(connection: mock)
         defer { manager.stopPolling() }
         manager.startPolling()
-        try? await Task.sleep(nanoseconds: 150_000_000)
-        XCTAssertEqual(mock.state, .disconnected)
-        guard case .error(let message) = manager.connectionState else {
-            return XCTFail("Failed routing must be reported")
-        }
-        XCTAssertTrue(message.contains("AT SH 18DA59F1"))
-        XCTAssertFalse(mock.sentCommands.contains("22010A"))
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        XCTAssertEqual(mock.state, .ready(deviceName: "Calibration Mock"), "A refused route must not disconnect")
+        XCTAssertTrue(mock.sentCommands.contains("222001"), "The rest of the poll cycle keeps running")
+        XCTAssertEqual(mock.sentCommands.filter { $0 == "AT CRA 7EA" }.count, 2, "Retried once, then dropped")
+        XCTAssertNotNil(manager.adapterNotice)
+        XCTAssertTrue(manager.adapterNotice?.contains("AT CRA 7EA") == true)
     }
 
     @MainActor
@@ -270,8 +273,10 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     @MainActor
     func testLateStartupAndPollingRepliesAreIgnoredAfterCancellation() async {
         let mock = CalibrationMockAdapter()
+        mock.state = .disconnected
         mock.deferredCommand = "AT SP 7"
         let manager = VehicleDataManager(connection: mock)
+        manager.selectProfile(.mercedesEQA250)
         mock.connect(peripheralName: nil)
         mock.disconnect()
         let sentCount = mock.sentCommands.count
@@ -345,12 +350,15 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     @MainActor
     func testEQACalibrationKeepsRetryingWhenOnlyATCommandsRespond() async {
         let mock = CalibrationMockAdapter()
+        mock.state = .disconnected
         mock.responses = [
             "ATCRA 18DAF159": .success("OK\r>"),
             "AT SH 18DA59F1": .success("OK\r>"),
         ]
         let manager = VehicleDataManager(connection: mock)
         defer { manager.stopPolling() }
+        manager.selectProfile(.mercedesEQA250)
+        mock.state = .ready(deviceName: "Calibration Mock")
         manager.startCalibration()
         for _ in 0..<20 {
             if !manager.isCalibrating { break }
@@ -371,6 +379,7 @@ final class VehicleProfileCalibrationTests: XCTestCase {
     @MainActor
     func testEQACalibrationRetainsUndecodedCaptureDIDWithoutPublishingSOC() async {
         let mock = CalibrationMockAdapter()
+        mock.state = .disconnected
         mock.responses = [
             "ATCRA 18DAF159": .success("OK\r>"),
             "AT SH 18DA59F1": .success("OK\r>"),
@@ -378,6 +387,8 @@ final class VehicleProfileCalibrationTests: XCTestCase {
         ]
         let manager = VehicleDataManager(connection: mock)
         defer { manager.stopPolling() }
+        manager.selectProfile(.mercedesEQA250)
+        mock.state = .ready(deviceName: "Calibration Mock")
         manager.startCalibration()
         for _ in 0..<20 {
             if !manager.isCalibrating { break }

@@ -11,9 +11,11 @@ public final class VehicleDataManager: OBDConnectionDelegate {
 
     public private(set) var latestTelemetry = TelemetrySnapshot()
     public private(set) var connectionState: BLEConnectionState = .disconnected
-    public private(set) var selectedProfile: VehicleProfile = MercedesEQA250Profile()
-    public private(set) var selectedProfileID: VehicleProfileID = .mercedesEQA250
-    public private(set) var selectedVehicle = VehicleCatalog.defaultModel
+    /// Starts on the EQA OBDb community signal set; the older verified EQA decoder stays
+    /// selectable as an alternative for the same car.
+    public private(set) var selectedProfile: VehicleProfile = MercedesEQAOBDbProfile()
+    public private(set) var selectedProfileID: VehicleProfileID = .mercedesEQAOBDb
+    public private(set) var selectedVehicle = VehicleCatalog.defaultSelection
     public private(set) var selectedModelYear: Int?
     public private(set) var chargingSession = ChargingSessionState()
     public var isDemoMode: Bool = false
@@ -25,6 +27,8 @@ public final class VehicleDataManager: OBDConnectionDelegate {
     public private(set) var isCommandSessionActive = false
     public private(set) var socReferenceOffset: Double?
     public private(set) var hasSelectedVehicle: Bool = false
+    /// Non-fatal adapter complaint, e.g. a route command it refused; shown in Settings.
+    public private(set) var adapterNotice: String?
 
     /// Non-UI consumers (trip/charging recorders, CarPlay) need an event stream; SwiftUI
     /// observes the individual properties above through Observation instead of this.
@@ -55,6 +59,8 @@ public final class VehicleDataManager: OBDConnectionDelegate {
     @ObservationIgnored private var isInitializing = false
     @ObservationIgnored private var shouldPollAfterInitialization = false
     @ObservationIgnored private var pollingGeneration = 0
+    /// `AT` route commands the adapter kept refusing, skipped until the profile changes.
+    @ObservationIgnored private var unroutableCommands: Set<String> = []
     @ObservationIgnored private var chargingEstimator = ChargingPowerEstimator()
     @ObservationIgnored private var commandMetrics: [String: Set<TelemetryMetric>] = [:]
     @ObservationIgnored private var commandMisses: [String: Int] = [:]
@@ -205,6 +211,8 @@ public final class VehicleDataManager: OBDConnectionDelegate {
 
     public func selectProfile(_ id: VehicleProfileID) {
         guard !isCommandSessionActive else { return }
+        unroutableCommands.removeAll()
+        adapterNotice = nil
         let wasPolling = isPolling
         stopPolling()
         selectedProfileID = id
@@ -361,7 +369,9 @@ public final class VehicleDataManager: OBDConnectionDelegate {
         let loop = TelemetryPollingLoop()
         loop.commands = { [weak self] in
             guard let self else { return [] }
-            return self.calibratedCommands ?? self.selectedProfile.pollingCommands
+            let commands = self.calibratedCommands ?? self.selectedProfile.pollingCommands
+            guard !self.unroutableCommands.isEmpty else { return commands }
+            return commands.filter { !self.unroutableCommands.contains(Self.normalizedCommand($0)) }
         }
         loop.isConnected = { [weak self] in
             self?.obdConnection.state.isConnected ?? false
@@ -390,17 +400,42 @@ public final class VehicleDataManager: OBDConnectionDelegate {
             guard let self, case .success(let raw) = result else { return false }
             return self.isSupportedResponse(command: command, rawResponse: raw)
         }
-        loop.handleControlFailure = { [weak self] command in
-            self?.handleRoutingFailure(at: command)
+        loop.handleControlFailure = { [weak self] command, result in
+            self?.skipUnroutable(command, result: result)
         }
         return loop
     }
 
-    private func handleRoutingFailure(at command: String) {
-        pollingLoop.stop()
-        resetTelemetryValidity()
-        obdConnection.disconnect()
-        connectionState = .error("Adapter routing failed at \(command). Reconnect the scanner.")
+    /// Drops an `AT` route the adapter kept refusing from the poll cycle. Community profiles
+    /// address modules the car may not have (`AT CRA 5A4` on the EQA); one unacknowledged route
+    /// says nothing about the rest of the session, so polling continues without it instead of
+    /// disconnecting the scanner. The command and the adapter's own reply stay visible.
+    private func skipUnroutable(_ command: String, result: Result<String, Error>) {
+        guard obdConnection.state.isConnected else { return }
+        guard unroutableCommands.insert(Self.normalizedCommand(command)).inserted else { return }
+        adapterNotice =
+            "\(command) was not acknowledged (\(Self.describeReply(result))). Skipped until the profile changes."
+    }
+
+    private static func normalizedCommand(_ command: String) -> String {
+        command.replacingOccurrences(of: " ", with: "").uppercased()
+    }
+
+    /// The adapter's answer on one line, so an error names what it actually said.
+    static func describeReply(_ result: Result<String, Error>) -> String {
+        switch result {
+        case .success(let raw):
+            let text =
+                ISO15765Parser().cleanELMResponse(raw)
+                .replacingOccurrences(of: "\r", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return "no reply" }
+            return text.count <= 120 ? "\"\(text)\"" : "\"\(text.prefix(117))…\""
+        case .failure(let error):
+            let text = error.localizedDescription
+            return text.isEmpty ? "no reply" : "\"\(text)\""
+        }
     }
 
     private func sendCommandResult(_ command: String) async -> Result<String, Error> {
@@ -795,12 +830,16 @@ public final class VehicleDataManager: OBDConnectionDelegate {
             initializeProfile()
         } else if case .disconnected = state {
             stopPolling()
+            unroutableCommands.removeAll()
+            adapterNotice = nil
             publishTelemetry(TelemetrySnapshot())
             chargingEstimator.reset()
             resetTelemetryValidity()
             onUnexpectedDisconnect?()
         } else if case .error = state {
             stopPolling()
+            unroutableCommands.removeAll()
+            adapterNotice = nil
             publishTelemetry(TelemetrySnapshot())
             chargingEstimator.reset()
             resetTelemetryValidity()
@@ -808,9 +847,47 @@ public final class VehicleDataManager: OBDConnectionDelegate {
         }
     }
 
+    /// Sends one setup command, retrying once: a dropped BLE notification or a busy ELM327
+    /// right after the link comes up is common, and one miss says nothing about the car.
+    private func sendInitializationCommand(
+        _ command: String,
+        completion: @escaping @MainActor @Sendable (Bool, Result<String, Error>) -> Void
+    ) {
+        sendInitializationCommand(command, attempt: 1, completion: completion)
+    }
+
+    private func sendInitializationCommand(
+        _ command: String,
+        attempt: Int,
+        completion: @escaping @MainActor @Sendable (Bool, Result<String, Error>) -> Void
+    ) {
+        obdConnection.sendCommand(command) { [weak self] result in
+            guard let self, self.isInitializing else { return }
+            let accepted = self.acceptsInitializationReply(command, result: result)
+            if accepted || attempt >= 2 {
+                completion(accepted, result)
+            } else {
+                self.sendInitializationCommand(command, attempt: attempt + 1, completion: completion)
+            }
+        }
+    }
+
+    private func acceptsInitializationReply(_ command: String, result: Result<String, Error>) -> Bool {
+        guard case .success(let raw) = result else { return false }
+        let request = command.replacingOccurrences(of: " ", with: "").uppercased()
+        if request.hasPrefix("10"), request.count == 4 {
+            // Bundled Zoe profiles enter a diagnostic session before reading PIDs.
+            let expected = "50" + request.suffix(2)
+            return ISO15765Parser().assembleISOTPPayloads(raw).contains { $0.payload.hasPrefix(expected) }
+        }
+        return isSupportedResponse(command: command, rawResponse: raw)
+    }
+
     private func initializeProfile(commandIndex: Int = 0, resumePolling: Bool = true) {
         if commandIndex == 0 {
             stopPolling()
+            unroutableCommands.removeAll()
+            adapterNotice = nil
             resetTelemetryValidity()
             isInitializing = true
             shouldPollAfterInitialization = resumePolling
@@ -829,25 +906,13 @@ public final class VehicleDataManager: OBDConnectionDelegate {
             return
         }
         let command = commands[commandIndex]
-        obdConnection.sendCommand(command) { [weak self] result in
+        sendInitializationCommand(command) { [weak self] accepted, result in
             guard let self, self.isInitializing, generation == self.pollingGeneration else { return }
-            let accepted: Bool
-            if case .success(let raw) = result {
-                let request = command.replacingOccurrences(of: " ", with: "").uppercased()
-                if request.hasPrefix("10"), request.count == 4 {
-                    // Bundled Zoe profiles enter a diagnostic session before reading PIDs.
-                    let expected = "50" + request.suffix(2)
-                    accepted = ISO15765Parser().assembleISOTPPayloads(raw).contains { $0.payload.hasPrefix(expected) }
-                } else {
-                    accepted = self.isSupportedResponse(command: command, rawResponse: raw)
-                }
-            } else {
-                accepted = false
-            }
             guard accepted else {
                 self.stopPolling()
                 self.obdConnection.disconnect()
-                self.connectionState = .error("Adapter setup failed at \(command). Reconnect the scanner.")
+                self.connectionState = .error(
+                    "Adapter setup failed at \(command) (\(Self.describeReply(result))). Reconnect the scanner.")
                 return
             }
             self.initializeProfile(commandIndex: commandIndex + 1, resumePolling: resumePolling)

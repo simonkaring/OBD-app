@@ -11,8 +11,8 @@
 * [Honda e:Ny1 (ABRP)](honda_eny1.md) - Honda e:Ny1 (ABRP) vehicle profile with 7 polling commands and 0 telemetry metrics.
 * [Hyundai / Kia (IONIQ Electric / Soul EV 2017)](hkmc_hkmc2017.md) - Hyundai / Kia (IONIQ Electric / Soul EV 2017) vehicle profile with 5 polling commands and 7 telemetry metrics.
 * [Hyundai / Kia (Kona / Niro EV)](hkmc_hkmc2019.md) - Hyundai / Kia (Kona / Niro EV) vehicle profile with 5 polling commands and 7 telemetry metrics.
-* [Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hkmc_Ioniq5)](hkmc_Ioniq5.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hkmc_Ioniq5) vehicle profile with 3 polling commands and 6 telemetry metrics.
-* [Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP)](hyundaiKiaEGMP.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP) vehicle profile with 3 polling commands and 6 telemetry metrics.
+* [Hyundai/Kia E-GMP (IONIQ 5 / EV6)](hyundaiKiaEGMP.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) vehicle profile with 3 polling commands and 6 telemetry metrics.
+* [Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)](hkmc_Ioniq5_abrp.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP) vehicle profile with 3 polling commands and 5 telemetry metrics.
 * [Jaguar I-Pace 2019 (ABRP)](jaguar_ipace2019.md) - Jaguar I-Pace 2019 (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Jaguar I-Pace 2021+ (ABRP)](jaguar_ipace2021.md) - Jaguar I-Pace 2021+ (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Mercedes-Benz EQA 250 (2021)](mercedesEQA250.md) - Mercedes-Benz EQA 250 (2021) vehicle profile with 4 polling commands and 1 telemetry metrics.
@@ -24,5 +24,5 @@
 * [Renault Zoe ZE50 (ABRP)](renault_zoe2.md) - Renault Zoe ZE50 (ABRP) vehicle profile with 13 polling commands and 5 telemetry metrics.
 * [Volkswagen e-Golf (ABRP)](volkswagen_eGolf.md) - Volkswagen e-Golf (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 * [Volkswagen e-Up! (ABRP)](volkswagen_eUP.md) - Volkswagen e-Up! (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
-* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagen_MEB)](volkswagen_MEB.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagen_MEB) vehicle profile with 4 polling commands and 4 telemetry metrics.
-* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagenMEB)](volkswagenMEB.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagenMEB) vehicle profile with 4 polling commands and 4 telemetry metrics.
+* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)](volkswagenMEB.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) vehicle profile with 4 polling commands and 4 telemetry metrics.
+* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)](volkswagen_MEB_abrp.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.

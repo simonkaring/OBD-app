@@ -137,11 +137,14 @@ extension DashboardLayout {
             }
     }
 
-    /// Familiar driving and charging readouts, filtered by the selected profile.
+    /// Familiar driving and charging readouts plus the two community tiles the EQA OBDb
+    /// signal set adds; `adaptedDefault` drops them for profiles that cannot report them.
     public static let `default` = DashboardLayout(widgets: [
         DashboardWidgetConfig(kind: .metric(.speed), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.power), style: .dial, size: .medium),
         DashboardWidgetConfig(kind: .metric(.soc), style: .bar, size: .large),
+        DashboardWidgetConfig(kind: .metric(.motorTemp), style: .dial, size: .medium),
+        DashboardWidgetConfig(kind: .metric(.driveUnitTemp), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .metric(.aux12V), style: .numeric, size: .medium),
         DashboardWidgetConfig(kind: .metric(.tripAverageConsumption), style: .numeric, size: .medium),
     ])

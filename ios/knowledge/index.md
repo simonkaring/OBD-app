@@ -23,8 +23,8 @@ okf_version: "0.2"
 * [Honda e:Ny1 (ABRP)](vehicles/honda_eny1.md) - Honda e:Ny1 (ABRP) vehicle profile with 7 polling commands and 0 telemetry metrics.
 * [Hyundai / Kia (IONIQ Electric / Soul EV 2017)](vehicles/hkmc_hkmc2017.md) - Hyundai / Kia (IONIQ Electric / Soul EV 2017) vehicle profile with 5 polling commands and 7 telemetry metrics.
 * [Hyundai / Kia (Kona / Niro EV)](vehicles/hkmc_hkmc2019.md) - Hyundai / Kia (Kona / Niro EV) vehicle profile with 5 polling commands and 7 telemetry metrics.
-* [Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hkmc_Ioniq5)](vehicles/hkmc_Ioniq5.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hkmc_Ioniq5) vehicle profile with 3 polling commands and 6 telemetry metrics.
-* [Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP)](vehicles/hyundaiKiaEGMP.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) (hyundaiKiaEGMP) vehicle profile with 3 polling commands and 6 telemetry metrics.
+* [Hyundai/Kia E-GMP (IONIQ 5 / EV6)](vehicles/hyundaiKiaEGMP.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) vehicle profile with 3 polling commands and 6 telemetry metrics.
+* [Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)](vehicles/hkmc_Ioniq5_abrp.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP) vehicle profile with 3 polling commands and 5 telemetry metrics.
 * [Jaguar I-Pace 2019 (ABRP)](vehicles/jaguar_ipace2019.md) - Jaguar I-Pace 2019 (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Jaguar I-Pace 2021+ (ABRP)](vehicles/jaguar_ipace2021.md) - Jaguar I-Pace 2021+ (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Mercedes-Benz EQA 250 (2021)](vehicles/mercedesEQA250.md) - Mercedes-Benz EQA 250 (2021) vehicle profile with 4 polling commands and 1 telemetry metrics.
@@ -36,13 +36,13 @@ okf_version: "0.2"
 * [Renault Zoe ZE50 (ABRP)](vehicles/renault_zoe2.md) - Renault Zoe ZE50 (ABRP) vehicle profile with 13 polling commands and 5 telemetry metrics.
 * [Volkswagen e-Golf (ABRP)](vehicles/volkswagen_eGolf.md) - Volkswagen e-Golf (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 * [Volkswagen e-Up! (ABRP)](vehicles/volkswagen_eUP.md) - Volkswagen e-Up! (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
-* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagen_MEB)](vehicles/volkswagen_MEB.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagen_MEB) vehicle profile with 4 polling commands and 4 telemetry metrics.
-* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagenMEB)](vehicles/volkswagenMEB.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) (volkswagenMEB) vehicle profile with 4 polling commands and 4 telemetry metrics.
+* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)](vehicles/volkswagenMEB.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) vehicle profile with 4 polling commands and 4 telemetry metrics.
+* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)](vehicles/volkswagen_MEB_abrp.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 
 # Telemetry Metrics
 * [12V Voltage (High Definition)](telemetry/aux12VHighDefinition.md) - 12V Voltage (High Definition) telemetry metric in V, produced by 1 vehicle profile.
 * [Ambient Air Temp](telemetry/ambientAirTemp.md) - Ambient Air Temp telemetry metric in °C, produced by 10 vehicle profiles.
-* [Auxiliary 12V](telemetry/aux12V.md) - Auxiliary 12V telemetry metric in V, produced by 5 vehicle profiles.
+* [Auxiliary 12V](telemetry/aux12V.md) - Auxiliary 12V telemetry metric in V, produced by 4 vehicle profiles.
 * [Barometric Pressure](telemetry/barometricPressure.md) - Barometric Pressure telemetry metric in kPa, produced by 2 vehicle profiles.
 * [Battery Temp Max](telemetry/batteryTempMax.md) - Battery Temp Max telemetry metric in °C, produced by 13 vehicle profiles.
 * [Battery Temp Min](telemetry/batteryTempMin.md) - Battery Temp Min telemetry metric in °C, produced by 13 vehicle profiles.

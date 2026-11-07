@@ -1,7 +1,7 @@
 # Telemetry Metric
 * [12V Voltage (High Definition)](aux12VHighDefinition.md) - 12V Voltage (High Definition) telemetry metric in V, produced by 1 vehicle profile.
 * [Ambient Air Temp](ambientAirTemp.md) - Ambient Air Temp telemetry metric in °C, produced by 10 vehicle profiles.
-* [Auxiliary 12V](aux12V.md) - Auxiliary 12V telemetry metric in V, produced by 5 vehicle profiles.
+* [Auxiliary 12V](aux12V.md) - Auxiliary 12V telemetry metric in V, produced by 4 vehicle profiles.
 * [Barometric Pressure](barometricPressure.md) - Barometric Pressure telemetry metric in kPa, produced by 2 vehicle profiles.
 * [Battery Temp Max](batteryTempMax.md) - Battery Temp Max telemetry metric in °C, produced by 13 vehicle profiles.
 * [Battery Temp Min](batteryTempMin.md) - Battery Temp Min telemetry metric in °C, produced by 13 vehicle profiles.

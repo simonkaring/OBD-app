@@ -410,7 +410,7 @@ final class TripAndTelemetryTests: XCTestCase {
     func testSelectedVehicleCapacityDrivesChargingEstimate() {
         let manager = VehicleDataManager()
         let ioniq = VehicleCatalog.allModels.first {
-            $0.profileID == .hkmcIoniq5 && $0.batteryCapacityKWh > 70
+            $0.profileID == .hyundaiKiaEGMP && $0.batteryCapacityKWh > 70
         }!
         manager.selectVehicle(ioniq)
 
@@ -423,7 +423,7 @@ final class TripAndTelemetryTests: XCTestCase {
         XCTAssertTrue(manager.vehicleName.localizedCaseInsensitiveContains("Ioniq 5"))
         XCTAssertGreaterThan(manager.usableBatteryCapacityKWh, 70.0)
         XCTAssertGreaterThan(manager.latestTelemetry.chargePowerKW, 0.0)
-        XCTAssertEqual(manager.selectedProfileID, .hkmcIoniq5)
+        XCTAssertEqual(manager.selectedProfileID, .hyundaiKiaEGMP)
     }
 
     func testUnknownVehicleCapacityPreventsSOCSlopeCharging() {
