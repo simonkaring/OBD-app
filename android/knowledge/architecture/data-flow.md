@@ -20,7 +20,11 @@ sources:
 
 1. **Connection** — `services/BleObdConnection` drives the adapter: writes a command, collects
    ELM327 notifications until its terminator, and reports the raw text. Initialization commands
-   (`AT Z`, `AT E0`, `AT S1`, protocol and header setup) come from the profile.
+   (`AT Z`, `AT E0`, `AT S1`, protocol and header setup) come from the profile and are verified
+   with one retry, because a single dropped notification is common right after the link comes up.
+   An `AT` route command the adapter will not acknowledge during polling is dropped from the
+   cycle instead of ending the session: a community profile can carry module addresses the car
+   does not answer, and one missing filter must not take the working routes with it.
 2. **Reassembly** — `core/obd/IsoTp` joins multi-frame CAN responses (flow-control / consecutive
    frames) into one payload before anything is decoded. Never parse adapter text directly in a
    screen or a view model.

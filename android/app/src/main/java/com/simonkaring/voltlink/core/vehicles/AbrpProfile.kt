@@ -251,10 +251,10 @@ object AbrpProfileLoader {
 
     val specs: List<Spec> = listOf(
         Spec("ford_MachE.json", "Ford Mustang Mach-E", 91.0),
-        Spec("hkmc_Ioniq5.json", "Hyundai/Kia E-GMP (IONIQ 5 / EV6)", 77.4),
+        Spec("hkmc_Ioniq5.json", "Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)", 77.4),
         Spec("hkmc_hkmc2019.json", "Hyundai / Kia (Kona / Niro EV)", 64.0),
         Spec("hkmc_hkmc2017.json", "Hyundai / Kia (IONIQ Electric / Soul EV 2017)", 28.0),
-        Spec("volkswagen_MEB.json", "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)", 77.0),
+        Spec("volkswagen_MEB.json", "Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)", 77.0),
         Spec("volkswagen_eGolf.json", "Volkswagen e-Golf (ABRP)", 35.8),
         Spec("volkswagen_eUP.json", "Volkswagen e-Up! (ABRP)", 32.3),
         Spec("Mini_MiniCooperSE.json", "Mini Cooper SE (ABRP)", 28.9),

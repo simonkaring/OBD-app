@@ -12,6 +12,7 @@
 * [Hyundai / Kia (IONIQ Electric / Soul EV 2017)](hyundai_kia_2017.md) - Hyundai / Kia (IONIQ Electric / Soul EV 2017) vehicle profile with 5 polling commands and 7 telemetry metrics.
 * [Hyundai / Kia (Kona / Niro EV)](hyundai_kia_2019.md) - Hyundai / Kia (Kona / Niro EV) vehicle profile with 5 polling commands and 7 telemetry metrics.
 * [Hyundai/Kia E-GMP (IONIQ 5 / EV6)](hyundai_kia_egmp.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) vehicle profile with 3 polling commands and 6 telemetry metrics.
+* [Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)](hyundai_kia_egmp_abrp.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP) vehicle profile with 3 polling commands and 5 telemetry metrics.
 * [Jaguar I-Pace 2019 (ABRP)](jaguar_i_pace_2019.md) - Jaguar I-Pace 2019 (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Jaguar I-Pace 2021+ (ABRP)](jaguar_i_pace.md) - Jaguar I-Pace 2021+ (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Mercedes-Benz EQA 250 (2021)](mercedes_eq_a250.md) - Mercedes-Benz EQA 250 (2021) vehicle profile with 4 polling commands and 1 telemetry metric.
@@ -24,3 +25,4 @@
 * [Volkswagen e-Golf (ABRP)](volkswagen_e_golf.md) - Volkswagen e-Golf (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 * [Volkswagen e-Up! (ABRP)](volkswagen_e_up.md) - Volkswagen e-Up! (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 * [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)](volkswagen_meb.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) vehicle profile with 4 polling commands and 4 telemetry metrics.
+* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)](volkswagen_meb_abrp.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.

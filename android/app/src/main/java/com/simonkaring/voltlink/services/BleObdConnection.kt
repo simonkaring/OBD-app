@@ -165,6 +165,10 @@ class BleObdConnection(
     }
 
     private fun onAdapterData(value: ByteArray) {
+        // With no command in flight this is the tail of a reply the quiet gap already closed.
+        // Keeping it let the next command read it as its own answer, which turned an
+        // acknowledged `AT` route into a bogus routing failure.
+        if (pending == null) return
         val text = String(value, Charsets.UTF_8)
         val complete: Boolean
         synchronized(bufferLock) {

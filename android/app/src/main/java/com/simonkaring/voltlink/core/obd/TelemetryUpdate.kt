@@ -44,7 +44,8 @@ sealed interface BleConnectionState {
     data class Connecting(val deviceName: String) : BleConnectionState
     data class Ready(val deviceName: String) : BleConnectionState
     data object DemoMode : BleConnectionState
-    data class Error(val message: String) : BleConnectionState
+    /** [detail] holds the adapter's one-line raw reply when the adapter itself refused a command. */
+    data class Error(val message: String, val detail: String? = null) : BleConnectionState
 
     val isConnected: Boolean
         get() = this is Ready || this is DemoMode

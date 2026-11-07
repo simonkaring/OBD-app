@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -130,6 +131,7 @@ fun SettingsScreen(
     var showMetricStatus by remember { mutableStateOf(false) }
     var showCarLayout by remember { mutableStateOf(false) }
     val selectedModelName by settings.selectedModelName.collectAsStateWithLifecycle()
+    val selectedModelId by settings.selectedModelId.collectAsStateWithLifecycle()
     val liveMetrics by manager.liveMetrics.collectAsStateWithLifecycle()
     val carLayout by settings.carTileLayout.collectAsStateWithLifecycle()
 
@@ -166,6 +168,17 @@ fun SettingsScreen(
                         color = Theme.textSecondary,
                         fontSize = 12.sp,
                     )
+                    // A routing failure names the command; the adapter's own answer next to it
+                    // tells a rejected filter ("?") from a silent one ("no reply").
+                    val errorReply = (connectionState as? BleConnectionState.Error)?.detail
+                    if (!errorReply.isNullOrBlank()) {
+                        Text(
+                            text = errorReply,
+                            color = Theme.textSecondary,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
@@ -257,6 +270,39 @@ fun SettingsScreen(
                                     fontSize = 12.sp,
                                 )
                             }
+                            SettingDivider()
+                            // The profile decides which commands run and which metrics can appear,
+                            // but it is only reachable through the vehicle list. Name the active one
+                            // and its support level here, with the picker one tap away.
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        stringResource(R.string.settings_active_profile),
+                                        color = Theme.textPrimary,
+                                        fontSize = 13.sp,
+                                    )
+                                    Text(
+                                        "${manager.selectedProfile.vehicleName} · ${profileId.supportLabel}",
+                                        color = Theme.textSecondary,
+                                        fontSize = 12.sp,
+                                    )
+                                }
+                                TextButton(
+                                    onClick = { showCatalog = true },
+                                    contentPadding = PaddingValues(0.dp),
+                                ) {
+                                    Text(
+                                        stringResource(R.string.settings_change_profile),
+                                        color = Theme.electricCyan,
+                                        fontSize = 13.sp,
+                                    )
+                                }
+                            }
+                            ProfileOptionsSection(
+                                manager = manager,
+                                selectedModelId = selectedModelId,
+                                currentProfileId = profileId,
+                            )
                             Row {
                                 TextButton(
                                     onClick = { showCatalog = true },

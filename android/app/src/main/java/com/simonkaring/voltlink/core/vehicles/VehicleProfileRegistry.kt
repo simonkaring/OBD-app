@@ -10,7 +10,9 @@ enum class VehicleProfileId(val displayName: String, private val abrpFilename: S
     MERCEDES_EQ_A250("Mercedes-Benz EQA 250 (2021)"),
     MERCEDES_EQ_A_OBDb("Mercedes-Benz EQA 250 (OBDb community)"),
     VOLKSWAGEN_MEB("Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)"),
+    VOLKSWAGEN_MEB_ABRP("Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)", "volkswagen_MEB.json"),
     HYUNDAI_KIA_EGMP("Hyundai/Kia E-GMP (IONIQ 5 / EV6)"),
+    HYUNDAI_KIA_EGMP_ABRP("Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)", "hkmc_Ioniq5.json"),
     HYUNDAI_KIA_2019("Hyundai / Kia (Kona / Niro EV)", "hkmc_hkmc2019.json"),
     HYUNDAI_KIA_2017("Hyundai / Kia (IONIQ Electric / Soul EV 2017)", "hkmc_hkmc2017.json"),
     VOLKSWAGEN_E_GOLF("Volkswagen e-Golf (ABRP)", "volkswagen_eGolf.json"),
@@ -36,6 +38,17 @@ enum class VehicleProfileId(val displayName: String, private val abrpFilename: S
 
     /** True when the decoding comes from a bundled community PID document. */
     val isCommunityProfile: Boolean get() = abrpFilename != null
+
+    /**
+     * The support level the vehicle catalog advertises for this profile, so a settings row and a
+     * catalog row never disagree. The EQA OBDb set is hand-written but still community-sourced.
+     */
+    val supportLabel: String
+        get() = when {
+            this == MERCEDES_EQ_A_OBDb || isCommunityProfile -> TelemetrySupport.COMMUNITY.label
+            this == GENERIC_EV || this == GENERIC_OBD2 -> TelemetrySupport.GENERIC.label
+            else -> TelemetrySupport.VERIFIED.label
+        }
 
     /**
      * Builds the profile. An ABRP profile whose asset cannot be read falls back to the generic

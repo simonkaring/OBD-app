@@ -239,6 +239,41 @@ object VehicleCatalog {
         return withDefaults.sortedBy { it.name.lowercase(Locale.US) }
     }
 
+    /**
+     * The catalog rows that offer a decoder for the same car as [selectedModelId], one row per
+     * distinct profile. Rows are grouped by `modelFamilyId`, so the EQA's verified and OBDb
+     * entries come back together while a car with a single decoder returns nothing extra.
+     * Without a picked row the anchor is whichever row already carries [currentProfileId].
+     */
+    fun profileOptions(
+        models: List<VehicleModelEntry>,
+        selectedModelId: String?,
+        currentProfileId: VehicleProfileId,
+    ): List<VehicleModelEntry> {
+        val anchor = models.firstOrNull { it.id == selectedModelId }
+            ?: models.firstOrNull { it.profileId == currentProfileId }
+            ?: return emptyList()
+        val familyId = anchor.modelFamilyId?.takeIf { it.isNotEmpty() } ?: return emptyList()
+        return models
+            .filter { it.modelFamilyId == familyId }
+            .distinctBy { it.profileId }
+            .sortedBy { it.resolvedVariantDisplayName.lowercase(Locale.US) }
+    }
+
+    /**
+     * ABRP tables that decode cars the catalog binds to a compiled-in profile, so they have no
+     * catalog row of their own. Settings offers them next to the car's row for comparison.
+     */
+    fun profileAlternatives(profileId: VehicleProfileId): List<VehicleProfileId> =
+        decoderAlternatives[profileId].orEmpty()
+
+    private val decoderAlternatives: Map<VehicleProfileId, List<VehicleProfileId>> = mapOf(
+        VehicleProfileId.VOLKSWAGEN_MEB to listOf(VehicleProfileId.VOLKSWAGEN_MEB_ABRP),
+        VehicleProfileId.VOLKSWAGEN_MEB_ABRP to listOf(VehicleProfileId.VOLKSWAGEN_MEB),
+        VehicleProfileId.HYUNDAI_KIA_EGMP to listOf(VehicleProfileId.HYUNDAI_KIA_EGMP_ABRP),
+        VehicleProfileId.HYUNDAI_KIA_EGMP_ABRP to listOf(VehicleProfileId.HYUNDAI_KIA_EGMP),
+    )
+
     /** Groups variants that share an explicit family, or identical display metadata for legacy rows. */
     fun modelFamilies(models: List<VehicleModelEntry>): List<VehicleModelFamily> {
         data class FamilyKey(val explicitId: String?, val legacyName: String?)

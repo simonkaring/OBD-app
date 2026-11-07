@@ -25,15 +25,15 @@
 * [Motor Temp](motor_temp.md) - Motor Temp telemetry metric in °C, produced by 1 vehicle profile.
 * [Motor Torque](motor_torque.md) - Motor Torque telemetry metric in Nm, produced by 1 vehicle profile.
 * [Oil Temp](oil_temp.md) - Oil Temp telemetry metric in °C, produced by 2 vehicle profiles.
-* [Pack Current](pack_current.md) - Pack Current telemetry metric in A, produced by 21 vehicle profiles.
-* [Pack Voltage](pack_voltage.md) - Pack Voltage telemetry metric in V, produced by 22 vehicle profiles.
-* [Power](power.md) - Power telemetry metric in kW, produced by 21 vehicle profiles.
+* [Pack Current](pack_current.md) - Pack Current telemetry metric in A, produced by 23 vehicle profiles.
+* [Pack Voltage](pack_voltage.md) - Pack Voltage telemetry metric in V, produced by 24 vehicle profiles.
+* [Power](power.md) - Power telemetry metric in kW, produced by 23 vehicle profiles.
 * [Rear Left Wheel Speed](rear_left_wheel_speed.md) - Rear Left Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
 * [Rear Right Wheel Speed](rear_right_wheel_speed.md) - Rear Right Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
 * [Regen Power](regen_power.md) - Regen Power telemetry metric in kW, produced by 3 vehicle profiles.
 * [Speed](speed.md) - Speed telemetry metric in km/h, produced by 5 vehicle profiles.
-* [State of Charge](soc.md) - State of Charge telemetry metric in %, produced by 24 vehicle profiles.
-* [State of Health](soh.md) - State of Health telemetry metric in %, produced by 15 vehicle profiles.
+* [State of Charge](soc.md) - State of Charge telemetry metric in %, produced by 26 vehicle profiles.
+* [State of Health](soh.md) - State of Health telemetry metric in %, produced by 16 vehicle profiles.
 * [Steering Angle](steering_angle.md) - Steering Angle telemetry metric in °, produced by 1 vehicle profile.
 * [Throttle Position](throttle_position.md) - Throttle Position telemetry metric in %, produced by 2 vehicle profiles.
 * [Timing Advance](timing_advance.md) - Timing Advance telemetry metric in °, produced by 2 vehicle profiles.

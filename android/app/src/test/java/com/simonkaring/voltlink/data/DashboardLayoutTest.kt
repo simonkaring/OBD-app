@@ -29,6 +29,18 @@ class DashboardLayoutTest {
     }
 
     @Test
+    fun `community tiles open on the default dashboard only where the profile reports them`() {
+        val community = DashboardLayout.default.adapted(
+            TelemetryMetric.EQA_COMMUNITY_METRICS + setOf(TelemetryMetric.SOC),
+        )
+        val plain = DashboardLayout.default.adapted(setOf(TelemetryMetric.SOC))
+
+        assertTrue(community.widgets.any { it.kind == DashboardWidgetKind.Metric(TelemetryMetric.MOTOR_TEMP) })
+        assertTrue(community.widgets.any { it.kind == DashboardWidgetKind.Metric(TelemetryMetric.DRIVE_UNIT_TEMP) })
+        assertFalse(plain.widgets.any { it.kind == DashboardWidgetKind.Metric(TelemetryMetric.MOTOR_TEMP) })
+    }
+
+    @Test
     fun `layout round trips through its stored json`() {
         val layout = DashboardLayout(
             listOf(

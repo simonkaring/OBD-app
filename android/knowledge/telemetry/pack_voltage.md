@@ -1,7 +1,7 @@
 ---
 type: "Telemetry Metric"
 title: "Pack Voltage"
-description: "Pack Voltage telemetry metric in V, produced by 22 vehicle profiles."
+description: "Pack Voltage telemetry metric in V, produced by 24 vehicle profiles."
 tags: ["telemetry-metric", "core"]
 sources:
 - id: "metric-catalog"
@@ -36,6 +36,7 @@ status: "stable"
 - [Hyundai / Kia (IONIQ Electric / Soul EV 2017)](/vehicles/hyundai_kia_2017.md)
 - [Hyundai / Kia (Kona / Niro EV)](/vehicles/hyundai_kia_2019.md)
 - [Hyundai/Kia E-GMP (IONIQ 5 / EV6)](/vehicles/hyundai_kia_egmp.md)
+- [Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)](/vehicles/hyundai_kia_egmp_abrp.md)
 - [Jaguar I-Pace 2019 (ABRP)](/vehicles/jaguar_i_pace_2019.md)
 - [Jaguar I-Pace 2021+ (ABRP)](/vehicles/jaguar_i_pace.md)
 - [Mercedes-Benz EQA 250 (2021)](/vehicles/mercedes_eq_a250.md)
@@ -47,3 +48,4 @@ status: "stable"
 - [Volkswagen e-Golf (ABRP)](/vehicles/volkswagen_e_golf.md)
 - [Volkswagen e-Up! (ABRP)](/vehicles/volkswagen_e_up.md)
 - [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)](/vehicles/volkswagen_meb.md)
+- [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)](/vehicles/volkswagen_meb_abrp.md)

@@ -1,7 +1,7 @@
 ---
 type: "Telemetry Metric"
 title: "State of Health"
-description: "State of Health telemetry metric in %, produced by 15 vehicle profiles."
+description: "State of Health telemetry metric in %, produced by 16 vehicle profiles."
 tags: ["telemetry-metric", "core"]
 sources:
 - id: "metric-catalog"
@@ -33,6 +33,7 @@ status: "stable"
 - [Hyundai / Kia (IONIQ Electric / Soul EV 2017)](/vehicles/hyundai_kia_2017.md)
 - [Hyundai / Kia (Kona / Niro EV)](/vehicles/hyundai_kia_2019.md)
 - [Hyundai/Kia E-GMP (IONIQ 5 / EV6)](/vehicles/hyundai_kia_egmp.md)
+- [Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)](/vehicles/hyundai_kia_egmp_abrp.md)
 - [Jaguar I-Pace 2019 (ABRP)](/vehicles/jaguar_i_pace_2019.md)
 - [Jaguar I-Pace 2021+ (ABRP)](/vehicles/jaguar_i_pace.md)
 - [MG ZS EV (ABRP)](/vehicles/mg_zs_ev.md)

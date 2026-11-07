@@ -196,6 +196,12 @@
     </plurals>
     <string name="settings_browse_catalog">Browse vehicle catalog</string>
     <string name="settings_metric_status">Metric status</string>
+    <string name="settings_active_profile">Active profile</string>
+    <string name="settings_change_profile">Change</string>
+    <string name="settings_profile_options">Profiles for this car</string>
+    <string name="settings_profile_options_hint">Same car, different decoder. Tap one to switch; the arrow lists the metrics it can read.</string>
+    <string name="settings_show_metrics">Show metrics</string>
+    <string name="settings_hide_metrics">Hide metrics</string>
     <string name="settings_units">Units</string>
     <string name="settings_distance_speed">Distance &amp; speed</string>
     <string name="settings_temperature">Temperature</string>

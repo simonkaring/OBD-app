@@ -83,12 +83,18 @@ data class DashboardLayout(val widgets: List<DashboardWidgetConfig>) {
     companion object {
         private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-        /** Familiar driving and charging readouts plus the rolling telemetry chart. */
+        /**
+         * Familiar driving and charging readouts plus the rolling telemetry chart. The two
+         * community tiles are what the OBDb signal set adds on top; [adapted] drops them for
+         * every profile that cannot report them, so other cars keep the old default order.
+         */
         val default = DashboardLayout(
             widgets = listOf(
                 DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.SPEED), WidgetStyle.DIAL, WidgetSize.MEDIUM),
                 DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.POWER), WidgetStyle.DIAL, WidgetSize.MEDIUM),
                 DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.SOC), WidgetStyle.BAR, WidgetSize.LARGE),
+                DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.MOTOR_TEMP), WidgetStyle.DIAL, WidgetSize.MEDIUM),
+                DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.DRIVE_UNIT_TEMP), WidgetStyle.NUMERIC, WidgetSize.MEDIUM),
                 DashboardWidgetConfig(DashboardWidgetKind.Metric(TelemetryMetric.AUX_12V), WidgetStyle.NUMERIC, WidgetSize.MEDIUM),
                 DashboardWidgetConfig(
                     DashboardWidgetKind.Chart(listOf(TelemetryMetric.POWER, TelemetryMetric.SPEED)),

@@ -69,6 +69,9 @@ class VehicleDataManager(
     private var isCommandSessionActive = false
     private var isInitializing = false
 
+    /** `AT` route commands the adapter kept refusing, skipped for the rest of the session. */
+    private val unroutableCommands = mutableSetOf<String>()
+
     private val commandMetrics = mutableMapOf<String, MutableSet<TelemetryMetric>>()
     private val commandMisses = mutableMapOf<String, Int>()
 
@@ -129,6 +132,7 @@ class VehicleDataManager(
 
     fun disconnect() {
         stopPolling()
+        unroutableCommands.clear()
         connection.disconnect()
         reducer.resetValidity()
         publish()
@@ -152,6 +156,7 @@ class VehicleDataManager(
         _selectedProfileId.value = id
         settings.setProfile(id)
         selectedProfile = id.makeProfile()
+        unroutableCommands.clear()
         reducer.updateCapacity(selectedProfile.batteryUsableCapacityKWh)
         reducer.resetValidity()
         publish()
@@ -160,36 +165,79 @@ class VehicleDataManager(
         }
     }
 
-    /** Sends the profile's initialisation commands, verifying each acknowledgement. */
+    /**
+     * Sends the profile's initialisation commands, verifying each acknowledgement. Every command
+     * is retried once, because a single dropped BLE notification is common just after the link
+     * comes up; a command that still fails is named in the error so the OBD log is actionable.
+     */
     suspend fun initializeProfile() {
         if (isInitializing) return
         isInitializing = true
         stopPolling()
+        unroutableCommands.clear()
         reducer.resetValidity()
         publish()
-        var ready = true
+        var failedCommand: String? = null
+        var failedReply: String? = null
         for (command in selectedProfile.initializationCommands) {
-            if (!connection.state.value.isConnected) {
-                ready = false
-                break
-            }
-            val result = connection.sendCommand(command)
-            val raw = result.getOrNull() ?: ""
-            if (!isSupportedResponse(command, raw)) {
-                ready = false
+            if (!connection.state.value.isConnected) break
+            val reply = rejectedReply(command)
+            if (reply != null) {
+                failedCommand = command
+                failedReply = reply
                 break
             }
         }
         isInitializing = false
-        if (ready) startPolling() else handleRoutingFailure("profile initialisation")
+        when {
+            failedCommand != null ->
+                handleRoutingFailure("$failedCommand during profile initialisation", failedReply)
+            // The link itself dropped: the BLE layer already published that reason, and
+            // overwriting it with a routing error would hide the real cause.
+            !connection.state.value.isConnected -> Unit
+            else -> startPolling()
+        }
     }
 
-    private fun handleRoutingFailure(stage: String) {
+    /**
+     * Sends [command] and verifies the reply, retrying once to absorb a lost notification.
+     * Returns the raw reply that failed, or null when the adapter acknowledged the command.
+     */
+    private suspend fun rejectedReply(command: String): String? {
+        val first = connection.sendCommand(command).getOrNull()
+        if (first != null && isSupportedResponse(command, first)) return null
+        if (!connection.state.value.isConnected) return first ?: ""
+        val retry = connection.sendCommand(command).getOrNull()
+        if (retry != null && isSupportedResponse(command, retry)) return null
+        return retry ?: first ?: ""
+    }
+
+    /**
+     * Drops an `AT` route command the adapter keeps refusing from the poll cycle. Community
+     * profiles address modules the car may not have at all (`AT CRA 5A4` on the EQA), and one
+     * unacknowledged route says nothing about the rest of the session, so polling continues with
+     * the remaining commands instead of disconnecting the scanner.
+     */
+    private fun skipUnroutable(command: String) {
+        if (!connection.state.value.isConnected) return
+        unroutableCommands += normalizeCommand(command)
+    }
+
+    private fun normalizeCommand(command: String): String = command.replace(" ", "").uppercase()
+
+    private fun handleRoutingFailure(stage: String, reply: String?) {
         stopPolling()
         reducer.resetValidity()
         publish()
         connection.disconnect()
-        _connectionState.value = BleConnectionState.Error("Adapter routing failed at $stage. Reconnect the scanner.")
+        val message = "Adapter routing failed at $stage. Reconnect the scanner."
+        _connectionState.value = BleConnectionState.Error(message, reply?.let(::describeReply))
+    }
+
+    /** The adapter's answer on one line; an empty reply means the command timed out. */
+    private fun describeReply(raw: String): String {
+        val text = raw.replace('\r', ' ').replace('\n', ' ').trim().ifEmpty { "no reply" }
+        return if (text.length <= 120) text else text.take(117) + "…"
     }
 
     fun startPolling() {
@@ -197,7 +245,10 @@ class VehicleDataManager(
             // Demo mode polls the simulated adapter's own set so the dashboard shows power,
             // SoC and generic metrics even when the selected profile (e.g. EQA 250) only
             // publishes pack voltage.
-            if (_isDemoMode.value) demoProfile.pollingCommands else selectedProfile.pollingCommands
+            val commands =
+                if (_isDemoMode.value) demoProfile.pollingCommands else selectedProfile.pollingCommands
+            if (unroutableCommands.isEmpty()) commands
+            else commands.filterNot { normalizeCommand(it) in unroutableCommands }
         }
         pollingLoop.start()
     }
@@ -259,9 +310,11 @@ class VehicleDataManager(
         pollingLoop.handleReadFailure = { command -> recordMiss(command) }
         pollingLoop.handleControl = { command, result ->
             val raw = result.getOrNull()
-            raw != null && isSupportedResponse(command, raw)
+            if (raw != null && isSupportedResponse(command, raw)) true
+            else if (connection.state.value.isConnected) rejectedReply(command) == null
+            else false
         }
-        pollingLoop.handleControlFailure = { command -> handleRoutingFailure(command) }
+        pollingLoop.handleControlFailure = { command -> skipUnroutable(command) }
     }
 
     private fun applyUpdates(updates: List<TelemetryUpdate>, sourceCommand: String?): Boolean {
@@ -305,7 +358,8 @@ class VehicleDataManager(
             .split("\n")
             .map { it.trim() }
         return when {
-            request == "ATZ" -> lines.any { it.contains("ELM") || it.contains("OBD") || it.contains("STN") }
+            // Any banner answers a reset: the iCar Pro 2S prints its own name, not "ELM327".
+            request == "ATZ" -> lines.any { it.isNotEmpty() && it.replace(" ", "") != "ATZ" }
             request.startsWith("AT") -> lines.contains("OK")
             request.startsWith("10") -> {
                 val expected = "50" + request.takeLast(2)

@@ -19,10 +19,13 @@ enum class PowerUnit(val label: String) { KILOWATT("kW"), HORSEPOWER("hp") }
 class SettingsStore(context: Context) {
     private val prefs = context.getSharedPreferences("voltlink_settings", Context.MODE_PRIVATE)
 
+    // Fresh installs start on the OBDb community EQA set: it is the richest decoder for the
+    // car this app targets (SOC, current, temperatures and the chassis signals the verified
+    // profile cannot read). A stored choice always wins. See VehicleProfiles in the bundle.
     private val _selectedProfile = MutableStateFlow(
         prefs.getString(KEY_PROFILE, null)
             ?.let { name -> VehicleProfileId.entries.firstOrNull { it.name == name } }
-            ?: VehicleProfileId.MERCEDES_EQ_A250,
+            ?: VehicleProfileId.MERCEDES_EQ_A_OBDb,
     )
     val selectedProfile: StateFlow<VehicleProfileId> = _selectedProfile.asStateFlow()
 

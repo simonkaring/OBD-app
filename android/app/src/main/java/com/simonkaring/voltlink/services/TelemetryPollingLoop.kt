@@ -19,7 +19,8 @@ class TelemetryPollingLoop(private val scope: CoroutineScope) {
     var handleRead: (command: String, rawResponse: String) -> Boolean = { _, _ -> false }
     var handleReadFailure: (command: String) -> Unit = {}
     /** Returns true when an `AT` command was acknowledged by the adapter. */
-    var handleControl: (command: String, result: Result<String>) -> Boolean = { _, _ -> false }
+    var handleControl: suspend (command: String, result: Result<String>) -> Boolean = { _, _ -> false }
+    /** Called when an `AT` command is still unacknowledged; the cycle keeps running. */
     var handleControlFailure: (command: String) -> Unit = {}
 
     var successDelayMs: Long = 10
@@ -50,10 +51,9 @@ class TelemetryPollingLoop(private val scope: CoroutineScope) {
                 if (!isActive) return@launch
 
                 if (command.uppercase().startsWith("AT")) {
-                    if (!handleControl(command, result)) {
-                        handleControlFailure(command)
-                        return@launch
-                    }
+                    // A route the adapter refuses (or a module the car does not answer) must not
+                    // end the session: the manager drops the command and the rest keeps polling.
+                    if (!handleControl(command, result)) handleControlFailure(command)
                     delay(successDelayMs)
                     continue
                 }

@@ -24,6 +24,7 @@ okf_version: "0.2"
 * [Hyundai / Kia (IONIQ Electric / Soul EV 2017)](vehicles/hyundai_kia_2017.md) - Hyundai / Kia (IONIQ Electric / Soul EV 2017) vehicle profile with 5 polling commands and 7 telemetry metrics.
 * [Hyundai / Kia (Kona / Niro EV)](vehicles/hyundai_kia_2019.md) - Hyundai / Kia (Kona / Niro EV) vehicle profile with 5 polling commands and 7 telemetry metrics.
 * [Hyundai/Kia E-GMP (IONIQ 5 / EV6)](vehicles/hyundai_kia_egmp.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6) vehicle profile with 3 polling commands and 6 telemetry metrics.
+* [Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP)](vehicles/hyundai_kia_egmp_abrp.md) - Hyundai/Kia E-GMP (IONIQ 5 / EV6, ABRP) vehicle profile with 3 polling commands and 5 telemetry metrics.
 * [Jaguar I-Pace 2019 (ABRP)](vehicles/jaguar_i_pace_2019.md) - Jaguar I-Pace 2019 (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Jaguar I-Pace 2021+ (ABRP)](vehicles/jaguar_i_pace.md) - Jaguar I-Pace 2021+ (ABRP) vehicle profile with 18 polling commands and 7 telemetry metrics.
 * [Mercedes-Benz EQA 250 (2021)](vehicles/mercedes_eq_a250.md) - Mercedes-Benz EQA 250 (2021) vehicle profile with 4 polling commands and 1 telemetry metric.
@@ -36,6 +37,7 @@ okf_version: "0.2"
 * [Volkswagen e-Golf (ABRP)](vehicles/volkswagen_e_golf.md) - Volkswagen e-Golf (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 * [Volkswagen e-Up! (ABRP)](vehicles/volkswagen_e_up.md) - Volkswagen e-Up! (ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 * [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz)](vehicles/volkswagen_meb.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz) vehicle profile with 4 polling commands and 4 telemetry metrics.
+* [Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP)](vehicles/volkswagen_meb_abrp.md) - Volkswagen MEB (ID.3 / ID.4 / ID.Buzz, ABRP) vehicle profile with 4 polling commands and 4 telemetry metrics.
 
 # Telemetry Metrics
 * [12V Voltage (High Definition)](telemetry/aux_12v_high_definition.md) - 12V Voltage (High Definition) telemetry metric in V, produced by 1 vehicle profile.
@@ -64,15 +66,15 @@ okf_version: "0.2"
 * [Motor Temp](telemetry/motor_temp.md) - Motor Temp telemetry metric in °C, produced by 1 vehicle profile.
 * [Motor Torque](telemetry/motor_torque.md) - Motor Torque telemetry metric in Nm, produced by 1 vehicle profile.
 * [Oil Temp](telemetry/oil_temp.md) - Oil Temp telemetry metric in °C, produced by 2 vehicle profiles.
-* [Pack Current](telemetry/pack_current.md) - Pack Current telemetry metric in A, produced by 21 vehicle profiles.
-* [Pack Voltage](telemetry/pack_voltage.md) - Pack Voltage telemetry metric in V, produced by 22 vehicle profiles.
-* [Power](telemetry/power.md) - Power telemetry metric in kW, produced by 21 vehicle profiles.
+* [Pack Current](telemetry/pack_current.md) - Pack Current telemetry metric in A, produced by 23 vehicle profiles.
+* [Pack Voltage](telemetry/pack_voltage.md) - Pack Voltage telemetry metric in V, produced by 24 vehicle profiles.
+* [Power](telemetry/power.md) - Power telemetry metric in kW, produced by 23 vehicle profiles.
 * [Rear Left Wheel Speed](telemetry/rear_left_wheel_speed.md) - Rear Left Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
 * [Rear Right Wheel Speed](telemetry/rear_right_wheel_speed.md) - Rear Right Wheel Speed telemetry metric in km/h, produced by 1 vehicle profile.
 * [Regen Power](telemetry/regen_power.md) - Regen Power telemetry metric in kW, produced by 3 vehicle profiles.
 * [Speed](telemetry/speed.md) - Speed telemetry metric in km/h, produced by 5 vehicle profiles.
-* [State of Charge](telemetry/soc.md) - State of Charge telemetry metric in %, produced by 24 vehicle profiles.
-* [State of Health](telemetry/soh.md) - State of Health telemetry metric in %, produced by 15 vehicle profiles.
+* [State of Charge](telemetry/soc.md) - State of Charge telemetry metric in %, produced by 26 vehicle profiles.
+* [State of Health](telemetry/soh.md) - State of Health telemetry metric in %, produced by 16 vehicle profiles.
 * [Steering Angle](telemetry/steering_angle.md) - Steering Angle telemetry metric in °, produced by 1 vehicle profile.
 * [Throttle Position](telemetry/throttle_position.md) - Throttle Position telemetry metric in %, produced by 2 vehicle profiles.
 * [Timing Advance](telemetry/timing_advance.md) - Timing Advance telemetry metric in °, produced by 2 vehicle profiles.
