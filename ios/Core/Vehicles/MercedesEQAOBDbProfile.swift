@@ -35,6 +35,18 @@ public struct MercedesEQAOBDbProfile: VehicleProfile {
         ]
     }
 
+    /// The community signalset addresses these three modules for telemetry, so their
+    /// fault memories are read with UDS `19 02` on the same physical header pairs.
+    /// Unverified on a 2021 EQA: a module that does not answer is skipped and named in
+    /// `DTCScannerService.moduleScanNotice`, never reported as fault-free.
+    public var diagnosticModules: [DiagnosticModule] {
+        [
+            DiagnosticModule(name: "High-voltage battery", requestHeader: "7E5", responseHeader: "7ED"),
+            DiagnosticModule(name: "Chassis / vehicle dynamics", requestHeader: "7E2", responseHeader: "7EA"),
+            DiagnosticModule(name: "Drive unit", requestHeader: "624", responseHeader: "5A4"),
+        ]
+    }
+
     public var pollingCommands: [String] {
         // Poll wheel speed first so pack-current charging inference has a stationary reading.
         [

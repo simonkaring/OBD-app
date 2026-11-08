@@ -118,6 +118,21 @@ answers `NO DATA` or a negative response, so an unsupported PID never turns a
 successful scan into an error. The decoded values are attached to every code as
 `DTCCode.freezeFrameData` and rendered under "Conditions at fault".
 
+Between the pending scan and the freeze frames it reads every
+`VehicleProfile.diagnosticModules` fault memory with UDS `19 02`, one physical
+`AT CRA`/`AT SH` pair per module (`1902FF`, retried as `190208` when a module
+rejects the full status mask). Each record is rendered as the 3-byte UDS
+identifier in SAE notation (`B1833-01`) with its failure-type text, reporting
+module and ISO 14229 status bits. Descriptions come from
+`Data/Seed/mercedes_module_dtcs.json` and the Wal33D tables; a code with no
+bundled description keeps its exact identifier instead of a guessed one. A
+module that does not answer is named in `DTCScannerService.moduleScanNotice`
+and contributes no codes, so silence is never reported as "no faults". Mode 02
+frames stay on emission codes because a module fault has none. Users can add
+their own descriptions with a JSON code pack
+(`DTCLocalDatabase.importPack(from:)`), which overlays the bundled lookup for
+that base code without redistributing manufacturer data.
+
 # Freshness and availability
 
 - `TelemetrySnapshot` carries per-value timestamps (`socUpdatedAt`,

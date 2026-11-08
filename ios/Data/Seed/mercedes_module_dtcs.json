@@ -1,0 +1,72 @@
+[
+  {
+    "code": "P0DE6",
+    "title": "High-voltage battery module cell voltage too low",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "The battery management system measured cell voltages below the permitted minimum. The vehicle may restrict output and range until the pack is serviced.",
+    "symptoms": ["Reduced power and range", "High-voltage battery warning in the cluster", "Charging stops before the target"],
+    "possibleFixes": ["Read the cell voltage spread in the battery management system", "Check for a single weak module before replacing the pack", "Have the high-voltage battery inspected by a qualified workshop"],
+    "definitionSource": "VoltLink curation of public Mercedes-Benz service bulletins"
+  },
+  {
+    "code": "P0DE7",
+    "title": "High-voltage battery module cell voltage too high",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "The battery management system measured cell voltages above the permitted maximum, usually during charging or recuperation.",
+    "symptoms": ["Charging aborts early", "Reduced recuperation", "High-voltage battery warning in the cluster"],
+    "possibleFixes": ["Read the cell voltage spread while charging", "Check the charge target and balancing history", "Have the high-voltage battery inspected by a qualified workshop"],
+    "definitionSource": "VoltLink curation of public Mercedes-Benz service bulletins"
+  },
+  {
+    "code": "P0AFA",
+    "title": "High-voltage battery cell voltage low",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "One or more cells were measured at a voltage low enough to risk damaging the pack. Discharge is inhibited until the fault is resolved.",
+    "symptoms": ["Vehicle will not start or drive", "High-voltage system warning", "Pack refuses to accept or deliver power"],
+    "possibleFixes": ["Do not attempt to jump-start the high-voltage system", "Read individual cell voltages", "Arrange high-voltage battery service"],
+    "definitionSource": "VoltLink curation of public Mercedes-Benz service bulletins"
+  },
+  {
+    "code": "P0AA6",
+    "title": "High-voltage isolation fault",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "The isolation resistance between the high-voltage system and the vehicle chassis fell below the safety threshold, often after moisture or damage.",
+    "symptoms": ["High-voltage system switched off", "Isolation or electric-shock warning", "Vehicle cannot be charged"],
+    "possibleFixes": ["Stop using the vehicle and have it recovered", "Check high-voltage connectors and cable insulation", "Have the isolation fault measured by a qualified workshop"],
+    "definitionSource": "VoltLink curation of public Mercedes-Benz service bulletins"
+  },
+  {
+    "code": "P154B",
+    "title": "High-voltage contactor did not switch as expected",
+    "category": "Powertrain",
+    "severity": "Warning",
+    "description": "The powertrain control unit reported that a high-voltage contactor did not reach the requested state. The car may refuse to start or to charge.",
+    "symptoms": ["Vehicle will not start after charging", "High-voltage warning in the cluster", "Contactor noise without the system engaging"],
+    "possibleFixes": ["Read the contactor states in the powertrain control unit", "Check the 12V supply to the high-voltage control units", "Have the contactor diagnosis performed by a qualified workshop"],
+    "definitionSource": "VoltLink curation of public Mercedes-Benz service bulletins"
+  },
+  {
+    "code": "P1549",
+    "title": "Overcurrent in the high-voltage charging circuit",
+    "category": "Powertrain",
+    "severity": "Warning",
+    "description": "The charging path reported current above the permitted limit, so charging was interrupted as a protective measure.",
+    "symptoms": ["Charging stops shortly after it starts", "Charging warning in the cluster or app", "Repeated session aborts at the same point"],
+    "possibleFixes": ["Try a different AC charging station and cable", "Read the charge current limit in the charger control unit", "Have the on-board charger checked if the fault follows the car"],
+    "definitionSource": "VoltLink curation of public Mercedes-Benz service bulletins"
+  },
+  {
+    "code": "P2BCC",
+    "title": "DC charge connector contactor stuck closed",
+    "category": "Powertrain",
+    "severity": "Critical",
+    "description": "The direct-current charge connection unit reported that a contactor remained closed. The high-voltage system cannot be safely isolated in that state.",
+    "symptoms": ["DC fast charging unavailable", "High-voltage warning after a fast-charge session", "Vehicle may fail to start"],
+    "possibleFixes": ["Do not attempt further DC charging", "Read the contactor states in the DC charge connection unit", "Arrange service before driving long distances"],
+    "definitionSource": "VoltLink curation of public Mercedes-Benz service bulletins"
+  }
+]

@@ -8,6 +8,10 @@ public protocol VehicleProfile: Sendable {
     var pollingCommands: [String] { get }
     var supportedMetrics: Set<TelemetryMetric> { get }
 
+    /// Modules whose UDS `19 02` fault memory should be read after the generic Mode 03/07
+    /// scan. Empty for profiles without known module addressing (including demo mode).
+    var diagnosticModules: [DiagnosticModule] { get }
+
     /// Manufacturer-published full-charge range (e.g. WLTP), used as a conservative
     /// estimate basis for the dashboard's "estimated range" SoC dial toggle. `nil` indicates
     /// the profile doesn't have a known range (generic OBD-II, unrecognized ABRP vehicles, etc.).
@@ -28,6 +32,8 @@ public protocol VehicleProfile: Sendable {
 }
 
 extension VehicleProfile {
+    public var diagnosticModules: [DiagnosticModule] { [] }
+
     public var estimatedFullRangeKm: Double? { nil }
 
     public var retainUnverifiedPollingCommands: Bool { false }

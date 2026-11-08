@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 public struct DiagnosticsView: View {
     @ObservedObject public var dtcService: DTCScannerService
@@ -7,6 +8,9 @@ public struct DiagnosticsView: View {
     @State private var selectedDTC: DTCCode?
     @State private var showClearConfirmation = false
     @State private var showClearFailedAlert = false
+    @State private var showCodePackImporter = false
+    @State private var importNotice: String?
+    @State private var importFailed = false
 
     public init(dtcService: DTCScannerService, vehicleData: VehicleDataManager) {
         self.dtcService = dtcService
@@ -36,6 +40,16 @@ public struct DiagnosticsView: View {
                                     Text(error)
                                         .font(.subheadline)
                                         .foregroundStyle(Theme.criticalRed)
+                                }
+                                if let notice = dtcService.moduleScanNotice {
+                                    Text(notice)
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.textSecondary)
+                                }
+                                if let notice = importNotice {
+                                    Text(notice)
+                                        .font(.caption)
+                                        .foregroundStyle(importFailed ? Theme.criticalRed : Theme.regenGreen)
                                 }
                             }
                             Spacer()
@@ -83,37 +97,18 @@ public struct DiagnosticsView: View {
                         }
                     } else {
                         List {
-                            ForEach(dtcService.scannedCodes) { code in
-                                Button {
-                                    selectedDTC = code
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            HStack {
-                                                Text(code.code)
-                                                    .font(.headline.weight(.bold).monospaced())
-                                                    .foregroundStyle(Theme.criticalRed)
-
-                                                Text(code.severity.rawValue)
-                                                    .font(.caption)
-                                                    .padding(.horizontal, 6)
-                                                    .padding(.vertical, 2)
-                                                    .background(Theme.criticalRed.opacity(0.2))
-                                                    .foregroundStyle(Theme.criticalRed)
-                                                    .cornerRadius(4)
-                                            }
-
-                                            Text(code.title)
-                                                .font(.headline)
-                                                .foregroundStyle(Theme.textPrimary)
-                                        }
-
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundStyle(Theme.textSecondary)
-                                    }
+                            if !emissionCodes.isEmpty {
+                                Section("Emission-related") {
+                                    ForEach(emissionCodes) { codeRow($0) }
                                 }
-                                .listRowBackground(Theme.cardBackground)
+                            }
+                            if !moduleCodes.isEmpty {
+                                Section("Control-module fault memories") {
+                                    ForEach(moduleCodes) { codeRow($0) }
+                                    Text("Read from each module with UDS 19 02. Clearing module fault memories is not supported.")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.textSecondary)
+                                }
                             }
                         }
                         .listStyle(.plain)
@@ -137,6 +132,32 @@ public struct DiagnosticsView: View {
             }
             .navigationTitle("Diagnostics")
             .inlineTitleDisplayMode()
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button {
+                        showCodePackImporter = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .accessibilityLabel("Import code pack")
+                }
+            }
+            .fileImporter(isPresented: $showCodePackImporter, allowedContentTypes: [.json]) { result in
+                switch result {
+                case .success(let url):
+                    do {
+                        let count = try DTCLocalDatabase.shared.importPack(from: url)
+                        importNotice = "Imported \(count) code definition\(count == 1 ? "" : "s"). Rescan to apply."
+                        importFailed = false
+                    } catch {
+                        importNotice = error.localizedDescription
+                        importFailed = true
+                    }
+                case .failure(let error):
+                    importNotice = error.localizedDescription
+                    importFailed = true
+                }
+            }
             .sheet(item: $selectedDTC) { dtc in
                 DTCDetailSheet(dtc: dtc)
             }
@@ -158,6 +179,53 @@ public struct DiagnosticsView: View {
                 Text("The vehicle did not confirm the codes were cleared. Try again with the ignition on and the vehicle stationary.")
             }
         }
+    }
+
+    private var emissionCodes: [DTCCode] {
+        dtcService.scannedCodes.filter { $0.moduleName == nil }
+    }
+
+    private var moduleCodes: [DTCCode] {
+        dtcService.scannedCodes.filter { $0.moduleName != nil }
+    }
+
+    private func codeRow(_ code: DTCCode) -> some View {
+        Button {
+            selectedDTC = code
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(code.code)
+                            .font(.headline.weight(.bold).monospaced())
+                            .foregroundStyle(Theme.criticalRed)
+
+                        Text(code.severity.rawValue)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.criticalRed.opacity(0.2))
+                            .foregroundStyle(Theme.criticalRed)
+                            .cornerRadius(4)
+                    }
+
+                    Text(code.title)
+                        .font(.headline)
+                        .foregroundStyle(Theme.textPrimary)
+
+                    if let module = code.moduleName {
+                        Text(module)
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .listRowBackground(Theme.cardBackground)
     }
 }
 
@@ -186,6 +254,28 @@ public struct DTCDetailSheet: View {
                     Text(dtc.title)
                         .font(.title3.weight(.semibold))
 
+                    if let module = dtc.moduleName {
+                        HStack {
+                            Text("Module")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                            Spacer()
+                            Text(module)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                    }
+
+                    if let failure = dtc.failureTypeDescription {
+                        HStack {
+                            Text("Failure type")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                            Spacer()
+                            Text(failure)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                    }
+
                     if let source = dtc.definitionSource {
                         Text(source)
                             .font(.caption)
@@ -199,6 +289,17 @@ public struct DTCDetailSheet: View {
                             .font(.caption).fontWeight(.bold).foregroundStyle(Theme.textSecondary)
                         Text(dtc.description)
                             .font(.subheadline)
+                    }
+
+                    if let statuses = dtc.statusDescriptions, !statuses.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("FAULT STATUS")
+                                .font(.caption).fontWeight(.bold).foregroundStyle(Theme.textSecondary)
+                            ForEach(statuses, id: \.self) { status in
+                                Label(status, systemImage: "circle.fill")
+                                    .font(.subheadline)
+                            }
+                        }
                     }
 
                     if let frames = dtc.freezeFrameData, !frames.isEmpty {

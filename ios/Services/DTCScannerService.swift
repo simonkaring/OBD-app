@@ -9,6 +9,9 @@ public final class DTCScannerService: ObservableObject {
     @Published public private(set) var lastScanDate: Date? = nil
     @Published public private(set) var scanErrorMessage: String? = nil
     @Published public private(set) var scanSucceeded = false
+    /// Names the modules whose UDS fault memory did not answer, so a silent module is
+    /// never presented as a module without faults.
+    @Published public private(set) var moduleScanNotice: String?
 
     public var healthSummary: String {
         if isScanning { return "Diagnostics in progress" }
@@ -34,7 +37,8 @@ public final class DTCScannerService: ObservableObject {
         scanDTCs(
             connection: vehicleData.obdConnection, isDemo: vehicleData.isDemoMode,
             restoreCommands: vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.initializationCommands,
-            manufacturer: vehicleData.selectedVehicle.brandName
+            manufacturer: vehicleData.selectedVehicle.brandName,
+            modules: vehicleData.isDemoMode ? [] : vehicleData.selectedProfile.diagnosticModules
         ) { [weak vehicleData] in
             MainActor.assumeIsolated { vehicleData?.endCommandSession(restoreProfile: false) }
         }
@@ -42,7 +46,7 @@ public final class DTCScannerService: ObservableObject {
 
     public func scanDTCs(
         connection: OBDConnectionProtocol, isDemo: Bool = false, restoreCommands: [String] = [], manufacturer: String? = nil,
-        completion: @escaping @MainActor @Sendable () -> Void = {}
+        modules: [DiagnosticModule] = [], completion: @escaping @MainActor @Sendable () -> Void = {}
     ) {
         guard !isScanning else { return }
         scanManufacturer = manufacturer
@@ -51,13 +55,15 @@ public final class DTCScannerService: ObservableObject {
         scannedCodes.removeAll()
         scanErrorMessage = nil
         scanSucceeded = false
+        moduleScanNotice = nil
 
         if isDemo {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 MainActor.assumeIsolated {
                     guard let self = self else { return }
                     connection.sendCommand("03") { result in
-                        self.finishScan(storedResult: result, connection: connection, restoreCommands: [], completion: completion)
+                        self.finishScan(
+                            storedResult: result, connection: connection, restoreCommands: [], modules: [], completion: completion)
                     }
                 }
             }
@@ -72,13 +78,16 @@ public final class DTCScannerService: ObservableObject {
                 return
             }
             connection.sendCommand("03") { [weak self] storedResult in
-                self?.finishScan(storedResult: storedResult, connection: connection, restoreCommands: restoreCommands, completion: completion)
+                self?.finishScan(
+                    storedResult: storedResult, connection: connection, restoreCommands: restoreCommands,
+                    modules: modules, completion: completion)
             }
         }
     }
 
     private func finishScan(
-        storedResult: Result<String, Error>, connection: OBDConnectionProtocol, restoreCommands: [String], completion: @escaping @MainActor @Sendable () -> Void
+        storedResult: Result<String, Error>, connection: OBDConnectionProtocol, restoreCommands: [String],
+        modules: [DiagnosticModule], completion: @escaping @MainActor @Sendable () -> Void
     ) {
         guard let storedCodes = codes(from: storedResult, serviceByte: 0x43) else {
             scanProgress = 1.0
@@ -102,7 +111,8 @@ public final class DTCScannerService: ObservableObject {
                 combined.append(code)
             }
             self.scannedCodes = combined
-            self.attachFreezeFrames(connection: connection, restoreCommands: restoreCommands, completion: completion)
+            self.scanModuleFaultMemories(
+                connection: connection, restoreCommands: restoreCommands, modules: modules, completion: completion)
         }
     }
 
@@ -118,7 +128,9 @@ public final class DTCScannerService: ObservableObject {
     ) {
         guard let signal = remaining.first else {
             if !collected.isEmpty {
+                // A module fault has no Mode 02 frame; only emission codes carry one.
                 scannedCodes = scannedCodes.map { code in
+                    guard code.moduleName == nil else { return code }
                     var code = code
                     code.freezeFrameData = collected
                     return code
@@ -152,6 +164,85 @@ public final class DTCScannerService: ObservableObject {
             self.attachFreezeFrames(
                 connection: connection, restoreCommands: restoreCommands, remaining: Array(remaining.dropFirst()),
                 collected: frames, completion: completion)
+        }
+    }
+
+    /// Reads each module's UDS `19 02` fault memory. Modules are addressed one at a time
+    /// because `0x19` is physical-addressed; a module the car does not answer is skipped
+    /// and named in `moduleScanNotice` rather than silently counted as fault-free.
+    private func scanModuleFaultMemories(
+        connection: OBDConnectionProtocol, restoreCommands: [String], modules: [DiagnosticModule],
+        index: Int = 0, skipped: [String] = [], completion: @escaping @MainActor @Sendable () -> Void
+    ) {
+        guard index < modules.count else {
+            if !skipped.isEmpty {
+                moduleScanNotice = "No fault memory from \(skipped.joined(separator: ", "))."
+            }
+            attachFreezeFrames(connection: connection, restoreCommands: restoreCommands, completion: completion)
+            return
+        }
+
+        let module = modules[index]
+        connection.sendSetupCommands(["AT CRA \(module.responseHeader)", "AT SH \(module.requestHeader)"]) { [weak self] ready in
+            guard let self else { return }
+            guard ready else {
+                self.scanModuleFaultMemories(
+                    connection: connection, restoreCommands: restoreCommands, modules: modules,
+                    index: index + 1, skipped: skipped + [module.name], completion: completion)
+                return
+            }
+            self.readModuleFaultMemory(
+                module, command: UDSDiagnostics.readDTCByStatusMask, allowMaskRetry: true,
+                connection: connection, restoreCommands: restoreCommands, modules: modules,
+                index: index, skipped: skipped, completion: completion)
+        }
+    }
+
+    private func readModuleFaultMemory(
+        _ module: DiagnosticModule, command: String, allowMaskRetry: Bool,
+        connection: OBDConnectionProtocol, restoreCommands: [String], modules: [DiagnosticModule],
+        index: Int, skipped: [String], completion: @escaping @MainActor @Sendable () -> Void
+    ) {
+        connection.sendCommand(command) { [weak self] result in
+            guard let self else { return }
+            let raw: String
+            if case .success(let text) = result { raw = text } else { raw = "" }
+            let payloads = self.isoParser.assembleISOTPPayloads(raw)
+            let parsed = payloads.map { UDSDiagnostics.codes(fromPayload: $0.payload) }
+
+            if parsed.contains(where: { $0 != nil }) {
+                let codes = parsed.compactMap { $0 }.flatMap { $0 }
+                    .filter { $0.saeCode != "0000" }
+                    .map {
+                        self.db.lookupUDS(
+                            saeCode: $0.saeCode, failureType: $0.failureType, status: $0.status,
+                            module: module.name, manufacturer: self.scanManufacturer)
+                    }
+                var combined = self.scannedCodes
+                for code in codes where !combined.contains(where: { $0.id == code.id }) {
+                    combined.append(code)
+                }
+                self.scannedCodes = combined
+                self.scanModuleFaultMemories(
+                    connection: connection, restoreCommands: restoreCommands, modules: modules,
+                    index: index + 1, skipped: skipped, completion: completion)
+                return
+            }
+
+            // Some modules reject the full status mask; retry confirmed-only before
+            // giving up on the module.
+            let nrc = payloads.compactMap { UDSDiagnostics.negativeResponseCode(fromPayload: $0.payload) }.first
+            if allowMaskRetry, nrc == 0x31 || nrc == 0x12 {
+                self.readModuleFaultMemory(
+                    module, command: UDSDiagnostics.readConfirmedDTCs, allowMaskRetry: false,
+                    connection: connection, restoreCommands: restoreCommands, modules: modules,
+                    index: index, skipped: skipped, completion: completion)
+                return
+            }
+
+            self.scanModuleFaultMemories(
+                connection: connection, restoreCommands: restoreCommands, modules: modules,
+                index: index + 1, skipped: skipped + [module.name], completion: completion)
         }
     }
 
