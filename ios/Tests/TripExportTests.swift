@@ -68,4 +68,16 @@ final class TripExportTests: XCTestCase {
         let session = ChargingSessionModel(startTime: Date(timeIntervalSince1970: 1_788_000_000))
         XCTAssertEqual(TripExport.filename(for: session, extension: "csv"), "VoltLink-Charging-2026-08-29.csv")
     }
+
+    func testExportUsesDotDecimalSeparator() {
+        let trip = makeTrip()
+        let csv = TripExport.csv(for: trip)
+        let gpx = TripExport.gpx(for: trip)
+
+        // Coordinates and telemetry numbers must always use dot '.' for decimal separator.
+        XCTAssertTrue(csv.contains("55.676300,12.569300,0.000,0.000,80.000,24.000"))
+        XCTAssertTrue(gpx.contains("lat=\"55.676300\" lon=\"12.569300\""))
+        XCTAssertFalse(csv.contains("55,676300"))
+        XCTAssertFalse(gpx.contains("lat=\"55,676300\""))
+    }
 }

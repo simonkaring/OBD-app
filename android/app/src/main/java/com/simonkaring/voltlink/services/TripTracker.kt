@@ -3,6 +3,7 @@ package com.simonkaring.voltlink.services
 import com.simonkaring.voltlink.core.telemetry.TelemetrySnapshot
 import com.simonkaring.voltlink.core.telemetry.TripMath
 import com.simonkaring.voltlink.data.HistoryStore
+import com.simonkaring.voltlink.data.TripHistoryStore
 import com.simonkaring.voltlink.data.TripRecord
 import com.simonkaring.voltlink.data.TripSample
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +25,7 @@ import java.time.Instant
  */
 class TripTracker(
     private val scope: CoroutineScope,
-    private val store: HistoryStore,
+    private val store: TripHistoryStore,
 ) {
     data class State(
         val current: TripRecord? = null,
@@ -100,10 +101,12 @@ class TripTracker(
 
     fun stop(endSoc: Double) {
         val trip = _state.value.current ?: return
+        val now = Instant.now()
+        val avgSpeed = calculateAverageSpeed(trip.startTime, now, trip.distanceKm)
         val finished = trip.copy(
-            endTime = Instant.now(),
+            endTime = now,
             endSocPct = endSoc,
-            averageSpeedKmH = trip.computedAverageSpeedKmH,
+            averageSpeedKmH = avgSpeed,
         )
         // A demo trip is closed like any other but never written to the history database.
         if (isDemoMode) {
@@ -210,6 +213,7 @@ class TripTracker(
         }
         hasCompleteEnergyData = progress.energyComplete
 
+        val avgSpeed = calculateAverageSpeed(trip.startTime, now, progress.distanceKm)
         val updated = trip.copy(
             distanceKm = progress.distanceKm,
             totalKWhUsed = progress.kWhUsed,
@@ -217,7 +221,7 @@ class TripTracker(
             endSocPct = snapshot.stateOfChargePct,
             maxPowerKW = maxOf(trip.maxPowerKW, snapshot.powerKW),
             maxRegenKW = minOf(trip.maxRegenKW, snapshot.powerKW),
-            averageSpeedKmH = trip.computedAverageSpeedKmH,
+            averageSpeedKmH = avgSpeed,
         )
         val consumption = if (hasCompleteEnergyData && hasPowerData && updated.distanceKm > 0.1) {
             updated.efficiencyKWhPer100Km
@@ -272,6 +276,13 @@ class TripTracker(
         val pending = samples.drop(persistedSamples)
         persistedSamples = samples.size
         scope.launch { store.saveTripProgress(trip, pending) }
+    }
+
+    private fun calculateAverageSpeed(startTime: Instant, endTime: Instant, distanceKm: Double): Double {
+        val speeds = samples.map { it.speedKmH }.filter { it.isFinite() }
+        if (speeds.isNotEmpty()) return speeds.average()
+        val hours = Duration.between(startTime, endTime).toMillis() / 3_600_000.0
+        return if (hours > 0.0) distanceKm / hours else 0.0
     }
 
     private companion object {

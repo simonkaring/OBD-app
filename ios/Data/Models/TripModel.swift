@@ -88,15 +88,24 @@ public final class TripModel {
     }
 
     public var computedAverageSpeedKmH: Double {
-        let speedSamples = samplePoints.lazy.map(\.speedKmH).filter { $0.isFinite }
-        var count = 0
-        var sum = 0.0
-        for s in speedSamples {
-            sum += s
-            count += 1
+        let validSamples = samplePoints.filter { $0.speedKmH.isFinite }.sorted { $0.timestamp < $1.timestamp }
+        if validSamples.count >= 2 {
+            var weightedSum = 0.0
+            var totalDuration: TimeInterval = 0.0
+            for i in 0..<(validSamples.count - 1) {
+                let dt = validSamples[i + 1].timestamp.timeIntervalSince(validSamples[i].timestamp)
+                if dt > 0 && dt <= 300 {
+                    let avgSpeed = (validSamples[i].speedKmH + validSamples[i + 1].speedKmH) / 2.0
+                    weightedSum += avgSpeed * dt
+                    totalDuration += dt
+                }
+            }
+            if totalDuration > 0 {
+                return weightedSum / totalDuration
+            }
         }
-        if count > 0 {
-            return sum / Double(count)
+        if let single = validSamples.first {
+            return single.speedKmH
         }
         if averageSpeedKmH > 0 {
             return averageSpeedKmH

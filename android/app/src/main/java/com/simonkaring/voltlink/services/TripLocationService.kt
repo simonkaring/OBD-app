@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -15,6 +16,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.simonkaring.voltlink.MainActivity
 import com.simonkaring.voltlink.R
@@ -166,7 +168,12 @@ class TripLocationService : Service(), LocationListener {
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIFICATION_ID, ongoingNotification())
+        ServiceCompat.startForeground(
+            this,
+            NOTIFICATION_ID,
+            ongoingNotification(),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+        )
         requestUpdates()
         TripLocation.markRecording(true)
         return START_NOT_STICKY

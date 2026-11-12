@@ -276,7 +276,11 @@ public final class TripTrackingManager {
         }
 
         let applyMerge = {
-            older.samples?.append(contentsOf: copies)
+            if older.samples == nil {
+                older.samples = copies
+            } else {
+                older.samples?.append(contentsOf: copies)
+            }
             older.distanceKm += newer.distanceKm
             older.totalKWhUsed += newer.totalKWhUsed
             if let olderRecovered = older.totalKWhRecovered, let newerRecovered = newer.totalKWhRecovered {
@@ -333,14 +337,16 @@ public final class TripTrackingManager {
 
         if stationaryTimer == nil {
             stationaryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                guard let self = self, let start = self.stationaryStartDate, self.isRecordingTrip, self.isAutoTripEnabled else { return }
-                let currentElapsed = Int(Date().timeIntervalSince(start))
-                let remaining = max(0, self.autoStopDelaySeconds - currentElapsed)
-                self.stationarySecondsRemaining = remaining
+                MainActor.assumeIsolated {
+                    guard let self = self, let start = self.stationaryStartDate, self.isRecordingTrip, self.isAutoTripEnabled else { return }
+                    let currentElapsed = Int(Date().timeIntervalSince(start))
+                    let remaining = max(0, self.autoStopDelaySeconds - currentElapsed)
+                    self.stationarySecondsRemaining = remaining
 
-                if currentElapsed >= self.autoStopDelaySeconds {
-                    // Read the SoC as of now; the value at countdown start is minutes stale.
-                    self.stopTrip(endSoc: self.latestSoc)
+                    if currentElapsed >= self.autoStopDelaySeconds {
+                        // Read the SoC as of now; the value at countdown start is minutes stale.
+                        self.stopTrip(endSoc: self.latestSoc)
+                    }
                 }
             }
         }
@@ -435,7 +441,11 @@ public final class TripTrackingManager {
             socPct: telemetry.stateOfChargePct,
             batteryTempC: telemetry.batteryTempC
         )
-        trip.samples?.append(sample)
+        if trip.samples == nil {
+            trip.samples = [sample]
+        } else {
+            trip.samples?.append(sample)
+        }
         trimStoredSamples(on: trip)
     }
 

@@ -31,12 +31,6 @@ let package = Package(
             path: ".",
             exclude: [
                 "README.md",
-                "LICENSE",
-                "CLAUDE.md",
-                "INSTRUCTIONS.md",
-                "AGENTS.md",
-                "ruvector.db",
-                "skills-lock.json",
                 "build",
                 "docs",
                 "knowledge",
@@ -50,7 +44,6 @@ let package = Package(
                 "App/VoltLink.entitlements",
                 "App/PrivacyInfo.xcprivacy",
                 "App/Localizable.xcstrings",
-                "opencode.json",
             ],
             sources: [
                 "App",

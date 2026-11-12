@@ -369,7 +369,11 @@ public final class ChargingTrackingManager: ObservableObject {
             guard socChanged || timeElapsed else { return }
         }
         let sample = ChargingSampleModel(timestamp: date, socPct: socPct, powerKW: max(0, powerKW))
-        session.samples?.append(sample)
+        if session.samples == nil {
+            session.samples = [sample]
+        } else {
+            session.samples?.append(sample)
+        }
         lastCurveSample = (date, socPct)
     }
 }

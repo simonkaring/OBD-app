@@ -163,15 +163,24 @@ private class VoltLinkDatabase(context: Context) : SQLiteOpenHelper(context, "vo
     }
 }
 
+interface TripHistoryStore {
+    val trips: StateFlow<List<TripRecord>>
+    suspend fun saveTrip(trip: TripRecord, samples: List<TripSample> = trip.samples)
+    suspend fun saveTripProgress(trip: TripRecord, newSamples: List<TripSample> = emptyList())
+    suspend fun deleteTrip(id: String)
+    suspend fun clearAllTrips()
+    suspend fun loadTripSamples(tripId: String): List<TripSample>
+}
+
 /**
  * Persistence for trips, charging sessions and battery-health readings. Writes happen on
  * [Dispatchers.IO]; published lists refresh after every write so the UI stays in sync.
  */
-class HistoryStore(context: Context, private val scope: CoroutineScope) {
+class HistoryStore(context: Context, private val scope: CoroutineScope) : TripHistoryStore {
     private val db = VoltLinkDatabase(context.applicationContext)
 
     private val _trips = MutableStateFlow<List<TripRecord>>(emptyList())
-    val trips: StateFlow<List<TripRecord>> = _trips.asStateFlow()
+    override val trips: StateFlow<List<TripRecord>> = _trips.asStateFlow()
 
     private val _chargingSessions = MutableStateFlow<List<ChargingSessionRecord>>(emptyList())
     val chargingSessions: StateFlow<List<ChargingSessionRecord>> = _chargingSessions.asStateFlow()
@@ -205,27 +214,41 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
         scope.launch { _batteryHealth.value = loadBatteryHealth() }
     }
 
-    suspend fun saveTrip(trip: TripRecord, samples: List<TripSample> = trip.samples) =
+    override suspend fun saveTrip(trip: TripRecord, samples: List<TripSample>) =
         tripWrites.withLock {
             withContext(Dispatchers.IO) {
-                upsertTrip(trip)
-                db.writableDatabase.delete("trip_samples", "trip_id = ?", arrayOf(trip.id))
-                if (samples.isNotEmpty()) insertTripSamples(trip.id, samples)
+                val writable = db.writableDatabase
+                writable.beginTransaction()
+                try {
+                    upsertTrip(writable, trip)
+                    writable.delete("trip_samples", "trip_id = ?", arrayOf(trip.id))
+                    if (samples.isNotEmpty()) insertTripSamples(writable, trip.id, samples)
+                    writable.setTransactionSuccessful()
+                } finally {
+                    writable.endTransaction()
+                }
                 refreshTrips()
             }
         }
 
     /** Saves the in-progress trip row and appends only the samples recorded since the last save. */
-    suspend fun saveTripProgress(trip: TripRecord, newSamples: List<TripSample> = emptyList()) =
+    override suspend fun saveTripProgress(trip: TripRecord, newSamples: List<TripSample>) =
         tripWrites.withLock {
             withContext(Dispatchers.IO) {
-                upsertTrip(trip)
-                if (newSamples.isNotEmpty()) insertTripSamples(trip.id, newSamples)
+                val writable = db.writableDatabase
+                writable.beginTransaction()
+                try {
+                    upsertTrip(writable, trip)
+                    if (newSamples.isNotEmpty()) insertTripSamples(writable, trip.id, newSamples)
+                    writable.setTransactionSuccessful()
+                } finally {
+                    writable.endTransaction()
+                }
                 refreshTrips()
             }
         }
 
-    private fun upsertTrip(trip: TripRecord) {
+    private fun upsertTrip(writable: SQLiteDatabase, trip: TripRecord) {
         val values = ContentValues().apply {
             put("id", trip.id)
             put("start_time", trip.startTime.toEpochMilli())
@@ -240,47 +263,55 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
             put("max_regen", trip.maxRegenKW)
             put("vehicle_name", trip.vehicleName)
         }
-        db.writableDatabase.insertWithOnConflict("trips", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+        writable.insertWithOnConflict("trips", null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
-    private fun insertTripSamples(tripId: String, samples: List<TripSample>) {
-        db.writableDatabase.beginTransaction()
-        try {
-            samples.forEach { sample ->
-                db.writableDatabase.insert(
-                    "trip_samples",
-                    null,
-                    ContentValues().apply {
-                        put("trip_id", tripId)
-                        put("timestamp", sample.timestamp.toEpochMilli())
-                        put("latitude", sample.latitude)
-                        put("longitude", sample.longitude)
-                        put("speed", sample.speedKmH)
-                        put("power", sample.powerKW)
-                        put("soc", sample.socPct)
-                        put("battery_temp", sample.batteryTempC)
-                    },
-                )
-            }
-            db.writableDatabase.setTransactionSuccessful()
-        } finally {
-            db.writableDatabase.endTransaction()
+    private fun insertTripSamples(writable: SQLiteDatabase, tripId: String, samples: List<TripSample>) {
+        samples.forEach { sample ->
+            writable.insert(
+                "trip_samples",
+                null,
+                ContentValues().apply {
+                    put("trip_id", tripId)
+                    put("timestamp", sample.timestamp.toEpochMilli())
+                    put("latitude", sample.latitude)
+                    put("longitude", sample.longitude)
+                    put("speed", sample.speedKmH)
+                    put("power", sample.powerKW)
+                    put("soc", sample.socPct)
+                    put("battery_temp", sample.batteryTempC)
+                },
+            )
         }
     }
 
-    suspend fun deleteTrip(id: String) = withContext(Dispatchers.IO) {
-        db.writableDatabase.delete("trip_samples", "trip_id = ?", arrayOf(id))
-        db.writableDatabase.delete("trips", "id = ?", arrayOf(id))
+    override suspend fun deleteTrip(id: String) = withContext(Dispatchers.IO) {
+        val writable = db.writableDatabase
+        writable.beginTransaction()
+        try {
+            writable.delete("trip_samples", "trip_id = ?", arrayOf(id))
+            writable.delete("trips", "id = ?", arrayOf(id))
+            writable.setTransactionSuccessful()
+        } finally {
+            writable.endTransaction()
+        }
         refreshTrips()
     }
 
-    suspend fun clearAllTrips() = withContext(Dispatchers.IO) {
-        db.writableDatabase.delete("trip_samples", null, null)
-        db.writableDatabase.delete("trips", null, null)
+    override suspend fun clearAllTrips() = withContext(Dispatchers.IO) {
+        val writable = db.writableDatabase
+        writable.beginTransaction()
+        try {
+            writable.delete("trip_samples", null, null)
+            writable.delete("trips", null, null)
+            writable.setTransactionSuccessful()
+        } finally {
+            writable.endTransaction()
+        }
         refreshTrips()
     }
 
-    suspend fun loadTripSamples(tripId: String): List<TripSample> = withContext(Dispatchers.IO) {
+    override suspend fun loadTripSamples(tripId: String): List<TripSample> = withContext(Dispatchers.IO) {
         val samples = mutableListOf<TripSample>()
         db.readableDatabase.rawQuery(
             "SELECT timestamp, latitude, longitude, speed, power, soc, battery_temp FROM trip_samples WHERE trip_id = ? ORDER BY timestamp",
@@ -335,48 +366,62 @@ class HistoryStore(context: Context, private val scope: CoroutineScope) {
     }
 
     suspend fun saveChargingSession(session: ChargingSessionRecord) = withContext(Dispatchers.IO) {
-        db.writableDatabase.insertWithOnConflict(
-            "charging_sessions",
-            null,
-            ContentValues().apply {
-                put("id", session.id)
-                put("start_time", session.startTime.toEpochMilli())
-                put("end_time", session.endTime?.toEpochMilli())
-                put("start_soc", session.startSocPct)
-                put("end_soc", session.endSocPct)
-                put("kwh", session.totalKWhDelivered)
-                put("peak_power", session.peakPowerKW)
-                put("avg_power", session.averagePowerKW)
-                put("location_name", session.locationName)
-                putNullable("latitude", session.latitude)
-                putNullable("longitude", session.longitude)
-                putNullable("start_temp", session.startBatteryTempC)
-                putNullable("end_temp", session.endBatteryTempC)
-                putNullable("start_range", session.startRangeKm)
-                putNullable("end_range", session.endRangeKm)
-                putNullable("is_dc", session.isDC?.let { if (it) 1 else 0 })
-            },
-            SQLiteDatabase.CONFLICT_REPLACE,
-        )
-        db.writableDatabase.delete("charging_samples", "session_id = ?", arrayOf(session.id))
-        session.samples.forEach { sample ->
-            db.writableDatabase.insert(
-                "charging_samples",
+        val writable = db.writableDatabase
+        writable.beginTransaction()
+        try {
+            writable.insertWithOnConflict(
+                "charging_sessions",
                 null,
                 ContentValues().apply {
-                    put("session_id", session.id)
-                    put("timestamp", sample.timestamp.toEpochMilli())
-                    put("soc", sample.socPct)
-                    put("power", sample.powerKW)
+                    put("id", session.id)
+                    put("start_time", session.startTime.toEpochMilli())
+                    put("end_time", session.endTime?.toEpochMilli())
+                    put("start_soc", session.startSocPct)
+                    put("end_soc", session.endSocPct)
+                    put("kwh", session.totalKWhDelivered)
+                    put("peak_power", session.peakPowerKW)
+                    put("avg_power", session.averagePowerKW)
+                    put("location_name", session.locationName)
+                    putNullable("latitude", session.latitude)
+                    putNullable("longitude", session.longitude)
+                    putNullable("start_temp", session.startBatteryTempC)
+                    putNullable("end_temp", session.endBatteryTempC)
+                    putNullable("start_range", session.startRangeKm)
+                    putNullable("end_range", session.endRangeKm)
+                    putNullable("is_dc", session.isDC?.let { if (it) 1 else 0 })
                 },
+                SQLiteDatabase.CONFLICT_REPLACE,
             )
+            writable.delete("charging_samples", "session_id = ?", arrayOf(session.id))
+            session.samples.forEach { sample ->
+                writable.insert(
+                    "charging_samples",
+                    null,
+                    ContentValues().apply {
+                        put("session_id", session.id)
+                        put("timestamp", sample.timestamp.toEpochMilli())
+                        put("soc", sample.socPct)
+                        put("power", sample.powerKW)
+                    },
+                )
+            }
+            writable.setTransactionSuccessful()
+        } finally {
+            writable.endTransaction()
         }
         refreshChargingSessions()
     }
 
     suspend fun deleteChargingSession(id: String) = withContext(Dispatchers.IO) {
-        db.writableDatabase.delete("charging_samples", "session_id = ?", arrayOf(id))
-        db.writableDatabase.delete("charging_sessions", "id = ?", arrayOf(id))
+        val writable = db.writableDatabase
+        writable.beginTransaction()
+        try {
+            writable.delete("charging_samples", "session_id = ?", arrayOf(id))
+            writable.delete("charging_sessions", "id = ?", arrayOf(id))
+            writable.setTransactionSuccessful()
+        } finally {
+            writable.endTransaction()
+        }
         refreshChargingSessions()
     }
 

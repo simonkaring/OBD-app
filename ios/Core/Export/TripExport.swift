@@ -8,6 +8,8 @@ import UniformTypeIdentifiers
 /// `Transferable` representation never touches a `ModelContext` off the main actor.
 public enum TripExport {
 
+    private static let posixLocale = Locale(identifier: "en_US_POSIX")
+
     // MARK: - CSV
 
     public static func csv(for trip: TripModel) -> String {
@@ -16,7 +18,7 @@ public enum TripExport {
         for sample in trip.samplePoints.sorted(by: { $0.timestamp < $1.timestamp }) {
             let coordinate: (lat: String, lon: String) =
                 sample.hasValidCoordinate
-                ? (String(format: "%.6f", sample.latitude), String(format: "%.6f", sample.longitude))
+                ? (String(format: "%.6f", locale: posixLocale, sample.latitude), String(format: "%.6f", locale: posixLocale, sample.longitude))
                 : ("", "")
             lines.append(
                 [
@@ -38,15 +40,15 @@ public enum TripExport {
         let row = [
             iso8601(session.startTime),
             session.endTime.map(iso8601) ?? "",
-            duration.map { String(format: "%.1f", $0) } ?? "",
+            duration.map { String(format: "%.1f", locale: posixLocale, $0) } ?? "",
             number(session.startSocPct),
             number(session.endSocPct),
             number(session.totalKWhDelivered),
             number(session.peakPowerKW),
             number(session.averagePowerKW),
             csvField(session.locationName),
-            session.latitude.map { String(format: "%.6f", $0) } ?? "",
-            session.longitude.map { String(format: "%.6f", $0) } ?? "",
+            session.latitude.map { String(format: "%.6f", locale: posixLocale, $0) } ?? "",
+            session.longitude.map { String(format: "%.6f", locale: posixLocale, $0) } ?? "",
         ].joined(separator: ",")
         return [header, row].joined(separator: "\n") + "\n"
     }
@@ -63,7 +65,7 @@ public enum TripExport {
         for sample in route {
             points.append(
                 """
-                      <trkpt lat="\(String(format: "%.6f", sample.latitude))" lon="\(String(format: "%.6f", sample.longitude))">
+                      <trkpt lat="\(String(format: "%.6f", locale: posixLocale, sample.latitude))" lon="\(String(format: "%.6f", locale: posixLocale, sample.longitude))">
                         <time>\(iso8601(sample.timestamp))</time>
                         <extensions>
                           <speed>\(number(sample.speedKmH))</speed>
@@ -111,7 +113,7 @@ public enum TripExport {
 
     private static func number(_ value: Double) -> String {
         guard value.isFinite else { return "" }
-        return String(format: "%.3f", value)
+        return String(format: "%.3f", locale: posixLocale, value)
     }
 
     private static func csvField(_ value: String) -> String {
